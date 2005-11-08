@@ -37,7 +37,7 @@ ad_library {
 
     @author stefan.sobernig@wu-wien.ac.at
     @creation-date August 18, 2005
-    @cvs-id $Id $
+    @cvs-id $Id$
 
   
 }
