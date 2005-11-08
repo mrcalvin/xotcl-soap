@@ -4,6 +4,7 @@ ad_library {
 
     @author stefan.sobernig@wu-wien.ac.at
     @creation-date 2005-08-18
+    @cvs-id $Id$
 }
 											
 set pkg_prefix "/xosoap"
