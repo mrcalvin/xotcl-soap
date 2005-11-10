@@ -37,11 +37,16 @@ namespace eval services {
 ::xosoap::Interceptor LoggingInterceptor -superclass {::xosoap::RequestInterceptor ::xosoap::ResponseInterceptor}
 LoggingInterceptor instproc handleRequest args {
 	
+	# 1) retrieve args
+	my log "Request1 bekommt args: [lindex $args 1]"
+	# 2) modify args
 	
-	set request [next]
-	my log "request1: [lindex $args 0]"	
-	#return $request
-}
+	# 3) pass on args or return
+	next [lindex $args 0] [lindex $args 1] 
+	#return "ns_return 200 text/plain {Alles ok}"
+	
+	
+	}
 LoggingInterceptor instproc handleResponse args {
 		
 	my log "response1: $args"
@@ -49,22 +54,23 @@ LoggingInterceptor instproc handleResponse args {
 
 }
 
-::xosoap::Interceptor LoggingInterceptor2 -superclass ::xosoap::ResponseInterceptor
 
-LoggingInterceptor2 instproc handleResponse args {
+#::xosoap::Interceptor LoggingInterceptor2 -superclass ::xosoap::ResponseInterceptor
+
+#LoggingInterceptor2 instproc handleResponse args {
 		
-	my log "response2: $args"
-	next [lindex $args 0]
+#	my log "response2: $args"
+#	next [lindex $args 0]
 
-}
+#}
 
-::xosoap::Interceptor LoggingInterceptor3 -superclass ::xosoap::RequestInterceptor
+#::xosoap::Interceptor LoggingInterceptor3 -superclass ::xosoap::RequestInterceptor
 
-LoggingInterceptor3 instproc handleRequest args {
+#LoggingInterceptor3 instproc handleRequest args {
 		
-set request [next]
-	my log "request3: [lindex $args 0]"	
+#set request [next]
+#	my log "request3: [lindex $args 0]"	
 
-}
+#}
 
 }

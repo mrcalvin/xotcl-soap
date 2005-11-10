@@ -331,7 +331,7 @@ LifecycleManager::ServantProxy ad_instproc delegate args {
       } else {
       
       	# get Lifecycle Manager from Registry
-      	set manager [::xosoap::tsfInvoker do Invoker::LCMRegistry get [my objectID]]
+      	set manager [::xosoap::InvokerThread do ConcreteInvoker::LCMRegistry get [my objectID]]
       	# notify Manager
       	#my log "[self]: gets $manager"
       	set shadowedObj [$manager invocationDisembarked]      

@@ -26,7 +26,7 @@ ad_library {
     <p>Library providing basic xoSoap facilities:</p>
     <p>
     <ul>
-    	<li>RequestMessageHandler: provides a filter for request processing, a pre-authentication hook and basic (SOAP) message delivery</li>
+    	<li>MessageHandler: provides a filter for request processing, a pre-authentication hook and basic (SOAP) message delivery</li>
     	<li>Interceptor: provides an extensible chain of request/response handlers</li>
     	<li>Invoker: allows registration of new services and moderates the entire invocation process of remote objects</li>
     	<li>Service: a prototype for services to be hosted by xoSoap</li>
@@ -45,16 +45,99 @@ ad_library {
 
 namespace eval xosoap {}
 
+####################################################
+# Implementing a chain of interceptors + flows
+####################################################
+
+::xotcl::Class xosoap::RequestInterceptor -ad_doc {
+
+	<p>The class hosts an abstract method that is required to be implemented by interceptors that are meant to listen on the request flow in the chain of interceptors. Interceptors can both participate in the request and response flow with the latter requiring the implementation of <a href='/xotcl/show-object?object=xosoap::ResponseInterceptor'>xosoap::ResponseInterceptor</a>.</p>
+
+	@author stefan.sobernig@wu-wien.ac.at
+	@creation-date October 10, 2005 
+	
+	}
+::xosoap::RequestInterceptor abstract instproc handleRequest args 
+
+::xotcl::Class xosoap::ResponseInterceptor -ad_doc {
+
+	
+	<p>The class hosts an abstract method that is required to be implemented by interceptors that are meant to listen on the response flow in the chain of interceptors. Interceptors can both participate in the response and request flow with the latter requiring the implementation of <a href='/xotcl/show-object?object=xosoap::RequestInterceptor'>xosoap::RequestInterceptor</a>.</p>
+
+	@author stefan.sobernig@wu-wien.ac.at
+	@creation-date October 10, 2005 
+	
+}
+::xosoap::ResponseInterceptor abstract instproc handleResponse args
+
+::xotcl::Class xosoap::InterceptorChain
+
+::xosoap::InterceptorChain instproc init args {
+
+	# nest an object into [self] that represents the mixin-hook for request interceptors ("request flow")
+	::xosoap::RequestInterceptor [self]::RequestFlow -proc handleRequest args {}
+	
+	
+	# nest an object into [self] that represents the mixin-hook for response interceptors ("response flow")
+	::xosoap::ResponseInterceptor [self]::ResponseFlow -proc handleResponse args {}
+}
+
+::xosoap::InterceptorChain instproc handleRequest args {
+	
+	my log "handleRequest: RequestFlow takes it."	
+	return [[self]::RequestFlow handleRequest [lindex $args 0] [lindex $args 1]]
+
+}
+
+::xosoap::InterceptorChain instproc handleResponse args {
+	
+	my log "handleResponse: ResponseFlow takes it."
+	return [[self]::ResponseFlow handleResponse [lindex $args 0]]
+	
+}
+
+::xosoap::InterceptorChain instproc addInterceptor {interceptor} {
+	#puts $interceptor
+	foreach interceptType [$interceptor info superclass] {
+		
+		set targetedFlow ""
+		switch $interceptType {
+			"::xosoap::RequestInterceptor"		{ set targetedFlow {[self]::RequestFlow} }			
+			"::xosoap::ResponseInterceptor"		{ set targetedFlow {[self]::ResponseFlow}}
+			default 							{ continue }
+		}
+		
+		eval $targetedFlow mixin add $interceptor end
+		
+		# make sure that a flow bouncer closes a chain / flow of interceptors is allows on top of the mixin list.
+					
+		set idx [lsearch [eval $targetedFlow mixin] "::xosoap::FlowBouncer*"]
+			my log "idx: $idx"
+			if {![string equal $idx "-1"] && ![ expr { [expr { $idx+1 }] == [llength [eval $targetedFlow mixin]] }]} {
+				
+				set tmpBouncer [lindex [eval $targetedFlow mixin] $idx]
+				set tmpMixinList [lreplace [eval $targetedFlow mixin] $idx $idx]
+				lappend tmpMixinList $tmpBouncer
+				my log "tmpMixinList: $tmpMixinList"
+				eval $targetedFlow mixin  {$tmpMixinList}			
+			}
+			
+	}  
+	
+	my log "mixin lists: rqf: [[self]::RequestFlow mixin], rpf: [[self]::ResponseFlow mixin]"
+}
+
+
 
  
 ####################################################
 # Request Message Handler
 ####################################################
 
-::xotcl::Object xosoap::RequestMessageHandler -ad_doc {
+::xotcl::Class xosoap::MessageHandler -superclass ::xosoap::InterceptorChain -ad_doc {
     
 
-     <p>The object xosoap::RequestMessageHandler implements the Server Request
+     <p>The object xosoap::MessageHandler implements the Server Request
      Handler pattern. It aims at ...<p>
      <p>
      <ul>
@@ -71,7 +154,7 @@ namespace eval xosoap {}
  }										
 										
 
-::xosoap::RequestMessageHandler ad_proc init {} {
+::xosoap::MessageHandler ad_instproc init {} {
 	
 	Upon intialisation, some credentials are prepared and made instance variables. 
     They will later be used to populate a connection object.
@@ -80,11 +163,25 @@ namespace eval xosoap {}
 	@creation-date August 18, 2005
 	
       
-    @see xosoap::RequestMessageHandler::preauth
+    @see xosoap::MessageHandler::preauth
 
 
 } {
 
+	# provide for the chain of interceptor to be initialised
+	next
+    }
+
+::xosoap::MessageHandler ad_instproc preauth {} {
+
+	The method serves as pre-authentication filter hooked into the request processor flow (ns_register_filter; see xosoap-init.tcl).
+	HTTP POST requests that target the xosoap subsite are redirected and processed by this filter method. It clears the current 	
+	connection object and, after successful authentication, populates a new one. (Note: Authentication is currently not handled at the level of HTTP but delegated to SOAP, in other words, requesting clients will -- by default -- be authenticated as anonymous / guest users. Authentication & authorization credentials would therefore be submitted in the SOAP-ENV:Header element of the request message and the task to verify these against respective permission settings of a subsite / package is to be taken care of when developing services.)
+	
+    @author stefan.sobernig@wu-wien.ac.at
+	@creation-date August 18, 2005
+		
+} {
     my set user_id "" 
     my set url ""
     my set urlv "" 
@@ -99,20 +196,6 @@ namespace eval xosoap {}
 
     my set package_prefix "xosoap"
     my set service_prefix "services"
-
-    }
-
-::xosoap::RequestMessageHandler ad_proc preauth {} {
-
-	The method serves as pre-authentication filter hooked into the request processor flow (ns_register_filter; see xosoap-init.tcl).
-	HTTP POST requests that target the xosoap subsite are redirected and processed by this filter method. It clears the current 	
-	connection object and, after successful authentication, populates a new one. (Note: Authentication is currently not handled at the level of HTTP but delegated to SOAP, in other words, requesting clients will -- by default -- be authenticated as anonymous / guest users. Authentication & authorization credentials would therefore be submitted in the SOAP-ENV:Header element of the request message and the task to verify these against respective permission settings of a subsite / package is to be taken care of when developing services.)
-	
-    @author stefan.sobernig@wu-wien.ac.at
-	@creation-date August 18, 2005
-		
-} {
-    my init
 
     my instvar user_id url urlv user password
 	
@@ -142,7 +225,7 @@ namespace eval xosoap {}
     }
 }
 
-::xosoap::RequestMessageHandler ad_proc handleRequest args  {
+::xosoap::MessageHandler ad_instproc handleRequest args  {
 
 	A call on this method initiates the processing for the chain of request handlers.
 	As default endpoint of the request flow, the <a href='/xotcl/show-object?object=::xosoap::InvocationInterceptor'>::xosoap::InvocationInterceptor</a> mixin class provides 
@@ -155,9 +238,12 @@ namespace eval xosoap {}
 	
 	@see <a href='/api-doc/proc-view?proc=::xosoap::RequestInterceptor+abstract+instproc+handleRequest'>::xosoap::RequestInterceptor abstract handleRequest</a>
 	@see <a href='/api-doc/proc-view?proc=::xosoap::InvocationInterceptor+instproc+handleRequest'>::xosoap::InvocationInterceptor handleRequest</a>
-} {}
+} {	set invocationResult [next]
+	my log "Ergebnis? $invocationResult"
+	my handleResponse $invocationResult 
+	}
 
-::xosoap::RequestMessageHandler ad_proc handleResponse args  {
+::xosoap::MessageHandler ad_instproc handleResponse args  {
 
 	The method is the endpoint operation of the response handler chain that is triggered
 	by the <a href='/xotcl/show-object?object=::xosoap::InvocationInterceptor'>::xosoap::InvocationInterceptor</a>
@@ -174,11 +260,11 @@ namespace eval xosoap {}
 } {
 	
 	# handler chain or response flow cast result command as multiple embedded list element
-	
-	eval [lindex $args 0]
+	set responseFlowResult [next]
+	eval $responseFlowResult
 }
 
-::xosoap::RequestMessageHandler ad_proc preprocessRequest {} {
+::xosoap::MessageHandler ad_instproc preprocessRequest {} {
 
 	The method is registered as post-authentication "request processor procedure" (ns_register_proc; see xosoap-init.tcl).
 	HTTP POST requests that target the xosoap subsite are redirected and processed by this method. It decomposes the received
@@ -214,18 +300,21 @@ namespace eval xosoap {}
    }
 }
 
+# instantiate a single request handler object
+::xosoap::MessageHandler create xosoap::ConcreteMessageHandler
+
 ####################################################
 # Interceptor (Meta-)Class
 ####################################################
 
 
-::xotcl::Class xosoap::Interceptor -superclass ::xotcl::Class -ad_doc {
+::xotcl::Class xosoap::Interceptor -superclass ::xotcl::Class -parameter {{scope 0}} -ad_doc {
 
 		<p>The meta-class xosoap::Interceptor implements a skeleton for request and/ or reponse handlers.
 	     While the actual handler chain is realized by using XOTcl's mixin interception technique, i.e. 
-	     interceptors/ handlers are classes that are mixed into <a href='/xotcl/show-object?object=xosoap::RequestMessageHandler'>xosoap::RequestMessageHandler</a>, this meta-class takes explicitly care
+	     interceptors/ handlers are classes that are mixed into <a href='/xotcl/show-object?object=xosoap::MessageHandler'>xosoap::MessageHandler</a>, this meta-class takes explicitly care
 	     of registering interceptors/ handlers upon their declaration. Therefore, it mangles the list of mixin classes
-	     attached to <a href='/xotcl/show-object?object=xosoap::RequestMessageHandler'>xosoap::RequestMessageHandler</a>
+	     attached to <a href='/xotcl/show-object?object=xosoap::MessageHandler'>xosoap::MessageHandler</a>
 	     in several ways (see corresponding init method for more details).</p>
 	     
 
@@ -252,71 +341,37 @@ namespace eval xosoap {}
  		@see <a href='/xotcl/show-object?object=::xosoap::InvocationInterceptor'>::xosoap::InvocationInterceptor</a>
  		@see <a href='/xotcl/show-object?object=::xosoap::RequestInterceptor'>::xosoap::RequestInterceptor</a>
 		@see <a href='/xotcl/show-object?object=::xosoap::ResponseInterceptor'>::xosoap::ResponseInterceptor</a>
-		@see <a href='/xotcl/show-object?object=::xosoap::RequestMessageHandler'>::xosoap::RequestMessageHandler</a>
+		@see <a href='/xotcl/show-object?object=::xosoap::MessageHandler'>::xosoap::MessageHandler</a>
 
 } {
-
-	# Interceptors to be inserted into the request flow are added "on front"
-	if { [[self] info superclass "::xosoap::RequestInterceptor"]  } {
 	
-			::xosoap::RequestMessageHandler mixin add [self]
-			
-			# make InvocationInterceptor a sticky bit in the request flow
-			
-			if { ![string equal [self] "::xosoap::InvocationInterceptor"]  &&  ![string equal [lsearch [::xosoap::RequestMessageHandler info mixin] "::xosoap::InvocationInterceptor"] "-1"] } { 
-					#my log "[self] ... will now delete InvocationInterceptor"
-					::xosoap::RequestMessageHandler mixin delete ::xosoap::InvocationInterceptor 
-				}
-			
-			::xosoap::RequestMessageHandler mixin add ::xosoap::InvocationInterceptor 0
-			
-			
-	} else {
-	# Interceptors to be inserted into the response flow are added to the end of the mixin list
-			::xosoap::RequestMessageHandler mixin add [self] end
+	
+	# add interceptor to the respective / selected scope
+	
+	switch [my scope] {
+	
+		0	{::xosoap::ConcreteMessageHandler addInterceptor [self]} # connection-thread scope
+		1	{eval ad_after_server_initialization [self] {::xosoap::InvokerThread do ConcreteInvoker addInterceptor [self]}} # application scope
+	
+	}	
 	
 	}
-	
-	my log "MixinList: [::xosoap::RequestMessageHandler info mixin]"
-	
-		
-}
 
-::xotcl::Class xosoap::RequestInterceptor -ad_doc {
+# defining and hooking-in flow bouncers for both the application and conn-thread scope
 
-	<p>The class hosts an abstract method that is required to be implemented by interceptors that are meant to listen on the request flow in the chain of interceptors. Interceptors can both participate in the request and response flow with the latter requiring the implementation of <a href='/xotcl/show-object?object=xosoap::ResponseInterceptor'>xosoap::ResponseInterceptor</a>.</p>
 
-	@author stefan.sobernig@wu-wien.ac.at
-	@creation-date October 10, 2005 
-	
-	}
-::xosoap::RequestInterceptor abstract instproc handleRequest args 
+::xosoap::Interceptor xosoap::FlowBouncerForMessageChain -superclass  {::xosoap::RequestInterceptor ::xosoap::ResponseInterceptor} -ad_doc {
 
-::xotcl::Class xosoap::ResponseInterceptor -ad_doc {
-
-	
-	<p>The class hosts an abstract method that is required to be implemented by interceptors that are meant to listen on the response flow in the chain of interceptors. Interceptors can both participate in the response and request flow with the latter requiring the implementation of <a href='/xotcl/show-object?object=xosoap::RequestInterceptor'>xosoap::RequestInterceptor</a>.</p>
-
-	@author stefan.sobernig@wu-wien.ac.at
-	@creation-date October 10, 2005 
-	
-}
-::xosoap::ResponseInterceptor abstract instproc handleResponse args
-
-# defining and hooking-in the chain sibling of the RequestMessageHandler object (InvocationInterceptor)
-
-::xosoap::Interceptor xosoap::InvocationInterceptor -superclass ::xosoap::RequestInterceptor -ad_doc {
-
-		<p>The class defines a specific built-in interceptor that is made sticky on top of the chain of interceptors attached to <a href='/xotcl/show-object?object=xosoap::RequestMessageHandler'>xosoap::RequestMessageHandler</a>. It solely listens on the request track within the chain of interceptors and processes requests last.</p>
+		<p>The class defines a specific built-in interceptor that is made sticky on top of the chain of interceptors attached to <a href='/xotcl/show-object?object=xosoap::MessageHandler'>xosoap::MessageHandler</a>. It solely listens on the request track within the chain of interceptors and processes requests last.</p>
 	
 
 	@author stefan.sobernig@wu-wien.ac.at
 	@creation-date October 12, 2005 
 	
 }
-::xosoap::InvocationInterceptor ad_instproc handleRequest args {
+::xosoap::FlowBouncerForMessageChain ad_instproc handleRequest args {
 		
-			<p>It is reponsible for forwarding the request and the arguments therein, i.e. the name of the service and the SOAP payload, to the Invoker thread. Finally, after incovation suceeded, it calls the handleResponse method of <a href='/xotcl/show-object?object=xosoap::RequestMessageHandler'>xosoap::RequestMessageHandler</a> to initialise the response flow.</p>
+			<p>It is reponsible for forwarding the request and the arguments therein, i.e. the name of the service and the SOAP payload, to the Invoker thread. Finally, after incovation suceeded, it calls the handleResponse method of <a href='/xotcl/show-object?object=xosoap::MessageHandler'>xosoap::MessageHandler</a> to initialise the response flow.</p>
 		
 		
 		@author stefan.sobernig@wu-wien.ac.at
@@ -325,25 +380,135 @@ namespace eval xosoap {}
 			@param args (0):contains the service name as extracted from the retrieved URL<br>(1): contains the SOAP payload of the HTTP POST request 
 	
 	@see <a href='/xotcl/show-proc?proc=::xosoap::RequestInterceptor+abstract+instproc+handleRequest'>::xosoap::RequestInterceptor abstract handleRequest</a>
-	@see <a href='/api-doc/proc-view?proc=::xosoap::RequestMessageHandler+instproc+handleRequest'>::xosoap::RequestMessageHandler handleRequest</a>
+	@see <a href='/api-doc/proc-view?proc=::xosoap::MessageHandler+instproc+handleRequest'>::xosoap::MessageHandler handleRequest</a>
 
 } {
+	
+	# 1) was bekommen
+	my log "Request3 bekommt args: [lindex $args 1]"
+	# 2) verändern
+	set invocationResult [::xosoap::InvokerThread do ConcreteInvoker handleRequest [lindex $args 0] [lindex $args 1]]
+	# 3) weitergeben
+	next	
+	return $invocationResult
+	
+}
+
+::xosoap::FlowBouncerForMessageChain ad_instproc handleResponse args {
 		
-	next
-	set benchmark [time {::xosoap::RequestMessageHandler handleResponse [::xosoap::tsfInvoker do Invoker invoke [lindex $args 0] [lindex $args 1]]}]
-	my debug "It took me $benchmark to complete."
+			<p>It is reponsible for forwarding the request and the arguments therein, i.e. the name of the service and the SOAP payload, to the Invoker thread. Finally, after incovation suceeded, it calls the handleResponse method of <a href='/xotcl/show-object?object=xosoap::MessageHandler'>xosoap::MessageHandler</a> to initialise the response flow.</p>
+		
+		
+		@author stefan.sobernig@wu-wien.ac.at
+		@creation-date October 12, 2005 
+		
+			@param args (0):contains the service name as extracted from the retrieved URL<br>(1): contains the SOAP payload of the HTTP POST request 
+	
+	@see <a href='/xotcl/show-proc?proc=::xosoap::RequestInterceptor+abstract+instproc+handleRequest'>::xosoap::RequestInterceptor abstract handleRequest</a>
+	@see <a href='/api-doc/proc-view?proc=::xosoap::MessageHandler+instproc+handleRequest'>::xosoap::MessageHandler handleRequest</a>
+
+} {
+	
+	# 1) was bekommen
+	my log "Response3 bekommt args: [lindex $args 0]"
+	# 2) verändern
+	# 3) weitergeben
+	next	
+	return [lindex $args 0]
+	
+}
+
+::xosoap::Interceptor xosoap::FlowBouncerForInvokerChain -superclass  { ::xosoap::RequestInterceptor ::xosoap::ResponseInterceptor } -scope 1 -ad_doc {
+
+		<p>The class defines a specific built-in interceptor that is made sticky on top of the chain of interceptors attached to <a href='/xotcl/show-object?object=xosoap::MessageHandler'>xosoap::MessageHandler</a>. It solely listens on the request track within the chain of interceptors and processes requests last.</p>
+	
+
+	@author stefan.sobernig@wu-wien.ac.at
+	@creation-date October 12, 2005 
+	
+}
+::xosoap::FlowBouncerForInvokerChain ad_instproc handleRequest args {
+		
+			<p>It is reponsible for forwarding the request and the arguments therein, i.e. the name of the service and the SOAP payload, to the Invoker thread. Finally, after incovation suceeded, it calls the handleResponse method of <a href='/xotcl/show-object?object=xosoap::MessageHandler'>xosoap::MessageHandler</a> to initialise the response flow.</p>
+		
+		
+		@author stefan.sobernig@wu-wien.ac.at
+		@creation-date October 12, 2005 
+		
+			@param args (0):contains the service name as extracted from the retrieved URL<br>(1): contains the SOAP payload of the HTTP POST request 
+	
+	@see <a href='/xotcl/show-proc?proc=::xosoap::RequestInterceptor+abstract+instproc+handleRequest'>::xosoap::RequestInterceptor abstract handleRequest</a>
+	@see <a href='/api-doc/proc-view?proc=::xosoap::MessageHandler+instproc+handleRequest'>::xosoap::MessageHandler handleRequest</a>
+
+} {
+	
+	# 1) was bekommen
+	my log "Request3 bekommt args: [lindex $args 1]"
+	# 2) verändern
+	set invocationResult [::xosoap::InvokerThread do ConcreteInvoker invoke [lindex $args 0] [lindex $args 1]]
+	# 3) weitergeben
+	next	
+	return $invocationResult
+	
+}
+
+::xosoap::FlowBouncerForMessageChain ad_instproc handleResponse args {
+		
+			<p>It is reponsible for forwarding the request and the arguments therein, i.e. the name of the service and the SOAP payload, to the Invoker thread. Finally, after incovation suceeded, it calls the handleResponse method of <a href='/xotcl/show-object?object=xosoap::MessageHandler'>xosoap::MessageHandler</a> to initialise the response flow.</p>
+		
+		
+		@author stefan.sobernig@wu-wien.ac.at
+		@creation-date October 12, 2005 
+		
+			@param args (0):contains the service name as extracted from the retrieved URL<br>(1): contains the SOAP payload of the HTTP POST request 
+	
+	@see <a href='/xotcl/show-proc?proc=::xosoap::RequestInterceptor+abstract+instproc+handleRequest'>::xosoap::RequestInterceptor abstract handleRequest</a>
+	@see <a href='/api-doc/proc-view?proc=::xosoap::MessageHandler+instproc+handleRequest'>::xosoap::MessageHandler handleRequest</a>
+
+} {
+	
+	# 1) was bekommen
+	my log "Response3 bekommt args: [lindex $args 0]"
+	# 2) verändern
+	# 3) weitergeben
+	next	
+	return [lindex $args 0]
+	
 }
 
 
+
 ####################################################
-# 	"thread-safe" xoSoap Invoker (ServiceRegistry)
+# 	xoSoap Invoker (ServiceRegistry)
+#	later encapsulated by persistent thread
 ####################################################
 
-::xotcl::THREAD create xosoap::tsfInvoker {
 
-::xotcl::Object Invoker
 
-Invoker ad_proc invoke { soapxmlMessage serviceName } {} {
+::xotcl::Class xosoap::Invoker -superclass ::xosoap::InterceptorChain
+
+::xosoap::Invoker ad_instproc init args {} {
+	
+	next
+
+}
+
+::xosoap::Invoker ad_instproc handleRequest args {} {
+
+	set invocationResult [next]
+	my log "Invoker-Ergebnis? $invocationResult"
+	my handleResponse $invocationResult 
+
+}
+
+::xosoap::Invoker ad_instproc handleResponse args {} {
+
+	set responseFlowResult [next]
+	return $responseFlowResult
+
+}
+
+::xosoap::Invoker ad_instproc invoke { soapxmlMessage serviceName } {} {
 
     set output ""
     set errorObj ""
@@ -405,7 +570,7 @@ set defaultException [::xosoap::Exception defaultException -errorCode "-1" -erro
     
 }
 
-Invoker ad_proc -public true register {className} {} {
+::xosoap::Invoker ad_instproc -public true register {className} {} {
 
 
 	# Lifecycle Manager Registry
@@ -443,7 +608,7 @@ Invoker ad_proc -public true register {className} {} {
 		 		
 		# call strategy specific registration
 		
-		set objProxy [::$managerName register $objIdentifier $className]
+		set objProxy [$managerName register $objIdentifier $className]
 		
 		# register with LCM
 		
@@ -466,17 +631,22 @@ Invoker ad_proc -public true register {className} {} {
 		
 }
 
-Invoker ad_proc -public true unregister {className} {} {}
+::xosoap::Invoker ad_instproc -public true unregister {className} {} {}
 
 
 ####################################################
 # xoSoap Invoker::ServiceRegistry
 ####################################################
 
- 
-::xotcl::Object Invoker::ServiceRegistry -set serviceRegistry(lastid) 0 -ad_doc {}
+::xotcl::THREAD create xosoap::InvokerThread {
 
-Invoker::ServiceRegistry ad_proc add {serviceName objProxy} {} {
+# instantiate a concrete invoker object
+
+::xosoap::Invoker create ConcreteInvoker
+ 
+::xotcl::Object ConcreteInvoker::ServiceRegistry -set serviceRegistry(lastid) 0 -ad_doc {}
+
+ConcreteInvoker::ServiceRegistry ad_proc add {serviceName objProxy} {} {
 
 	my instvar {serviceRegistry sr}
     
@@ -486,7 +656,7 @@ Invoker::ServiceRegistry ad_proc add {serviceName objProxy} {} {
 
    }
 
-Invoker::ServiceRegistry ad_proc getProxy {serviceName} {} {
+ConcreteInvoker::ServiceRegistry ad_proc getProxy {serviceName} {} {
 
     my instvar {serviceRegistry sr}
     #my log "i am here"
@@ -507,7 +677,7 @@ Invoker::ServiceRegistry ad_proc getProxy {serviceName} {} {
 	
 }
 
-Invoker::ServiceRegistry ad_proc -public true getField {rowId fieldName} {} {
+ConcreteInvoker::ServiceRegistry ad_proc -public true getField {rowId fieldName} {} {
 
     my instvar {serviceRegistry sr}
 
@@ -517,7 +687,7 @@ Invoker::ServiceRegistry ad_proc -public true getField {rowId fieldName} {} {
 
 }
 
-Invoker::ServiceRegistry ad_proc -public true getIds {} {} {
+ConcreteInvoker::ServiceRegistry ad_proc -public true getIds {} {} {
 
 	my instvar {serviceRegistry sr}
     
@@ -533,7 +703,7 @@ Invoker::ServiceRegistry ad_proc -public true getIds {} {} {
 ####################################################
 
 
-::xosoap::lifecycle::LifecycleManagerRegistry Invoker::LCMRegistry
+::xosoap::lifecycle::LifecycleManagerRegistry ConcreteInvoker::LCMRegistry
 
 } -persistent 1
 
@@ -570,7 +740,7 @@ Invoker::ServiceRegistry ad_proc -public true getIds {} {} {
 	@see ad_after_server_initialization
 } {
         
-    eval ad_after_server_initialization [self] { ::xosoap::tsfInvoker do Invoker register [self] }
+    eval ad_after_server_initialization [self] { ::xosoap::InvokerThread do ConcreteInvoker register [self] }
     
 }
 

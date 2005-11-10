@@ -13,7 +13,7 @@ set title "xoSoap's Hideout"
 
 
 
-set ids [::xosoap::tsfInvoker do Invoker::ServiceRegistry getIds]
+#set ids [::xosoap::tsfInvoker do Invoker::ServiceRegistry getIds]
 
 set output ""
 foreach class [::xosoap::Service allinstances] {

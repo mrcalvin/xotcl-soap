@@ -119,7 +119,7 @@ Marshaller ad_instproc demarshal { msgContext soapxmlRequest } {
 	@creation-date August, 19 2005
 	
 	@param msgContext The <a href='/xotcl/show-object?object=::xosoap::marshaller::MessageContext'>message context object</a> just created by the Invoker.
-	@param soapxmlRequest The serialized SOAP payload as extracted by the <a href='/xotcl/show-object?object=::xosoap::RequestMessageHandler'>xosoap::RequestMessageHandler</a>.
+	@param soapxmlRequest The serialized SOAP payload as extracted by the <a href='/xotcl/show-object?object=::xosoap::MessageHandler'>xosoap::MessageHandler</a>.
 	
 	@return An object of type <a href='/xotcl/show-object?object=::xosoap::marshaller::MessageContext'>::xosoap::marshaller::MessageContext</a> that carries the Soap syntax tree representing the Soap request.
 	
