@@ -347,11 +347,13 @@ namespace eval xosoap {}
 	
 	
 	# add interceptor to the respective / selected scope
-	
+	my log "switch scope: [my scope]"
 	switch [my scope] {
 	
-		0	{::xosoap::ConcreteMessageHandler addInterceptor [self]} # connection-thread scope
-		1	{eval ad_after_server_initialization [self] {::xosoap::InvokerThread do ConcreteInvoker addInterceptor [self]}} # application scope
+		0	{ ::xosoap::ConcreteMessageHandler addInterceptor [self] 
+		my log "conn thread: did it ..." } 
+		1	{ eval ad_after_server_initialization [self] { ::xosoap::InvokerThread do ::xosoap::ConcreteInvoker addInterceptor [self] } 
+		my log "did after_server_init ..."} 
 	
 	}	
 	
@@ -387,7 +389,7 @@ namespace eval xosoap {}
 	# 1) was bekommen
 	my log "Request3 bekommt args: [lindex $args 1]"
 	# 2) verändern
-	set invocationResult [::xosoap::InvokerThread do ConcreteInvoker handleRequest [lindex $args 0] [lindex $args 1]]
+	set invocationResult [::xosoap::InvokerThread do ::xosoap::ConcreteInvoker handleRequest [lindex $args 0] [lindex $args 1]]
 	# 3) weitergeben
 	next	
 	return $invocationResult
@@ -445,14 +447,15 @@ namespace eval xosoap {}
 	# 1) was bekommen
 	my log "Request3 bekommt args: [lindex $args 1]"
 	# 2) verändern
-	set invocationResult [::xosoap::InvokerThread do ConcreteInvoker invoke [lindex $args 0] [lindex $args 1]]
+	set invocationResult [ConcreteInvoker invoke [lindex $args 0] [lindex $args 1]]
+	
 	# 3) weitergeben
 	next	
 	return $invocationResult
 	
 }
 
-::xosoap::FlowBouncerForMessageChain ad_instproc handleResponse args {
+::xosoap::FlowBouncerForInvokerChain ad_instproc handleResponse args {
 		
 			<p>It is reponsible for forwarding the request and the arguments therein, i.e. the name of the service and the SOAP payload, to the Invoker thread. Finally, after incovation suceeded, it calls the handleResponse method of <a href='/xotcl/show-object?object=xosoap::MessageHandler'>xosoap::MessageHandler</a> to initialise the response flow.</p>
 		
@@ -477,12 +480,10 @@ namespace eval xosoap {}
 }
 
 
-
 ####################################################
 # 	xoSoap Invoker (ServiceRegistry)
 #	later encapsulated by persistent thread
 ####################################################
-
 
 
 ::xotcl::Class xosoap::Invoker -superclass ::xosoap::InterceptorChain
@@ -494,7 +495,7 @@ namespace eval xosoap {}
 }
 
 ::xosoap::Invoker ad_instproc handleRequest args {} {
-
+	
 	set invocationResult [next]
 	my log "Invoker-Ergebnis? $invocationResult"
 	my handleResponse $invocationResult 
@@ -503,6 +504,7 @@ namespace eval xosoap {}
 
 ::xosoap::Invoker ad_instproc handleResponse args {} {
 
+	my log "handleResponse: ResponseFlow takes it."	
 	set responseFlowResult [next]
 	return $responseFlowResult
 
@@ -513,13 +515,14 @@ namespace eval xosoap {}
     set output ""
     set errorObj ""
     
-if { ![catch {
+#if { ![catch {
 
-    ::xosoap::marshaller::MessageContext msgContext
+    set msgContext [::xosoap::marshaller::MessageContext msgContext]
    
-
-    ::xosoap::marshaller::Marshaller marshaller
-    set requestMsgCtx [marshaller demarshal msgContext $soapxmlMessage]
+	#my log "instances: [::xotcl::Class allinstances]"
+    set marshaller [::xosoap::marshaller::Marshaller marshallerObj]
+    my log "::xosoap::marshaller methods: [$marshaller info methods]"
+    set requestMsgCtx [$marshaller demarshal $msgContext $soapxmlMessage]
     
     ::xosoap::visitor::SoapDemarshallerVisitor dv
 
@@ -546,26 +549,26 @@ if { ![catch {
     
     # pass results to marshaller
     
-    set responseMsgCtx [marshaller marshal $requestMsgCtx $result]
+    set responseMsgCtx [$marshaller marshal $requestMsgCtx $result]
 
     set output [[$responseMsgCtx responseMessage] asXML]
     
-} errorObj]  } {
+#} errorObj]  } {
 
 	return "ns_return 200 text/xml {$output}"
 
-} else {
+#} else {
     
-   set faultObj ""
+#   set faultObj ""
 	# is exception object?
-    if {[my isobject $errorObj]} { set faultObj [::xosoap::marshaller::SoapFault faultObj -exception $errorObj]} else {
-set defaultException [::xosoap::Exception defaultException -errorCode "-1" -errorMessage "$errorObj" -faultCode "Server.Unknown"]	
-	set faultObj [::xosoap::marshaller::SoapFault faultObj -exception $defaultException] 
+#    if {[my isobject $errorObj]} { set faultObj [::xosoap::marshaller::SoapFault faultObj -exception $errorObj]} else {
+#set defaultException [::xosoap::Exception defaultException -errorCode "-1" -errorMessage "$errorObj" -faultCode "Server.Unknown"]	
+#	set faultObj [::xosoap::marshaller::SoapFault faultObj -exception $defaultException] 
 	
-    }
+#    }
     
-    return "ns_return 500 text/xml {[$faultObj asXML]}"
-}
+#    return "ns_return 500 text/xml {[$faultObj asXML]}"
+#}
 
     
 }
@@ -595,7 +598,7 @@ set defaultException [::xosoap::Exception defaultException -errorCode "-1" -erro
 		# create Lifecycle Manager and initiate lifecycle strategy
 		
 		set managerName [my autoname lcm]
-		::xosoap::lifecycle::LifecycleManager $managerName
+		set newManager [::xosoap::lifecycle::LifecycleManager $managerName]
 		
 		my debug [$className lifecycle]
 		
@@ -612,7 +615,7 @@ set defaultException [::xosoap::Exception defaultException -errorCode "-1" -erro
 		
 		# register with LCM
 		
-		[self]::LCMRegistry stock $objIdentifier ::$managerName
+		[self]::LCMRegistry stock $objIdentifier $newManager
 		
 		
 	
@@ -640,13 +643,12 @@ set defaultException [::xosoap::Exception defaultException -errorCode "-1" -erro
 
 ::xotcl::THREAD create xosoap::InvokerThread {
 
-# instantiate a concrete invoker object
 
-::xosoap::Invoker create ConcreteInvoker
- 
-::xotcl::Object ConcreteInvoker::ServiceRegistry -set serviceRegistry(lastid) 0 -ad_doc {}
+::xosoap::Invoker xosoap::ConcreteInvoker
 
-ConcreteInvoker::ServiceRegistry ad_proc add {serviceName objProxy} {} {
+::xotcl::Object ::xosoap::ConcreteInvoker::ServiceRegistry -set serviceRegistry(lastid) 0 -ad_doc {}
+
+::xosoap::ConcreteInvoker::ServiceRegistry ad_proc add {serviceName objProxy} {} {
 
 	my instvar {serviceRegistry sr}
     
@@ -656,7 +658,7 @@ ConcreteInvoker::ServiceRegistry ad_proc add {serviceName objProxy} {} {
 
    }
 
-ConcreteInvoker::ServiceRegistry ad_proc getProxy {serviceName} {} {
+::xosoap::ConcreteInvoker::ServiceRegistry ad_proc getProxy {serviceName} {} {
 
     my instvar {serviceRegistry sr}
     #my log "i am here"
@@ -677,7 +679,7 @@ ConcreteInvoker::ServiceRegistry ad_proc getProxy {serviceName} {} {
 	
 }
 
-ConcreteInvoker::ServiceRegistry ad_proc -public true getField {rowId fieldName} {} {
+::xosoap::ConcreteInvoker::ServiceRegistry ad_proc -public true getField {rowId fieldName} {} {
 
     my instvar {serviceRegistry sr}
 
@@ -687,7 +689,7 @@ ConcreteInvoker::ServiceRegistry ad_proc -public true getField {rowId fieldName}
 
 }
 
-ConcreteInvoker::ServiceRegistry ad_proc -public true getIds {} {} {
+::xosoap::ConcreteInvoker::ServiceRegistry ad_proc -public true getIds {} {} {
 
 	my instvar {serviceRegistry sr}
     
@@ -703,7 +705,7 @@ ConcreteInvoker::ServiceRegistry ad_proc -public true getIds {} {} {
 ####################################################
 
 
-::xosoap::lifecycle::LifecycleManagerRegistry ConcreteInvoker::LCMRegistry
+::xosoap::lifecycle::LifecycleManagerRegistry xosoap::ConcreteInvoker::LCMRegistry
 
 } -persistent 1
 
@@ -740,7 +742,7 @@ ConcreteInvoker::ServiceRegistry ad_proc -public true getIds {} {} {
 	@see ad_after_server_initialization
 } {
         
-    eval ad_after_server_initialization [self] { ::xosoap::InvokerThread do ConcreteInvoker register [self] }
+    eval ad_after_server_initialization [self] { ::xosoap::InvokerThread do ::xosoap::ConcreteInvoker register [self] }
     
 }
 

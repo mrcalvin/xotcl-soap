@@ -100,7 +100,7 @@ Marshaller ad_instproc marshal { msgContext returnValue } {
 } {
 
     my instvar msgCtx
-    my set msgCtx msgContext
+    my set msgCtx $msgContext
 
     ::xosoap::visitor::SoapMarshallerVisitor mv
     mv releaseOn [[$msgCtx requestMessage] soapEnvelope] $returnValue
@@ -129,9 +129,12 @@ Marshaller ad_instproc demarshal { msgContext soapxmlRequest } {
 	
 
 } {
-
+	#my log "allinstances: [::xosoap::marshaller::MessageContext info instances]"
+	#my log "msgContext: $msgContext"
+	#my log "msgContext: $msgContext, [$msgContext info class]"
+	
     my instvar msgCtx
-    set msgCtx msgContext
+    set msgCtx $msgContext
 
     set doc [dom parse $soapxmlRequest]
     set root [$doc documentElement]
@@ -146,16 +149,16 @@ Marshaller ad_instproc demarshal { msgContext soapxmlRequest } {
     
     set rqMessage [::xosoap::marshaller::RequestMessage rqMessage]
     rqMessage soapEnvelope $envelope
-    msgContext requestMessage $rqMessage
-    msgContext soapVersion [my getSoapVersion envelope]
+    $msgContext requestMessage $rqMessage
+    $msgContext soapVersion [my getSoapVersion envelope]
 
     my debug "Demarshalled SOAP message:	\n\t	encodingStyle: [envelope encodingStyle] 
 					\n\t	envelopeNS: [envelope nsEnvelopeVersion] 
-					\n\t	soapVersion: [msgContext soapVersion]					
+					\n\t	soapVersion: [$msgContext soapVersion]					
 					\n\t	method: [dv serviceMethod]
 					\n\t	args: [dv serviceArgs]"
 
-    return msgContext
+    return $msgContext
 
 }
 
