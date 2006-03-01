@@ -67,7 +67,7 @@ namespace eval xosoap::marshaller {
     (ncarroll@ee.usyd.edu.au). </p>
     <p>
     The marshaller operates over the generated SOAP syntax tree by having adequate visitors
-    crawling it to extract invocation infos (see <a href='/xotcl/show-object?object=::xosoap::visitor::SoapDemarshallerVisitor'>xosoap::visitor::SoapDemarshallerVisitor</a>) and or marshal SOAP responses (see <a href='/xotcl/show-object?object=::xosoap::visitor::SoapMarshallerVisitor'>xosoap::visitor::SoapMarshallerVisitor</a>).	
+    crawling it to extract invocation infos (see <a href='/xotcl/show-object?object=::xosoap::visitor::SoapRequestVisitor'>xosoap::visitor::SoapRequestVisitor</a>) and or marshal SOAP responses (see <a href='/xotcl/show-object?object=::xosoap::visitor::SoapMarshallerVisitor'>xosoap::visitor::SoapMarshallerVisitor</a>).	
     </p>
 
     @author stefan.sobernig@wu-wien.ac.at
@@ -112,7 +112,7 @@ Marshaller ad_instproc marshal { msgContext returnValue } {
 Marshaller ad_instproc demarshal { msgContext soapxmlRequest } {
 
 
-	<p>First, it creates a root object of a new Soap syntax tree and hands over the serialized Soap request for parsing. It then instantiates a visitor of type <a href='/xotcl/show-object?object=::xosoap::visitor::SoapDemarshallerVisitor'>xosoap::visitor::SoapDemarshallerVisitor</a> and releases
+	<p>First, it creates a root object of a new Soap syntax tree and hands over the serialized Soap request for parsing. It then instantiates a visitor of type <a href='/xotcl/show-object?object=::xosoap::visitor::SoapRequestVisitor'>xosoap::visitor::SoapRequestVisitor</a> and releases
 	the visitor on the Soap syntax tree to isolate essential invocation infos, i.e. the remote procedure called and arguments enclosed. The resulting composite of soap element objects is then stored in the respective message context.</p>
 		
     @author stefan.sobernig@wu-wien.ac.at
@@ -143,7 +143,7 @@ Marshaller ad_instproc demarshal { msgContext soapxmlRequest } {
     
     envelope parse $root
     
-    ::xosoap::visitor::SoapDemarshallerVisitor dv
+    ::xosoap::visitor::SoapRequestVisitor dv
 
     dv releaseOn $envelope
     
@@ -162,7 +162,7 @@ Marshaller ad_instproc demarshal { msgContext soapxmlRequest } {
 
 }
 
-Marshaller ad_instproc -private true getSoapVersion { soapEnvelope } {
+Marshaller ad_instproc -private getSoapVersion { soapEnvelope } {
 
 	<p>Helps identify the SOAP standard's version the incoming and parse SOAP request adheres to. Therefore, it verifies both the encoding and envelope namespaces attached to the SOAP request. If there is a version mismatch between the two, a general fallback to the envelope's version is provided. Reference values for the version namespaces are taken from the <a href='http://www.w3.org/TR/2000/NOTE-SOAP-20000508/\#_Toc478383495'>SOAP 1.1</a> and <a href='http://www.w3.org/TR/2003/REC-soap12-part1-20030624/\#soapenv'>SOAP 1.2</a> spec.</p>
 
@@ -512,7 +512,7 @@ SoapElement ad_instproc resolveNSHandler {} {
   } else {
       #puts "[self] reports [my info parent]"
     set p [my info parent]
-    if {$p != "::xosoap::marshaller"} {
+    if {$p != "::xotcl"} {
       return [$p resolveNSHandler]
     } else {
       return ""
@@ -558,7 +558,7 @@ SoapElement ad_instproc resolveEncHandler {} {
     return [my set encodingHandler]
   } else {
      set p [my info parent]
-    if {$p != "::xosoap::marshaller"} {
+    if {$p != "::xotcl"} {
       return [$p resolveEncHandler]
     } else {
       return ""
@@ -769,6 +769,8 @@ SoapBodyEntry ad_instproc parse {rootNode} {
     }   
    
 } 
+
+::xotcl::Class SoapBodyResponse -superclass SoapElement -parameter {responseValue}
 
 ::xotcl::Class SoapFault -parameter {exception {soapVersion 1.1}} -ad_doc {
 

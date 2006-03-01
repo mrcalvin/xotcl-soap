@@ -24,6 +24,8 @@ namespace eval xosoap::visitor {
 # Visitors:
 ###############################################
 
+#ns_log notice "::xotcl::Class / Object ad_doc ok? [::xotcl::Class info methods] +++ [::xotcl::Object info methods] "
+
 ::xotcl::Class AbstractVisitor -ad_doc {
 
 	<p>An class providing an interface to be implemented by each concrete visitor, in particular the method visit.</p> 
@@ -98,9 +100,9 @@ SoapMarshallerVisitor ad_instproc visit obj {
     }
 	
     # if current obj is leaf node -> body entry, introduce the resultValue
-    if {[$obj istype ::xosoap::marshaller::SoapBodyEntry]} {
-	set resultNode [$node appendChild [$xmlDoc createElement "[$obj elementName]Result"]]
-	set valueNode [$resultNode appendChild [$xmlDoc createTextNode $resultValue]]
+    if {[$obj istype ::xosoap::marshaller::SoapBodyResponse]} {
+	set resultNode [$node appendChild [$xmlDoc createElement [$obj elementName]]]
+	set valueNode [$resultNode appendChild [$xmlDoc createTextNode [$obj responseValue]]]
     }
 
     # set current node the parent for the next visited sub-node 
@@ -111,7 +113,7 @@ SoapMarshallerVisitor ad_instproc visit obj {
     
 }
 
-SoapMarshallerVisitor ad_instproc releaseOn {node resultValue} {
+SoapMarshallerVisitor ad_instproc releaseOn {node} {
 
 	<p>A small helper method to initiate a visitor's crawl over an object tree.</p> 
 
@@ -124,7 +126,7 @@ SoapMarshallerVisitor ad_instproc releaseOn {node resultValue} {
 
 } {
   
-    my set resultValue $resultValue
+    #my set resultValue $resultValue
     if {[$node istype ::xosoap::marshaller::SoapElement]} {
 	$node accept [self] 
     }
@@ -135,7 +137,7 @@ SoapMarshallerVisitor ad_instproc releaseOn {node resultValue} {
 
 ##################################
 
-::xotcl::Class SoapDemarshallerVisitor -superclass AbstractVisitor -parameter {serviceMethod serviceArgs} -ad_doc {
+::xotcl::Class SoapRequestVisitor -superclass AbstractVisitor -parameter {serviceMethod serviceArgs} -ad_doc {
 
 	<p>This visitor extracts relevant invocation infos, i.e. name of called remote method and arguments supplied, and stores these in terms of parameters for later access (see also <a href='/api-doc/proc-view?proc=::xosoap::marshaller::Marshaller+instproc+marshal'>xosoap::marshaller::Marshaller demarshal</a>).</p> 
 
@@ -144,7 +146,7 @@ SoapMarshallerVisitor ad_instproc releaseOn {node resultValue} {
 
 }
 
-SoapDemarshallerVisitor ad_instproc visit obj {
+SoapRequestVisitor ad_instproc visit obj {
 
 	<p>This method specifies the visitor's operations on each object visited when crawling an object tree. To be more specific,
 	it ignores all objects other than typed <a href='/xotcl/show-object?object=::xosoap::visitor::SoapBodyEntry'>xosoap::visitor::SoapBodyEntry</a>. If a leaf object of this type is reached, it extracts the relevant information.</p>
@@ -163,13 +165,24 @@ SoapDemarshallerVisitor ad_instproc visit obj {
 
      set serviceMethod [$obj elementName]
      # provide for correct order of argument array
-     set serviceArgs [$obj set methodArgs] 
+     
+     set tmpArgs ""
+     
+     foreach keyvalue [$obj set methodArgs]  {	 
+		
+		#my log "i: [lindex $keyvalue 0], j: [lindex $keyvalue 1]"
+		append tmpArgs " " "{[lindex $keyvalue 1]}"     
+	  
+	  }     
+	  
+     set serviceArgs $tmpArgs
+     
      #my log "$obj: [my serviceMethod] [my serviceArgs]"
      }
 
 }
 
-SoapDemarshallerVisitor ad_instproc releaseOn node {
+SoapRequestVisitor ad_instproc releaseOn node {
 
 	<p>A small helper method to initiate a visitor's crawl over an object tree.</p> 
 
@@ -187,4 +200,24 @@ SoapDemarshallerVisitor ad_instproc releaseOn node {
     
     
 }
+
+::xotcl::Class SoapResponseVisitor -superclass AbstractVisitor -parameter {batch}
+
+SoapResponseVisitor ad_instproc visit {obj} {} {
+
+	if {[$obj istype ::xosoap::marshaller::SoapBodyEntry]} {
+		
+		$obj class ::xosoap::marshaller::SoapBodyResponse
+		$obj elementName [append [$obj elementName] "Result"]
+		$obj responseValue [my batch]
+		
+    }
+
+}
+SoapResponseVisitor ad_instproc releaseOn {node} {} {
+
+	$node accept [self] 
+
+}
+
 }

@@ -1,3 +1,4 @@
+
 namespace eval services {
 
 ########################################################################
@@ -9,24 +10,42 @@ namespace eval services {
 #		set to "0", if set to "1" it is exposed as static instance)
 ########################################################################
 
-::xosoap::Service Poem -hoard [list init] -lifecycle 1
 
-	Poem instproc init {} {
-	
-		my set result "Rose"		
-	
-	}
+::xorb::service::InstantService Poem 
+Poem ad_instproc init {} {} {
 
-    Poem instproc getPoem {statement} {
-    
-    
-    my instvar result
+	my set result "Rose"
 
-	append result " $statement"	
+} 
+
+Poem ad_instproc -operation getPoem {-statement:string args} {A poem writing service} {
+
+	my log "Invocation call does work."
+	my instvar result	
+	return [append result " $statement"]
 	
-	return $result
-	
-    }    
+
+} 
+
+
+#::xosoap::Service Poem -hoard [list init] -lifecycle 1
+#
+#	Poem instproc init {} {
+#	
+#		my set result "Rose"		
+#	
+#	}
+#
+#   Poem instproc getPoem {statement} {
+#    
+#    
+#    my instvar result
+#
+#	append result " $statement"	
+#	
+#	return $result
+#	
+#    }    
     
 ########################################################################
 #	A simple service example (inspired by a SQI use case)
@@ -34,11 +53,11 @@ namespace eval services {
 #		* provides for simple logging to logs/error.log
 ########################################################################
 
-::xosoap::Interceptor LoggingInterceptor -superclass {::xosoap::RequestInterceptor ::xosoap::ResponseInterceptor}
+::xosoap::Interceptor LoggingInterceptor -scope 0 -superclass {::xosoap::RequestInterceptor ::xosoap::ResponseInterceptor}
 LoggingInterceptor instproc handleRequest args {
 	
 	# 1) retrieve args
-	my log "Request1 bekommt args: [lindex $args 1]"
+	my log "AppScoped Request1 bekommt args: [lindex $args 1]"
 	# 2) modify args
 	
 	# 3) pass on args or return
@@ -49,7 +68,7 @@ LoggingInterceptor instproc handleRequest args {
 	}
 LoggingInterceptor instproc handleResponse args {
 		
-	my log "response1: $args"
+	my log "AppScoped response1: $args"
 	next [lindex $args 0]
 
 }

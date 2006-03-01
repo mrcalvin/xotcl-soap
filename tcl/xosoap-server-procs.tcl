@@ -70,28 +70,40 @@ namespace eval xosoap {}
 }
 ::xosoap::ResponseInterceptor abstract instproc handleResponse args
 
-::xotcl::Class xosoap::InterceptorChain
+::xotcl::Class xosoap::InterceptorChain -ad_doc {}
 
 ::xosoap::InterceptorChain instproc init args {
 
 	# nest an object into [self] that represents the mixin-hook for request interceptors ("request flow")
-	::xosoap::RequestInterceptor [self]::RequestFlow -proc handleRequest args {}
+	::xosoap::RequestInterceptor [self]::RequestFlow -proc handleRequest args {
+	
+		set r $args 
+			next 
+		return $r
+		
+	}
 	
 	
 	# nest an object into [self] that represents the mixin-hook for response interceptors ("response flow")
-	::xosoap::ResponseInterceptor [self]::ResponseFlow -proc handleResponse args {}
+	::xosoap::ResponseInterceptor [self]::ResponseFlow -proc handleResponse args {
+	
+		set r $args 
+			next 
+		return $r
+	
+	}
 }
 
 ::xosoap::InterceptorChain instproc handleRequest args {
 	
-	my log "handleRequest: RequestFlow takes it."	
+	#my log "handleRequest: RequestFlow takes it."	
 	return [[self]::RequestFlow handleRequest [lindex $args 0] [lindex $args 1]]
 
 }
 
 ::xosoap::InterceptorChain instproc handleResponse args {
 	
-	my log "handleResponse: ResponseFlow takes it."
+	#my log "handleResponse: ResponseFlow takes it."
 	return [[self]::ResponseFlow handleResponse [lindex $args 0]]
 	
 }
@@ -100,27 +112,28 @@ namespace eval xosoap {}
 	#puts $interceptor
 	foreach interceptType [$interceptor info superclass] {
 		
-		set targetedFlow ""
+		# Verify whether to hook the interceptor into the request or response flow
+		#set targetedFlow ""
 		switch $interceptType {
-			"::xosoap::RequestInterceptor"		{ set targetedFlow {[self]::RequestFlow} }			
-			"::xosoap::ResponseInterceptor"		{ set targetedFlow {[self]::ResponseFlow}}
+			"::xosoap::RequestInterceptor"		{ [self]::RequestFlow mixin add $interceptor end 	}			
+			"::xosoap::ResponseInterceptor"		{ [self]::ResponseFlow mixin add $interceptor		}
 			default 							{ continue }
 		}
 		
-		eval $targetedFlow mixin add $interceptor end
+		#eval $targetedFlow mixin add $interceptor end
 		
-		# make sure that a flow bouncer closes a chain / flow of interceptors is allows on top of the mixin list.
+		# make sure that a flow bouncer closes a chain / flow of interceptors is allows at the end of the mixin list.
 					
-		set idx [lsearch [eval $targetedFlow mixin] "::xosoap::FlowBouncer*"]
-			my log "idx: $idx"
-			if {![string equal $idx "-1"] && ![ expr { [expr { $idx+1 }] == [llength [eval $targetedFlow mixin]] }]} {
-				
-				set tmpBouncer [lindex [eval $targetedFlow mixin] $idx]
-				set tmpMixinList [lreplace [eval $targetedFlow mixin] $idx $idx]
-				lappend tmpMixinList $tmpBouncer
-				my log "tmpMixinList: $tmpMixinList"
-				eval $targetedFlow mixin  {$tmpMixinList}			
-			}
+		#set idx [lsearch [eval $targetedFlow mixin] "::xosoap::FlowBouncer*"]
+		#	my log "idx: $idx"
+		#	if {![string equal $idx "-1"] && ![ expr { [expr { $idx+1 }] == [llength [eval $targetedFlow mixin]] }]} {
+		#		
+		#		set tmpBouncer [lindex [eval $targetedFlow mixin] $idx]
+		#		set tmpMixinList [lreplace [eval $targetedFlow mixin] $idx $idx]
+		#		lappend tmpMixinList $tmpBouncer
+		#		my log "tmpMixinList: $tmpMixinList"
+		#		eval $targetedFlow mixin  {$tmpMixinList}			
+		#	}
 			
 	}  
 	
@@ -238,9 +251,15 @@ namespace eval xosoap {}
 	
 	@see <a href='/api-doc/proc-view?proc=::xosoap::RequestInterceptor+abstract+instproc+handleRequest'>::xosoap::RequestInterceptor abstract handleRequest</a>
 	@see <a href='/api-doc/proc-view?proc=::xosoap::InvocationInterceptor+instproc+handleRequest'>::xosoap::InvocationInterceptor handleRequest</a>
-} {	set invocationResult [next]
-	my log "Ergebnis? $invocationResult"
-	my handleResponse $invocationResult 
+} {	
+	set requestFlowResult [next]; #result arg 1: endpoint, arg2: MessageContext
+	# SoapRequestVisitor
+	set visitor [::xosoap::visitor::SoapRequestVisitor new -volatile]
+    $visitor releaseOn [[[lindex $requestFlowResult 1] requestMessage] soapEnvelope]
+	
+	# forward to invoker
+	set invocationResult [::xorb::SCInvoker invoke -contract [lindex $requestFlowResult 0] -operation [$visitor serviceMethod] -callArgs [$visitor serviceArgs]]
+	my handleResponse [lindex $requestFlowResult 1] $invocationResult 
 	}
 
 ::xosoap::MessageHandler ad_instproc handleResponse args  {
@@ -260,7 +279,16 @@ namespace eval xosoap {}
 } {
 	
 	# handler chain or response flow cast result command as multiple embedded list element
-	set responseFlowResult [next]
+	# SoapResponseVisitor
+	set visitor [::xosoap::visitor::SoapResponseVisitor new -volatile -batch [lindex $args 1]]
+	set msgContext [lindex $args 0]
+	set responseMsg [::xosoap::marshaller::ResponseMessage new]
+	[[[$msgContext] requestMessage] soapEnvelope] copy ${responseMsg}::envelopeObj
+	$responseMsg soapEnvelope ${responseMsg}::envelopeObj
+	$msgContext responseMessage $responseMsg
+	 
+	$visitor releaseOn [[$msgContext responseMessage] soapEnvelope]
+	set responseFlowResult [next $msgContext]
 	eval $responseFlowResult
 }
 
@@ -295,7 +323,7 @@ namespace eval xosoap {}
 	    
 	    set serviceName [lindex [my set urlv] 2]
 	    set soap [ns_conn content]
-	    my handleRequest $soap $serviceName
+	    my handleRequest $serviceName $soap
 	}
    }
 }
@@ -347,13 +375,13 @@ namespace eval xosoap {}
 	
 	
 	# add interceptor to the respective / selected scope
-	my log "switch scope: [my scope]"
+	#my log "switch scope: [my scope]"
 	switch [my scope] {
 	
 		0	{ ::xosoap::ConcreteMessageHandler addInterceptor [self] 
-		my log "conn thread: did it ..." } 
+		#my log "conn thread: did it ..." } 
 		1	{ eval ad_after_server_initialization [self] { ::xosoap::InvokerThread do ::xosoap::ConcreteInvoker addInterceptor [self] } 
-		my log "did after_server_init ..."} 
+		#my log "did after_server_init ..."} 
 	
 	}	
 	
@@ -362,123 +390,241 @@ namespace eval xosoap {}
 # defining and hooking-in flow bouncers for both the application and conn-thread scope
 
 
-::xosoap::Interceptor xosoap::FlowBouncerForMessageChain -superclass  {::xosoap::RequestInterceptor ::xosoap::ResponseInterceptor} -ad_doc {
+#::xosoap::Interceptor xosoap::FlowBouncerForMessageChain -superclass  {::xosoap::RequestInterceptor ::xosoap::ResponseInterceptor} -ad_doc {
 
-		<p>The class defines a specific built-in interceptor that is made sticky on top of the chain of interceptors attached to <a href='/xotcl/show-object?object=xosoap::MessageHandler'>xosoap::MessageHandler</a>. It solely listens on the request track within the chain of interceptors and processes requests last.</p>
+#		<p>The class defines a specific built-in interceptor that is made sticky on top of the chain of interceptors attached to #<a href='/xotcl/show-object?object=xosoap::MessageHandler'>xosoap::MessageHandler</a>. It solely listens on the request track #within the chain of interceptors and processes requests last.</p>
 	
+
+#	@author stefan.sobernig@wu-wien.ac.at
+#	@creation-date October 12, 2005 
+	
+#}
+#::xosoap::FlowBouncerForMessageChain ad_instproc handleRequest args {
+		
+#			<p>It is reponsible for forwarding the request and the arguments therein, i.e. the name of the service and the SOAP #payload, to the Invoker thread. Finally, after incovation suceeded, it calls the handleResponse method of <a href='/xotcl/show-#object?object=xosoap::MessageHandler'>xosoap::MessageHandler</a> to initialise the response flow.</p>
+		
+		
+#		@author stefan.sobernig@wu-wien.ac.at
+#		@creation-date October 12, 2005 
+		
+#			@param args (0):contains the service name as extracted from the retrieved URL<br>(1): contains the SOAP payload of the HTTP POST request 
+	
+#	@see <a href='/xotcl/show-proc?proc=::xosoap::RequestInterceptor+abstract+instproc+handleRequest'>::xosoap::RequestInterceptor abstract handleRequest</a>
+#	@see <a href='/api-doc/proc-view?proc=::xosoap::MessageHandler+instproc+handleRequest'>::xosoap::MessageHandler handleRequest</a>
+
+#} {
+	
+	# 1) was bekommen
+#	my log "Request3 bekommt args: [lindex $args 1]"
+	# 2) verändern
+	
+	#set invocationResult [::xosoap::InvokerThread do ::xosoap::ConcreteInvoker handleRequest [lindex $args 0] [lindex $args 1]]
+	#::xorb::SCInvoker invoke -contract "myContract" -impl "myThirdImplementation" -operation "MyOperation" -callArgs "123"
+#	set invocationResult [::xorb::SCInvoker invoke -impl [lindex $args 0] -operation "MyOperation" -callArgs "123"]
+	# 3) weitergeben
+#	next	
+#	return $invocationResult
+	
+#}
+
+#::xosoap::FlowBouncerForMessageChain ad_instproc handleResponse args {
+		
+#			<p>It is reponsible for forwarding the request and the arguments therein, i.e. the name of the service and the SOAP #payload, to the Invoker thread. Finally, after incovation suceeded, it calls the handleResponse method of <a href='/xotcl/show-#object?object=xosoap::MessageHandler'>xosoap::MessageHandler</a> to initialise the response flow.</p>
+		
+		
+#		@author stefan.sobernig@wu-wien.ac.at
+#		@creation-date October 12, 2005 
+		
+#			@param args (0):contains the service name as extracted from the retrieved URL<br>(1): contains the SOAP payload of the HTTP POST request 
+	
+#	@see <a href='/xotcl/show-proc?proc=::xosoap::RequestInterceptor+abstract+instproc+handleRequest'>::xosoap::RequestInterceptor abstract handleRequest</a>
+#	@see <a href='/api-doc/proc-view?proc=::xosoap::MessageHandler+instproc+handleRequest'>::xosoap::MessageHandler handleRequest</a>
+
+#} {
+	
+	# 1) was bekommen
+#	my log "Response3 bekommt args: [lindex $args 0]"
+	# 2) verändern
+	# 3) weitergeben
+#	next	
+#	return [lindex $args 0]
+	
+#}
+
+#::xosoap::Interceptor xosoap::FlowBouncerForInvokerChain -superclass  { ::xosoap::RequestInterceptor ::xosoap::ResponseInterceptor } -scope 1 -ad_doc {
+
+#		<p>The class defines a specific built-in interceptor that is made sticky on top of the chain of interceptors attached to #<a href='/xotcl/show-object?object=xosoap::MessageHandler'>xosoap::MessageHandler</a>. It solely listens on the request track #within the chain of interceptors and processes requests last.</p>
+	
+
+#	@author stefan.sobernig@wu-wien.ac.at
+#	@creation-date October 12, 2005 
+	
+#}
+#::xosoap::FlowBouncerForInvokerChain ad_instproc handleRequest args {
+		
+#			<p>It is reponsible for forwarding the request and the arguments therein, i.e. the name of the service and the SOAP payload, to the Invoker thread. Finally, after incovation suceeded, it calls the handleResponse method of <a href='/xotcl/show-object?object=xosoap::MessageHandler'>xosoap::MessageHandler</a> to initialise the response flow.</p>
+		
+		
+#		@author stefan.sobernig@wu-wien.ac.at
+#		@creation-date October 12, 2005 
+		
+#			@param args (0):contains the service name as extracted from the retrieved URL<br>(1): contains the SOAP payload of the HTTP POST request 
+	
+#	@see <a href='/xotcl/show-proc?proc=::xosoap::RequestInterceptor+abstract+instproc+handleRequest'>::xosoap::RequestInterceptor abstract handleRequest</a>
+#	@see <a href='/api-doc/proc-view?proc=::xosoap::MessageHandler+instproc+handleRequest'>::xosoap::MessageHandler handleRequest</a>
+
+#} {
+	
+	# 1) was bekommen
+#	my log "Request3 bekommt args: [lindex $args 1]"
+	# 2) verändern
+#	set invocationResult [ConcreteInvoker invoke [lindex $args 0] [lindex $args 1]]
+	
+	# 3) weitergeben
+#	next	
+#	return $invocationResult
+	
+#}
+
+#::xosoap::FlowBouncerForInvokerChain ad_instproc handleResponse args {
+		
+#			<p>It is reponsible for forwarding the request and the arguments therein, i.e. the name of the service and the SOAP #payload, to the Invoker thread. Finally, after incovation suceeded, it calls the handleResponse method of <a href='/xotcl/show-#object?object=xosoap::MessageHandler'>xosoap::MessageHandler</a> to initialise the response flow.</p>
+		
+		
+#		@author stefan.sobernig@wu-wien.ac.at
+#		@creation-date October 12, 2005 
+		
+#			@param args (0):contains the service name as extracted from the retrieved URL<br>(1): contains the SOAP payload of the HTTP POST request 
+	
+#	@see <a href='/xotcl/show-proc?proc=::xosoap::RequestInterceptor+abstract+instproc+handleRequest'>::xosoap::RequestInterceptor abstract handleRequest</a>
+#	@see <a href='/api-doc/proc-view?proc=::xosoap::MessageHandler+instproc+handleRequest'>::xosoap::MessageHandler handleRequest</a>
+
+#} {
+	
+	# 1) was bekommen
+#	my log "Response3 bekommt args: [lindex $args 0]"
+	# 2) verändern
+	# 3) weitergeben
+#	next	
+#	return [lindex $args 0]
+	
+#}
+
+####################################################
+# 	DeMarshallingInterceptor	
+####################################################
+
+::xosoap::Interceptor DeMarshallingInterceptor -scope 0 -superclass {::xosoap::RequestInterceptor ::xosoap::ResponseInterceptor}
+DeMarshallingInterceptor instproc handleRequest args {
+	
+	# 1) retrieve args
+	
+	# 2) modify args > parse into soap object tree
+	set msgContext [::xosoap::marshaller::MessageContext new]
+	set endpoint [lindex $args 0]
+	set payload	[lindex $args 1]
+	
+	my log "endpoint: $endpoint"
+	my log "payload: $payload"
+	
+    set doc [dom parse $payload]
+    set root [$doc documentElement]
+
+    set envelope [::xosoap::marshaller::SoapEnvelope new]
+    
+    $envelope parse $root
+    
+    set rqMessage [::xosoap::marshaller::RequestMessage new]
+    $rqMessage soapEnvelope $envelope
+    $msgContext requestMessage $rqMessage
+    $msgContext soapVersion [my getSoapVersion $envelope]
+
+    my log "Demarshalled SOAP message:	\n\t	encodingStyle: [$envelope encodingStyle] 
+					\n\t	envelopeNS: [$envelope nsEnvelopeVersion] 
+					\n\t	soapVersion: [$msgContext soapVersion]"
+
+    # 3) pass on args or return
+	next $endpoint $msgContext
+	
+	
+	}
+	
+DeMarshallingInterceptor instproc handleResponse args {
+		
+	set responseMsgCtx $args
+	set visitor [::xosoap::visitor::SoapMarshallerVisitor new -volatile]
+    $visitor releaseOn [[$responseMsgCtx responseMessage] soapEnvelope]
+    # http header + fault handling here (ns_return, http code, mime type)    
+	next ns_return 200 text/xml "[[$visitor xmlDoc] asXML]"
+
+}
+
+
+DeMarshallingInterceptor ad_instproc -private getSoapVersion { soapEnvelope } {
+
+	<p>Helps identify the SOAP standard's version the incoming and parse SOAP request adheres to. Therefore, it verifies both the encoding and envelope namespaces attached to the SOAP request. If there is a version mismatch between the two, a general fallback to the envelope's version is provided. Reference values for the version namespaces are taken from the <a href='http://www.w3.org/TR/2000/NOTE-SOAP-20000508/\#_Toc478383495'>SOAP 1.1</a> and <a href='http://www.w3.org/TR/2003/REC-soap12-part1-20030624/\#soapenv'>SOAP 1.2</a> spec.</p>
 
 	@author stefan.sobernig@wu-wien.ac.at
-	@creation-date October 12, 2005 
+	@creation-date August, 19 2005
 	
-}
-::xosoap::FlowBouncerForMessageChain ad_instproc handleRequest args {
-		
-			<p>It is reponsible for forwarding the request and the arguments therein, i.e. the name of the service and the SOAP payload, to the Invoker thread. Finally, after incovation suceeded, it calls the handleResponse method of <a href='/xotcl/show-object?object=xosoap::MessageHandler'>xosoap::MessageHandler</a> to initialise the response flow.</p>
-		
-		
-		@author stefan.sobernig@wu-wien.ac.at
-		@creation-date October 12, 2005 
-		
-			@param args (0):contains the service name as extracted from the retrieved URL<br>(1): contains the SOAP payload of the HTTP POST request 
+	@param soapEnvelope The SOAP tree of objects which also stores encoding and envelope version information, i.e. the namespace URIs extracted from the SOAP request.
+	@return A Tcl string representing the SOAP version on hand. Return value is either "1.1" or "1.2".
 	
-	@see <a href='/xotcl/show-proc?proc=::xosoap::RequestInterceptor+abstract+instproc+handleRequest'>::xosoap::RequestInterceptor abstract handleRequest</a>
-	@see <a href='/api-doc/proc-view?proc=::xosoap::MessageHandler+instproc+handleRequest'>::xosoap::MessageHandler handleRequest</a>
+	@see <a href='/xotcl/proc-view?proc=::xosoap::marhsaller::Marshaller+instproc+demarshal'>::xosoap::marhsaller::Marshaller demarshal</a>
+	
+	
+
 
 } {
+    
+    set soapEncVersion {}
+
+    switch [$soapEnvelope encodingStyle] {
+
+	"http://schemas.xmlsoap.org/soap/encoding/" {
+
+	    set soapEncVersion 1.1 
+	}
+	"http://www.w3.org/2003/05/soap-encoding" {
+
+	    set soapEncVersion 1.2
+	}
+	"http://www.w3.org/2003/05/soap-envelope/encoding/none" {
+	    
+	    set soapEncVersion 1.2
+	}
+
+    }
+
+
+    set soapEnvVersion {}
+
+    switch [$soapEnvelope nsEnvelopeVersion] {
+
+	"http://schemas.xmlsoap.org/soap/envelope/" {
+	    
+	    set soapEnvVersion 1.1
+	}
+	"http://www.w3.org/2003/05/soap-envelope" {
+	    
+	    set soapEnvVersion 1.2
+	}
+    }
+
+    if {[expr { $soapEncVersion eq $soapEnvVersion }]} {
 	
-	# 1) was bekommen
-	my log "Request3 bekommt args: [lindex $args 1]"
-	# 2) verändern
-	set invocationResult [::xosoap::InvokerThread do ::xosoap::ConcreteInvoker handleRequest [lindex $args 0] [lindex $args 1]]
-	# 3) weitergeben
-	next	
-	return $invocationResult
 	
+	return $soapEncVersion
+
+    } else {
+
+	# fallback to version of envelope namespace
+	my debug "Version mismatch between envelope/ encoding-style namespaces."
+	return $soapEnvVersion
+
+    }
+
 }
-
-::xosoap::FlowBouncerForMessageChain ad_instproc handleResponse args {
-		
-			<p>It is reponsible for forwarding the request and the arguments therein, i.e. the name of the service and the SOAP payload, to the Invoker thread. Finally, after incovation suceeded, it calls the handleResponse method of <a href='/xotcl/show-object?object=xosoap::MessageHandler'>xosoap::MessageHandler</a> to initialise the response flow.</p>
-		
-		
-		@author stefan.sobernig@wu-wien.ac.at
-		@creation-date October 12, 2005 
-		
-			@param args (0):contains the service name as extracted from the retrieved URL<br>(1): contains the SOAP payload of the HTTP POST request 
-	
-	@see <a href='/xotcl/show-proc?proc=::xosoap::RequestInterceptor+abstract+instproc+handleRequest'>::xosoap::RequestInterceptor abstract handleRequest</a>
-	@see <a href='/api-doc/proc-view?proc=::xosoap::MessageHandler+instproc+handleRequest'>::xosoap::MessageHandler handleRequest</a>
-
-} {
-	
-	# 1) was bekommen
-	my log "Response3 bekommt args: [lindex $args 0]"
-	# 2) verändern
-	# 3) weitergeben
-	next	
-	return [lindex $args 0]
-	
-}
-
-::xosoap::Interceptor xosoap::FlowBouncerForInvokerChain -superclass  { ::xosoap::RequestInterceptor ::xosoap::ResponseInterceptor } -scope 1 -ad_doc {
-
-		<p>The class defines a specific built-in interceptor that is made sticky on top of the chain of interceptors attached to <a href='/xotcl/show-object?object=xosoap::MessageHandler'>xosoap::MessageHandler</a>. It solely listens on the request track within the chain of interceptors and processes requests last.</p>
-	
-
-	@author stefan.sobernig@wu-wien.ac.at
-	@creation-date October 12, 2005 
-	
-}
-::xosoap::FlowBouncerForInvokerChain ad_instproc handleRequest args {
-		
-			<p>It is reponsible for forwarding the request and the arguments therein, i.e. the name of the service and the SOAP payload, to the Invoker thread. Finally, after incovation suceeded, it calls the handleResponse method of <a href='/xotcl/show-object?object=xosoap::MessageHandler'>xosoap::MessageHandler</a> to initialise the response flow.</p>
-		
-		
-		@author stefan.sobernig@wu-wien.ac.at
-		@creation-date October 12, 2005 
-		
-			@param args (0):contains the service name as extracted from the retrieved URL<br>(1): contains the SOAP payload of the HTTP POST request 
-	
-	@see <a href='/xotcl/show-proc?proc=::xosoap::RequestInterceptor+abstract+instproc+handleRequest'>::xosoap::RequestInterceptor abstract handleRequest</a>
-	@see <a href='/api-doc/proc-view?proc=::xosoap::MessageHandler+instproc+handleRequest'>::xosoap::MessageHandler handleRequest</a>
-
-} {
-	
-	# 1) was bekommen
-	my log "Request3 bekommt args: [lindex $args 1]"
-	# 2) verändern
-	set invocationResult [ConcreteInvoker invoke [lindex $args 0] [lindex $args 1]]
-	
-	# 3) weitergeben
-	next	
-	return $invocationResult
-	
-}
-
-::xosoap::FlowBouncerForInvokerChain ad_instproc handleResponse args {
-		
-			<p>It is reponsible for forwarding the request and the arguments therein, i.e. the name of the service and the SOAP payload, to the Invoker thread. Finally, after incovation suceeded, it calls the handleResponse method of <a href='/xotcl/show-object?object=xosoap::MessageHandler'>xosoap::MessageHandler</a> to initialise the response flow.</p>
-		
-		
-		@author stefan.sobernig@wu-wien.ac.at
-		@creation-date October 12, 2005 
-		
-			@param args (0):contains the service name as extracted from the retrieved URL<br>(1): contains the SOAP payload of the HTTP POST request 
-	
-	@see <a href='/xotcl/show-proc?proc=::xosoap::RequestInterceptor+abstract+instproc+handleRequest'>::xosoap::RequestInterceptor abstract handleRequest</a>
-	@see <a href='/api-doc/proc-view?proc=::xosoap::MessageHandler+instproc+handleRequest'>::xosoap::MessageHandler handleRequest</a>
-
-} {
-	
-	# 1) was bekommen
-	my log "Response3 bekommt args: [lindex $args 0]"
-	# 2) verändern
-	# 3) weitergeben
-	next	
-	return [lindex $args 0]
-	
-}
-
 
 ####################################################
 # 	xoSoap Invoker (ServiceRegistry)
@@ -521,10 +667,10 @@ namespace eval xosoap {}
    
 	#my log "instances: [::xotcl::Class allinstances]"
     set marshaller [::xosoap::marshaller::Marshaller marshallerObj]
-    my log "::xosoap::marshaller methods: [$marshaller info methods]"
+    #my log "::xosoap::marshaller methods: [$marshaller info methods]"
     set requestMsgCtx [$marshaller demarshal $msgContext $soapxmlMessage]
     
-    ::xosoap::visitor::SoapDemarshallerVisitor dv
+    ::xosoap::visitor::SoapRequestVisitor dv
 
     dv releaseOn [[$requestMsgCtx requestMessage] soapEnvelope]
 
@@ -544,7 +690,7 @@ namespace eval xosoap {}
 		     
 	  
 	  }
-    my log "List of arguments passed: $tmpArgs"
+    #my log "List of arguments passed: $tmpArgs"
     set result [eval $proxy $method $tmpArgs]
     
     # pass results to marshaller
@@ -573,7 +719,7 @@ namespace eval xosoap {}
     
 }
 
-::xosoap::Invoker ad_instproc -public true register {className} {} {
+::xosoap::Invoker ad_instproc register {className} {} {
 
 
 	# Lifecycle Manager Registry
@@ -600,7 +746,8 @@ namespace eval xosoap {}
 		set managerName [my autoname lcm]
 		set newManager [::xosoap::lifecycle::LifecycleManager $managerName]
 		
-		my debug [$className lifecycle]
+		#my log "[$className info methods] +++ [$className info vars]"
+		#my log [$className lifecycle]
 		
 		switch [$className lifecycle] {		
 			0 { eval [$managerName strategy] class ::xosoap::lifecycle::PerRequestStrategy }
@@ -634,80 +781,80 @@ namespace eval xosoap {}
 		
 }
 
-::xosoap::Invoker ad_instproc -public true unregister {className} {} {}
+::xosoap::Invoker ad_instproc unregister {className} {} {}
 
 
 ####################################################
 # xoSoap Invoker::ServiceRegistry
 ####################################################
 
-::xotcl::THREAD create xosoap::InvokerThread {
+#::xotcl::THREAD create xosoap::InvokerThread {
 
 
-::xosoap::Invoker xosoap::ConcreteInvoker
+#::xosoap::Invoker xosoap::ConcreteInvoker
 
-::xotcl::Object ::xosoap::ConcreteInvoker::ServiceRegistry -set serviceRegistry(lastid) 0 -ad_doc {}
+#::xotcl::Object ::xosoap::ConcreteInvoker::ServiceRegistry -set serviceRegistry(lastid) 0 -ad_doc {}
 
-::xosoap::ConcreteInvoker::ServiceRegistry ad_proc add {serviceName objProxy} {} {
+#::xosoap::ConcreteInvoker::ServiceRegistry ad_proc add {serviceName objProxy} {} {
 
-	my instvar {serviceRegistry sr}
+#	my instvar {serviceRegistry sr}
     
-    set id [incr sr(lastid)]
-    set sr($id,service_name) $serviceName
-    set sr($id,proxy) $objProxy
+#    set id [incr sr(lastid)]
+#    set sr($id,service_name) $serviceName
+#    set sr($id,proxy) $objProxy
 
-   }
+#   }
 
-::xosoap::ConcreteInvoker::ServiceRegistry ad_proc getProxy {serviceName} {} {
+#::xosoap::ConcreteInvoker::ServiceRegistry ad_proc getProxy {serviceName} {} {
 
-    my instvar {serviceRegistry sr}
+#    my instvar {serviceRegistry sr}
     #my log "i am here"
-    set result {}
-    set id {}
-    foreach i [array names sr  *,service_name] {
+#    set result {}
+#    set id {}
+#    foreach i [array names sr  *,service_name] {
 	#my log "+++ $i => $sr($i) <eq> $serviceName"
-	if {[expr {$sr($i) eq $serviceName}]} {
-	    set id [lindex [split $i ,] 0]
-	    set result [my getField $id proxy]
+#	if {[expr {$sr($i) eq $serviceName}]} {
+#	    set id [lindex [split $i ,] 0]
+#	    set result [my getField $id proxy]
 	    #my log "++++ $id => $result"
-	    break
-	}
-    }
+#	    break
+#	}
+#   }
     
     #my log "+++ found $id => $result"
-    return [list $id $result];
+#    return [list $id $result];
 	
-}
+#}
 
-::xosoap::ConcreteInvoker::ServiceRegistry ad_proc -public true getField {rowId fieldName} {} {
+#::xosoap::ConcreteInvoker::ServiceRegistry ad_proc getField {rowId fieldName} {} {
 
-    my instvar {serviceRegistry sr}
+#    my instvar {serviceRegistry sr}
 
-    if {[array names sr $rowId,$fieldName]=="$rowId,$fieldName"} {
-        return $sr($rowId,$fieldName)
-    } else {return ""}
+#    if {[array names sr $rowId,$fieldName]=="$rowId,$fieldName"} {
+#        return $sr($rowId,$fieldName)
+#    } else {return ""}
 
-}
+#}
 
-::xosoap::ConcreteInvoker::ServiceRegistry ad_proc -public true getIds {} {} {
+#::xosoap::ConcreteInvoker::ServiceRegistry ad_proc getIds {} {} {
 
-	my instvar {serviceRegistry sr}
+#	my instvar {serviceRegistry sr}
     
-    set ret_list [list]
+#    set ret_list [list]
     
-    puts [array names sr  *,service_name]
+#    puts [array names sr  *,service_name]
 
-    return $ret_list
+#    return $ret_list
 
-}
+#}
 ####################################################
 # embedding a lifecycle manager registry
 ####################################################
 
 
-::xosoap::lifecycle::LifecycleManagerRegistry xosoap::ConcreteInvoker::LCMRegistry
+#::xosoap::lifecycle::LifecycleManagerRegistry xosoap::ConcreteInvoker::LCMRegistry
 
-} -persistent 1
+#} -persistent 1
 
 ####################################################
 # Service Meta-Class
