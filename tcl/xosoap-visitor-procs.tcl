@@ -73,7 +73,7 @@ SoapMarshallerVisitor ad_instproc visit obj {
 	set doc [dom createDocument "$elementPrefix:$elementName"]
 	set xmlDoc $doc
 	set node [$doc documentElement]
-	puts "$elementPrefix:$elementName"
+	#puts "$elementPrefix:$elementName"
     } else {
 
 	set node [[my parentNode] appendChild [$xmlDoc createElement "$elementPrefix:$elementName"]]
@@ -101,14 +101,15 @@ SoapMarshallerVisitor ad_instproc visit obj {
 	
     # if current obj is leaf node -> body entry, introduce the resultValue
     if {[$obj istype ::xosoap::marshaller::SoapBodyResponse]} {
-	set resultNode [$node appendChild [$xmlDoc createElement [$obj elementName]]]
+	set resultNode [$node appendChild [$xmlDoc createElement test[$obj elementName]]]
 	set valueNode [$resultNode appendChild [$xmlDoc createTextNode [$obj responseValue]]]
     }
 
     # set current node the parent for the next visited sub-node 
     # in the soap syntax tree
-
+    my log [$xmlDoc asXML]
     my parentNode $node
+
 
     
 }
@@ -132,7 +133,7 @@ SoapMarshallerVisitor ad_instproc releaseOn {node} {
     }
 
     #puts [[my xmlDoc] asXML]
-  
+
 }
 
 ##################################
@@ -208,7 +209,8 @@ SoapResponseVisitor ad_instproc visit {obj} {} {
 	if {[$obj istype ::xosoap::marshaller::SoapBodyEntry]} {
 		
 		$obj class ::xosoap::marshaller::SoapBodyResponse
-		$obj elementName [append [$obj elementName] "Result"]
+		#$obj elementName [append [$obj elementName] "Response"]
+		$obj elementName "[$obj set targetMethod]Response"
 		$obj responseValue [my batch]
 		
     }

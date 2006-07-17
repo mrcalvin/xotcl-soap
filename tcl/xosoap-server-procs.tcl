@@ -289,6 +289,9 @@ namespace eval xosoap {}
 	 
 	$visitor releaseOn [[$msgContext responseMessage] soapEnvelope]
 	set responseFlowResult [next $msgContext]
+
+my log $responseFlowResult
+
 	eval $responseFlowResult
 }
 

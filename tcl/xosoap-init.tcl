@@ -13,4 +13,5 @@ set filter_url "$pkg_prefix*"
 ns_register_filter preauth POST $filter_url	xosoap::ConcreteMessageHandler
 ns_log notice "\[xoSoap\] preauth filter set for post requests debarking at $filter_url."														
 ns_register_proc POST $pkg_prefix	xosoap::ConcreteMessageHandler preprocessRequest														
+
 							
