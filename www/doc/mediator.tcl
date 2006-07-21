@@ -10,7 +10,7 @@ set schema http://www.w3.org/2001/XMLSchema
 
 set registry ""
 for {set i 0} {$i < 10} {incr i} {
-    set endpoint "http://localhost:8070/xosoap/services/SqiService${i}"
+    set endpoint "http://localhost:8000/xosoap/services/SqiService${i}"
     lappend registry $endpoint 
 
     set methodName synchronousQuery

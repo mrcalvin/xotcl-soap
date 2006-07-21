@@ -195,27 +195,33 @@ namespace eval xosoap {}
 	@creation-date August 18, 2005
 		
 } {
-    my set user_id "" 
-    my set url ""
-    my set urlv "" 
+    #my set user_id "" 
+    #my set url ""
+    #my set urlv "" 
     #my set user {stefan.sobernig@wu-wien.ac.at} 
     #my set password "asasas"
 
-	my set user "" 
-    my set password ""
-
+	#my set user "" 
+    #my set password ""
+    #my set method ""
+	
 
     # default config settings
 
     my set package_prefix "xosoap"
     my set service_prefix "services"
 
-    my instvar user_id url urlv user password
+    my instvar user_id url urlv user password method query
 	
     ad_conn -reset
 
+	set user ""
+	set password ""
     set url [ns_urldecode [ns_conn url]]
+   # my log "ns_conn urlv: [ns_conn urlv]"
     set urlv [ns_conn urlv]
+    set method [ns_conn method]
+    set query [ns_conn query]
     
     array set auth [auth::authenticate -username $user -password $password]
     #my log "\[xoSoap\] auth status $auth(auth_status)"
@@ -312,10 +318,10 @@ my log $responseFlowResult
 	
 	
 } {
-    my instvar user_id url urlv user password 
+    my instvar user_id url urlv user password method query
     									
-
-    my debug "urlv length: [llength [my set urlv]]"
+	my log "url: $url, method: $method, query: $query"
+    #my debug "urlv length: [llength [my set urlv]]"
     if {[llength [my set urlv]] != 3} {
 	ns_return 403 text/plain "Soap service endpoints exclusively reside at /[my set package_prefix]/[my set service_prefix]/<service_name>"
     } else {
@@ -325,8 +331,27 @@ my log $responseFlowResult
 	} else {
 	    
 	    set serviceName [lindex [my set urlv] 2]
-	    set soap [ns_conn content]
-	    my handleRequest $serviceName $soap
+	    
+	    switch -exact $method {
+	    
+	    		"GET" {
+	    		
+	    			# meant to be request for wsdl; verify first
+	    			if {$query eq "wsdl"} {
+	    				eval [my getWSDL -servicePointer  $serviceName]
+	    			}
+	    		} 
+	    		
+	    		"POST" {
+	    		
+	    			# an actual http request with soap payload
+	    			set soap [ns_conn content]
+	   			my handleRequest $serviceName $soap
+	    		}
+	    		
+	    	}
+	    
+	    
 	}
    }
 }
