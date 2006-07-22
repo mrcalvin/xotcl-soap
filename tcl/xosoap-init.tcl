@@ -17,7 +17,8 @@ ns_register_proc POST $pkg_prefix	xosoap::ConcreteMessageHandler preprocessReque
 # adding interceptors for GET requests (requesting WSDL representations of Service Contracts)
 
 
-ns_register_filter preauth GET $filter_url	xosoap::ConcreteMessageHandler
+#ns_register_filter preauth GET $filter_url	xosoap::ConcreteMessageHandler
+ns_register_filter preauth GET "/xosoap/services*"	xosoap::ConcreteMessageHandler
 ns_log notice "\[xoSoap\] preauth filter set for GET requests debarking at $filter_url."														
-ns_register_proc GET $pkg_prefix	xosoap::ConcreteMessageHandler preprocessRequest	
-							
+#ns_register_proc GET $pkg_prefix	xosoap::ConcreteMessageHandler preprocessRequest	
+ns_register_proc GET "/xosoap/services"	xosoap::ConcreteMessageHandler preprocessRequest							

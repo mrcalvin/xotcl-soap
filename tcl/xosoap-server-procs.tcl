@@ -323,7 +323,7 @@ my log $responseFlowResult
 	my log "url: $url, method: $method, query: $query"
     #my debug "urlv length: [llength [my set urlv]]"
     if {[llength [my set urlv]] != 3} {
-	ns_return 403 text/plain "Soap service endpoints exclusively reside at /[my set package_prefix]/[my set service_prefix]/<service_name>"
+		ns_return 403 text/plain "Soap service endpoints exclusively reside at /[my set package_prefix]/[my set service_prefix]/<service_name>"
     } else {
 	
 	if {![string equal [lindex [my set urlv] 1] [my set service_prefix]]} {
