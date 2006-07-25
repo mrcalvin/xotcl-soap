@@ -289,8 +289,8 @@ namespace eval xosoap {}
 	set visitor [::xosoap::visitor::SoapResponseVisitor new -volatile -batch [lindex $args 1]]
 	set msgContext [lindex $args 0]
 	set responseMsg [::xosoap::marshaller::ResponseMessage new]
-	[[[$msgContext] requestMessage] soapEnvelope] copy ${responseMsg}::envelopeObj
-	$responseMsg soapEnvelope ${responseMsg}::envelopeObj
+	#[[[$msgContext] requestMessage] soapEnvelope] copy ${responseMsg}::envelopeObj
+	$responseMsg soapEnvelope [[[$msgContext] requestMessage] soapEnvelope]
 	$msgContext responseMessage $responseMsg
 	 
 	$visitor releaseOn [[$msgContext responseMessage] soapEnvelope]

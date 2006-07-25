@@ -101,7 +101,7 @@ SoapMarshallerVisitor ad_instproc visit obj {
 	
     # if current obj is leaf node -> body entry, introduce the resultValue
     if {[$obj istype ::xosoap::marshaller::SoapBodyResponse]} {
-	set resultNode [$node appendChild [$xmlDoc createElement test[$obj elementName]]]
+	set resultNode [$node appendChild [$xmlDoc createElement [$obj elementName]]]
 	set valueNode [$resultNode appendChild [$xmlDoc createTextNode [$obj responseValue]]]
     }
 
