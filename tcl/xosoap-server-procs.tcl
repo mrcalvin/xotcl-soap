@@ -137,7 +137,7 @@ namespace eval xosoap {}
 			
 	}  
 	
-	my log "mixin lists: rqf: [[self]::RequestFlow mixin], rpf: [[self]::ResponseFlow mixin]"
+	#my log "mixin lists: rqf: [[self]::RequestFlow mixin], rpf: [[self]::ResponseFlow mixin]"
 }
 
 
@@ -557,6 +557,8 @@ DeMarshallingInterceptor instproc handleRequest args {
 	
     set doc [dom parse $payload]
     set root [$doc documentElement]
+    
+    
 
     set envelope [::xosoap::marshaller::SoapEnvelope new]
     

@@ -616,9 +616,18 @@ SoapElement ad_instproc parseAttributes {node} {
 
 }
 
+
 ###############################################
 # Soap Syntax Tree
 ###############################################
+
+::xotcl::Class NestedClass -superclass ::xotcl::Class
+	NestedClass ad_instproc new {-mixin args} {} {
+		
+		eval next -childof [self callingobject] [expr {[info exists mixin] ? [list -mixin $mixin] : ""}] $args
+
+	}
+
 
 ::xotcl::Class SoapEnvelope -superclass SoapElement -parameter {encodingStyle nsEnvelopeVersion} -ad_doc {
 
@@ -626,6 +635,37 @@ SoapElement ad_instproc parseAttributes {node} {
 
 	@author stefan.sobernig@wu-wien.ac.at
 	@creation-date August, 19 2005
+
+}
+
+SoapEnvelope ad_instproc init {} {} {
+
+	my elementName "Envelope"
+	my elementNamespace "SOAP-ENV"
+	my registerNS "SOAP-ENV" "http://schemas.xmlsoap.org/soap/envelope/"
+    	my registerNS "SOAP-ENC" "http://schemas.xmlsoap.org/soap/encoding/"
+    	my registerEnc "http://schemas.xmlsoap.org/soap/encoding/"
+}
+
+SoapEnvelope ad_proc new {-response:switch args} {} {
+
+	if {$response} {
+		return [next -contains { 
+			::xosoap::marshaller::SoapHeader new
+			::xosoap::marshaller::SoapBody new -contains {	
+				::xosoap::marshaller::SoapBodyResponse new 
+				}
+			
+			}] 	
+	}
+	
+	return [next -contains { 
+			#::xosoap::marshaller::SoapHeader new
+			::xosoap::marshaller::SoapBody new -contains {	
+				::xosoap::marshaller::SoapBodyRequest new 
+				}
+			}] 
+
 
 }
 
@@ -642,6 +682,7 @@ SoapEnvelope ad_instproc parse {rootNode} {
 
 } {
 
+	
     my elementNamespace [$rootNode prefix]
     my elementName [$rootNode localName]
     
@@ -655,21 +696,27 @@ SoapEnvelope ad_instproc parse {rootNode} {
     
     my encodingStyle [[my resolveNSHandler] get "SOAP-ENC"]
     
-    foreach child [$rootNode childNodes] {
+   #foreach child [$rootNode childNodes] {
     
-	set cName [$child localName]
-	set tmpCommand "Soap$cName [self]::$cName"
-	eval $tmpCommand
+	#	set cName [$child localName] 
+	#	set tmpCommand "Soap$cName [self]::$cName"
+	#	eval $tmpCommand
 
-    }   
+   #}
 }
 
-::xotcl::Class SoapHeader -superclass SoapElement -ad_doc {
+NestedClass SoapHeader -superclass SoapElement -ad_doc {
 
 	<p>The delegate object for the SOAP-ENV:Header element.</p> 
 
 	@author stefan.sobernig@wu-wien.ac.at
 	@creation-date August, 19 2005
+}
+
+SoapHeader ad_instproc init {} {} {
+
+	my elementName "Header"
+	my elementNamespace "SOAP-ENV"
 }
 
 SoapHeader ad_instproc parse {rootNode} {
@@ -687,14 +734,21 @@ SoapHeader ad_instproc parse {rootNode} {
     
 } 
 
-::xotcl::Class SoapHeaderEntry -superclass SoapElement
+NestedClass SoapHeaderEntry -superclass SoapElement
 
-::xotcl::Class SoapBody -superclass SoapElement -ad_doc {
+NestedClass SoapBody -superclass SoapElement -ad_doc {
 
 	<p>The delegate object for the SOAP-ENV:Body element.</p> 
 
 	@author stefan.sobernig@wu-wien.ac.at
 	@creation-date August, 19 2005
+}
+
+SoapBody ad_instproc init {} {} {
+
+	my elementNamespace "SOAP-ENV"
+    my elementName "Body"
+
 }
 
 SoapBody ad_instproc parse {rootNode} {
@@ -711,17 +765,18 @@ SoapBody ad_instproc parse {rootNode} {
 
 } {
 
-        
-    set bodyNode [$rootNode selectNodes /SOAP-ENV:Envelope/SOAP-ENV:Body]
+  
+    set bodyNode [$rootNode getElementsByTagName *Body]
     my elementNamespace [$bodyNode prefix]
     my elementName [$bodyNode localName]
     my parseAttributes $bodyNode
-    set child [$bodyNode firstChild]
-    SoapBodyEntry [self]::[$child localName]
+    #set child [$bodyNode firstChild]
+    #SoapBodyEntry [self]::[$child localName]
+   
     
 } 
 
-::xotcl::Class SoapBodyEntry -superclass SoapElement -parameter {targetMethod} -ad_doc {
+NestedClass SoapBodyEntry -superclass SoapElement -parameter {targetMethod} -ad_doc {
 
 	<p>The delegate object for the single child element of SOAP-ENV:Body as defined for RPC-style SOAP.</p> 
 
@@ -730,12 +785,31 @@ SoapBody ad_instproc parse {rootNode} {
 }
 SoapBodyEntry ad_instproc init args {} {
 
+	my elementNamespace "m"
+	my registerNS "m" "Some-URI"
     my set methodArgs [list]
     next  
 
 }
 
-SoapBodyEntry ad_instproc parse {rootNode} {
+
+NestedClass SoapBodyResponse -superclass SoapBodyEntry -parameter {responseValue}
+
+SoapBodyResponse ad_instproc parse {rootNode} {} {
+
+	my instvar responseValue
+	set bodyNode [$rootNode getElementsByTagName *Body]
+	    
+	set meNode [$bodyNode firstChild]
+	set valueNode [$meNode firstChild]
+	
+	set responseValue [$valueNode text]
+
+}
+
+NestedClass SoapBodyRequest -superclass SoapBodyEntry -parameter {remoteMethod remoteArgs} 
+
+SoapBodyRequest ad_instproc parse {rootNode} {
 
 		<p>The parse method of <a href='/xotcl/show-object?object=::xosoap::marshaller::SoapBodyEntry'>::xosoap::marshaller::SoapBodyEntry</a> provides the fundamentals to create an object representation of the SOAP-ENV:Body XML element. It major objective is the extraction of the core invocation info, i.e. the remote method to be invoked and the corresponding method arguments to pass to the method invocation.</p>
 
@@ -747,30 +821,192 @@ SoapBodyEntry ad_instproc parse {rootNode} {
 
 } {
     
-    my instvar methodArgs
-    
-    set bodyNode [$rootNode selectNodes /SOAP-ENV:Envelope/SOAP-ENV:Body]
-    
-    set meNode [$bodyNode firstChild]
-
-    my elementNamespace [$meNode prefix]
-    my elementName [$meNode localName]
-
-    my targetMethod [$meNode localName]
-    
-    my parseAttributes $meNode
-    
-    foreach argNode [$meNode childNodes] {
+  
+	    my instvar methodArgs
+	    
+	    set bodyNode [$rootNode getElementsByTagName *Body]
+	    
+	    set meNode [$bodyNode firstChild]
 	
-	set argName [$argNode nodeName]
-	set argValue [$argNode text]
-	lappend methodArgs [list $argName $argValue]
-
-    }   
-   
+	    my elementNamespace [$meNode prefix]
+	    my elementName [$meNode localName]
+	
+	    my targetMethod [$meNode localName]
+	    
+	    my parseAttributes $meNode
+	    
+	    foreach argNode [$meNode childNodes] {
+		
+		#my log "+++argName: [$argNode nodeName], type=[$argNode nodeType]"
+		set x [Argument new -domNode $argNode]
+		
+		lappend methodArgs [list [$argNode nodeName] [$x rollOut]]
+	    
+   }
 } 
 
-::xotcl::Class SoapBodyResponse -superclass SoapElement -parameter {responseValue}
+set payload {<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:soap-enc="http://schemas.xmlsoap.org/soap/encoding/" SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/1999/XMLSchema-instance">
+    <SOAP-ENV:Body>
+        <ns:synchronousQuery xmlns:ns="urn:xmethods-synchronousQuery">
+            <queryStatement soap-enc:arrayType="xsd:int[2]">
+   				<number>3</number>
+   				<number>4</number>
+		</queryStatement>
+        </ns:synchronousQuery>
+    </SOAP-ENV:Body>
+</SOAP-ENV:Envelope>}
+
+
+::xotcl::Class Soap 
+Soap ad_instproc init {} {} {
+
+	my instvar namespaces
+	set namespaces(xsd) "http://www.w3.org/2001/XMLSchema"
+	set namespaces(xsi) "http://www.w3.org/1999/XMLSchema-instance"
+	next
+
+}
+
+::xotcl::Class 1.1 -superclass Soap 
+1.1 ad_instproc init {} {} {
+	next
+	my instvar namespaces
+	set namespaces(soap-env) "http://schemas.xmlsoap.org/soap/envelope/"
+	set namespaces(soap-enc) "http://schemas.xmlsoap.org/soap/encoding/"
+}
+
+::xotcl::Class 1.2 -superclass Soap
+1.2 ad_instproc init {} {} {
+	next
+	my instvar namespaces
+	set namespaces(soap-env) "http://www.w3.org/2003/05/soap-envelope"
+	set namespaces(soap-enc) "http://www.w3.org/2003/05/soap-encoding" 
+}
+
+
+
+
+::xotcl::Class Argument -parameter {domNode} 
+Argument set mapping(default) ::xorb::aux::String
+Argument set mapping(int) ::xorb::aux::Integer 
+Argument set mapping(string) ::xorb::aux::String 
+Argument set mapping(double) ::xorb::aux::Double 
+Argument set mapping(boolean) ::xorb::aux::Boolean 
+Argument set mapping(struct) ::xorb::aux::Dict 
+Argument set mapping(array) ::xorb::aux::Array 
+	
+
+Argument ad_instproc init args {} {
+	
+		my set current [self]
+		my log "+++1"
+		my parse
+}	
+	
+
+Argument ad_instproc parse {} {} {
+	
+	
+	if {[my exists domNode]} {
+	
+		my instvar domNode
+		
+		set childNodeType [[$domNode firstChild] nodeType]
+		if {$childNodeType == "TEXT_NODE"} {
+			my parseAtom
+		} else {
+			my parseCompound
+		}
+	}
+
+}
+
+Argument ad_instproc parseAtom {} {} {
+	
+	my instvar domNode current
+	[self class] instvar mapping
+	[1.1 new -volatile] instvar namespaces
+	
+	
+	# follows element-wise encoding of data types as introduced by SOAP 1.1 (SOAP-ENC:...)
+	# any prefix pointing to NS http://schemas.xmlsoap.org/soap/encoding/
+	
+	set typeIdentifier "default"
+
+	if {[string equal -nocase [$domNode namespaceURI] $namespaces(soap-enc)]} {
+		set typeIdentifier [string tolower [$domNode nodeName] 0 0]
+	# follows XML schema type-wise encoding of data types
+	} elseif {[$domNode hasAttributeNS $namespaces(xsi) "type"]} {
+			set typeIdentifier [lindex [split [$domNode getAttributeNS $namespaces(xsi) "type"] ":"] 1]
+	} elseif {[$current istype ::xorb::aux::Array]} {
+			
+			set typeIdentifier [$current type]
+	}
+	
+	#my log "atom identifier: $typeIdentifier"
+	set container [$mapping($typeIdentifier)]
+	set containerInst [$container new -childof $current -detainee [$domNode text]]
+	
+	# register atom with the superlevel compound
+	if {$current != [self]} {
+	#	my log "current($current): [$current info class], containerInst ($containerInst): [$containerInst info class]"
+		$current ascribe $containerInst $domNode
+	}
+	
+}
+
+Argument ad_instproc parseCompound {} {} {
+
+	
+	my instvar domNode current
+	[self class] instvar mapping
+	[1.1 new -volatile] instvar namespaces
+	# struct, array?
+	
+	
+	if {([$domNode namespaceURI] eq $namespaces(soap-enc) && [string equal -nocase [$domNode localName] "Array"]) || [$domNode hasAttributeNS $namespaces(soap-enc) "arrayType"] || ([$domNode hasAttributeNS $namespaces(xsi) "type"] && [string equal -nocase [$domNode getAttributeNS $namespaces(xsi) "type"] "SOAP-ENC:Array"])} {
+			set typeIdentifier "array"
+			set container $mapping($typeIdentifier)
+			set current [$container new -childof $current -domNode $domNode]
+			if {[$domNode hasAttributeNS $namespaces(soap-enc) "arrayType"]} {
+				
+				set arrayDeclaration [$domNode getAttributeNS $namespaces(soap-enc) "arrayType"]
+				set declv [split $arrayDeclaration ":"]
+				
+				if {![regexp -- {^([a-z]+)[[.[.]]([0-9]+)[[.].]]$} [lindex $declv 1] -> t o]} {
+					error "Argument parsing: invalid Array declaration."
+				}
+				
+				$current type $t
+				$current occurrence $o 
+				
+			}
+	} else {
+		
+		set typeIdentifier "struct"
+		set container [$mapping($typeIdentifier)]
+		set current [$container new -childof $current -domNode $domNode]
+	}
+	
+	
+	
+	foreach itemNode [$domNode childNodes] {
+		my domNode $itemNode
+		my parse
+	}
+	
+}
+
+Argument ad_instproc rollOut {} {} {
+	
+	#my log "argument container: [lindex [my info children] 0], type: [[lindex [my info children] 0] info class]"
+	
+	if {[my info children] != ""} {
+		
+		
+		return [[lindex [my info children] 0] getValue]
+	} 
+}
 
 ::xotcl::Class SoapFault -parameter {exception {soapVersion 1.1}} -ad_doc {
 

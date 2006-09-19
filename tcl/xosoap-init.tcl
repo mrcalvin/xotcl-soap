@@ -21,4 +21,9 @@ ns_register_proc POST $pkg_prefix	xosoap::ConcreteMessageHandler preprocessReque
 ns_register_filter preauth GET "/xosoap/services*"	xosoap::ConcreteMessageHandler
 ns_log notice "\[xoSoap\] preauth filter set for GET requests debarking at $filter_url."														
 #ns_register_proc GET $pkg_prefix	xosoap::ConcreteMessageHandler preprocessRequest	
-ns_register_proc GET "/xosoap/services"	xosoap::ConcreteMessageHandler preprocessRequest							
+ns_register_proc GET "/xosoap/services"	xosoap::ConcreteMessageHandler preprocessRequest			
+
+
+########################################################
+#::xorb::SCInvoker mixin ::xosoap::client::RemoteInvocationProxy
+########################################################				

@@ -59,11 +59,12 @@ SoapMarshallerVisitor ad_instproc visit obj {
     my instvar xmlDoc resultValue
 
     set node {}
-
+	
+	#my log "+++ obj: $obj, class: [$obj info class]"
     set elementPrefix [$obj elementNamespace]
     set elementName {}
     if {[$obj istype ::xosoap::marshaller::SoapBodyEntry]} {
-	set elementName "[$obj elementName]Response"
+	set elementName "[$obj elementName]"
     } else {
 	set elementName [$obj elementName]
     }
@@ -103,12 +104,30 @@ SoapMarshallerVisitor ad_instproc visit obj {
     if {[$obj istype ::xosoap::marshaller::SoapBodyResponse]} {
 	set resultNode [$node appendChild [$xmlDoc createElement [$obj elementName]]]
 	set valueNode [$resultNode appendChild [$xmlDoc createTextNode [$obj responseValue]]]
+   
     }
+
+	if {[$obj istype ::xosoap::marshaller::SoapBodyRequest]} {
+	
+		$obj instvar methodArgs
+		#my log "+++methodArgs: $methodArgs"
+		foreach {k v} $methodArgs {
+			#my log "+++k:$k, +++v:$v"
+			$node appendChild [$xmlDoc createElement [string trimleft $k "-"]  argEl]
+			$argEl appendChild [$xmlDoc createTextNode $v]
+			
+		
+		}
+	
+	}
 
     # set current node the parent for the next visited sub-node 
     # in the soap syntax tree
-    my log [$xmlDoc asXML]
-    my parentNode $node
+    #my log [$xmlDoc asXML]
+    
+    if {[$obj info children] ne {}} {
+    		my parentNode $node
+    }
 
 
     
@@ -138,7 +157,7 @@ SoapMarshallerVisitor ad_instproc releaseOn {node} {
 
 ##################################
 
-::xotcl::Class SoapRequestVisitor -superclass AbstractVisitor -parameter {serviceMethod serviceArgs} -ad_doc {
+::xotcl::Class SoapRequestVisitor -superclass AbstractVisitor -parameter {serviceMethod serviceArgs {boundness in} {targetNS ""}} -ad_doc {
 
 	<p>This visitor extracts relevant invocation infos, i.e. name of called remote method and arguments supplied, and stores these in terms of parameters for later access (see also <a href='/api-doc/proc-view?proc=::xosoap::marshaller::Marshaller+instproc+marshal'>xosoap::marshaller::Marshaller demarshal</a>).</p> 
 
@@ -147,7 +166,61 @@ SoapMarshallerVisitor ad_instproc releaseOn {node} {
 
 }
 
-SoapRequestVisitor ad_instproc visit obj {
+SoapRequestVisitor ad_instproc visit {obj} {} {
+
+	if {[my isobject $obj]} {
+			
+			my instvar boundness
+			switch $boundness {
+			
+				"in" 	{my mixin RequestInbound}
+				"out"  	{my mixin RequestOutbound}
+			
+			}
+					eval my [namespace tail [$obj info class]] $obj 
+				}
+
+}
+
+SoapRequestVisitor configure 	-instproc SoapEnvelope {obj} { next } \
+							-instproc SoapBody {obj} { next } \
+							-instproc SoapHeader {obj} { next } \
+							-instproc SoapBodyRequest {obj} { next } \
+
+
+::xotcl::Class RequestInbound -ad_instproc SoapBodyRequest {obj} {} {
+
+	my instvar serviceMethod serviceArgs
+	
+	set serviceMethod [$obj elementName]
+     # provide for correct order of argument array
+     
+     set tmpArgs ""
+     
+     foreach keyvalue [$obj set methodArgs]  {	 
+		
+		#my log "i: [lindex $keyvalue 0], j: [lindex $keyvalue 1]"
+		append tmpArgs " " "{[lindex $keyvalue 1]}"     
+	  
+	  }     
+	  
+     set serviceArgs $tmpArgs
+	
+}
+
+::xotcl::Class RequestOutbound -ad_instproc SoapBodyRequest {obj} {} {
+
+	my instvar targetNS serviceMethod serviceArgs
+	$obj elementName $serviceMethod
+	$obj set methodArgs $serviceArgs
+	if {$targetNS ne {}} {
+		$obj registerNS "m" $targetNS
+	} 
+
+}
+
+				
+set comment {SoapRequestVisitor ad_instproc visit obj {
 
 	<p>This method specifies the visitor's operations on each object visited when crawling an object tree. To be more specific,
 	it ignores all objects other than typed <a href='/xotcl/show-object?object=::xosoap::visitor::SoapBodyEntry'>xosoap::visitor::SoapBodyEntry</a>. If a leaf object of this type is reached, it extracts the relevant information.</p>
@@ -182,6 +255,7 @@ SoapRequestVisitor ad_instproc visit obj {
      }
 
 }
+}
 
 SoapRequestVisitor ad_instproc releaseOn node {
 
@@ -202,24 +276,58 @@ SoapRequestVisitor ad_instproc releaseOn node {
     
 }
 
-::xotcl::Class SoapResponseVisitor -superclass AbstractVisitor -parameter {batch}
+::xotcl::Class SoapResponseVisitor -superclass AbstractVisitor -parameter {batch {boundness "out"}}
+
 
 SoapResponseVisitor ad_instproc visit {obj} {} {
 
-	if {[$obj istype ::xosoap::marshaller::SoapBodyEntry]} {
-		
-		$obj class ::xosoap::marshaller::SoapBodyResponse
-		#$obj elementName [append [$obj elementName] "Response"]
-		$obj elementName "[$obj set targetMethod]Response"
-		$obj responseValue [my batch]
-		
-    }
+	if {[my isobject $obj]} {
+			
+			my instvar boundness
+			switch $boundness {
+			
+				"in" 	{my mixin ResponseInbound}
+				"out"  	{my mixin ResponseOutbound}
+			
+			}
+					eval my [namespace tail [$obj info class]] $obj 
+				}
 
 }
+
 SoapResponseVisitor ad_instproc releaseOn {node} {} {
 
 	$node accept [self] 
 
 }
+
+SoapResponseVisitor configure -instproc SoapEnvelope {obj} { next } \
+							-instproc SoapBody {obj} { next } \
+							-instproc SoapHeader {obj} { next } \
+							-instproc SoapBodyResponse {obj} { next } \
+							-instproc SoapBodyRequest {obj} { next }
+
+::xotcl::Class ResponseOutbound -ad_instproc SoapBodyRequest {obj} {} {
+
+	#if {[$obj istype ::xosoap::marshaller::SoapBodyEntry]} {
+		
+		$obj class ::xosoap::marshaller::SoapBodyResponse
+		
+		#$obj elementName [append [$obj elementName] "Response"]
+		$obj elementName "[$obj set targetMethod]Response"
+		$obj responseValue [my batch]
+		
+    #}
+
+}
+
+::xotcl::Class ResponseInbound -ad_instproc SoapBodyResponse {obj} {} {
+
+		my log "+++ i am here"
+		my batch [$obj responseValue]
+		my log "+++ responseValue: [$obj responseValue], batch: [my batch]"
+
+}
+
 
 }

@@ -135,13 +135,13 @@ ad_library {
 				
 				# portType/input
 				
-				set current [[$doc documentElement] selectNodes "/definitions/portType/operation"]
+				set current [[$doc documentElement] selectNodes "/definitions/portType/operation\[@name='[$operation label]'\]"]
 				set el2Input [$current appendChild [$doc createElement "input"]]
 				$el2Input setAttribute "message" "tns:${operationName}Input"
 				
 				# binding/input
 				
-				set current [[$doc documentElement] selectNodes "/definitions/binding/operation"]
+				set current [[$doc documentElement] selectNodes "/definitions/binding/operation\[@name='[$operation label]'\]"]
 				set el2Input [$current appendChild [$doc createElement "input"]]
 				set el3SoapBody [$el2Input appendChild [$doc createElement "soap:body"]]
 				$el3SoapBody setAttribute "use" "encoded"
@@ -164,13 +164,13 @@ ad_library {
 				
 				# portType/input
 				
-				set current [[$doc documentElement] selectNodes "/definitions/portType/operation"]
+				set current [[$doc documentElement] selectNodes "/definitions/portType/operation\[@name='[$operation label]'\]"]
 				set el2Input [$current appendChild [$doc createElement "output"]]
 				$el2Input setAttribute "message" "tns:${operationName}Output"
 				
 				# binding/input
 				
-				set current [[$doc documentElement] selectNodes "/definitions/binding/operation"]
+				set current [[$doc documentElement] selectNodes "/definitions/binding/operation\[@name='[$operation label]'\]"]
 				set el2Input [$current appendChild [$doc createElement "output"]]
 				set el3SoapBody [$el2Input appendChild [$doc createElement "soap:body"]]
 				$el3SoapBody setAttribute "use" "encoded"

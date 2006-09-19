@@ -11,7 +11,7 @@ namespace eval services {
 ########################################################################
 
 
-::xorb::service::InstantService Poem 
+::xorb::service::InstantService Poem -package "Poem-package"
 Poem ad_instproc init {} {} {
 
 	my set result "Rose"

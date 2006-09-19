@@ -1,19 +1,27 @@
 #package req SOAP
 
-set endpoint "http://localhost:8000/xosoap/services/Poem"
+set endpoint "http://localhost:8000/xosoap/services/ComplexSqiService"
 set schema http://www.w3.org/2001/XMLSchema
 
-SOAP::create getPoem \
-    -uri "urn:xmethods-getPoem" \
+namespace import -force ::rpcvar::typedef
+
+typedef {
+   intValue    int
+   floatValue  float
+   stringValue string
+} simpleStruct
+
+SOAP::create synchronousQuery \
+    -uri "urn:xmethods-synchronousQuery" \
     -proxy $endpoint \
-    -params { statement string } \
+    -params { queryStatement int(2) } \
     -schema [list xsd $schema] \
     -encoding http://schemas.xmlsoap.org/soap/encoding/
 
 
-set result [::template::getPoem "is a rose"]
+set result [::template::synchronousQuery [list 300 400 500]]
 
-set procVarName ::SOAP::_template_getPoem
+set procVarName ::SOAP::_template_synchronousQuery
 foreach name     [array names $procVarName] {
     lappend procVarNameArr "$name=[set ${procVarName}($name)]"
 }
@@ -29,7 +37,7 @@ doc_return 200 text/html [subst {
 
 
 <pre>
-    [ad_quotehtml [::SOAP::dump ::template::getPoem]]
+    [ad_quotehtml [::SOAP::dump ::template::synchronousQuery]]
 
     procVarNameArr=[join $procVarNameArr \n]
 </pre>

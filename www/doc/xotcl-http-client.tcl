@@ -5,48 +5,21 @@ ad_page_contract {
     
 }
 
-package require xotcl::comm::httpAccess
 
-# aligning to AOLServer environment
-
-xotcl::comm::httpAccess::Http set useragent "xoSoap"
-proc ::printError {msg} { ns_log notice $msg}
-proc ::showMsg {msg} { ns_log notice $msg }
-
-
-::xotcl::Class SoapRequest -superclass SimpleRequest -parameter {endpoint payload}
-	
-	SoapRequest ad_instproc init {} {} {
-	
-		my instvar endpoint payload
-		
-		my url $endpoint
-		my method "POST"
-		my headers [list SOAPAction $endpoint]
-		my data $payload
-		my contentType "text/xml"
-		
-		next
-		
-	}
-
-
-set payload {
-
-	<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" 
-xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/1999/
-XMLSchema" xmlns:xsi="http://www.w3.org/1999/XMLSchema-instance">
+set payload {<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:soap-enc="http://schemas.xmlsoap.org/soap/encoding/" SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/1999/XMLSchema-instance">
     <SOAP-ENV:Body>
-        <ns:synchronousQuery xmlns:ns="urn:xmethods-getPoem">
-            <statement xsi:type="xsd:string">beneath the wheel</statement>
+        <ns:synchronousQuery xmlns:ns="urn:xmethods-synchronousQuery">
+            <queryStatement soap-enc:arrayType="xsd:int[2]">
+   				<number>3</number>
+   				<number>4</number>
+		</queryStatement>
         </ns:synchronousQuery>
     </SOAP-ENV:Body>
-</SOAP-ENV:Envelope>
-}
+</SOAP-ENV:Envelope>}
 
 # simple test call
 
-SoapRequest s0 -endpoint http://localhost:8000/xosoap/services/SqiService1 -payload $payload
+::xosoap::client::SoapRequest s0 -endpoint http://localhost:8000/xosoap/services/ComplexSqiService -payload $payload
 
 ns_return 200 text/xml [s0 getContent]
 s0 destroy
