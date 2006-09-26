@@ -56,7 +56,7 @@ proc ? {cmd expected {msg ""}} {
 
 Timestamp t1
 
-test case "xorb/xosoap test cases"
+test case "xosoap test cases"
 
 test section "Basic Setup"
 
@@ -67,6 +67,130 @@ test section "Basic Setup"
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
 ? {expr {$::xotcl::version < 1.4}} 0 "XOTcl Version $::xotcl::version >= 1.4"
+
+
+test section "Soap Argument Parsing"
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+# ((title)) 			Parsing for SOAP encoded arguments (server-inbound,client-inbound)
+# ((description)) 	Processes a suite of SOAP-encoded (1.1) types, partly taken from 
+# ((type)) 			SOAP Parsing
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+
+test subsection "SOAP Arrays"
+namespace import ::xorb::aux::*
+proc parse {soap} {
+
+	set pre {<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/1999/XMLSchema-instance">
+    <SOAP-ENV:Body>
+        <ns:synchronousQuery xmlns:ns="urn:xmethods-synchronousQuery">}
+        
+     set post {
+     				</ns:synchronousQuery>
+    				</SOAP-ENV:Body>
+			</SOAP-ENV:Envelope>}
+			
+	set x [::xosoap::marshaller::Argument new -domNode [[[[dom parse  "$pre$soap$post"] documentElement] getElementsByTagName *synchronousQuery] firstChild]]
+	return [$x rollOut]
+}
+
+# //////////////////////////////////////////////////////////
+set soapenc {
+	<myFavoriteNumbers SOAP-ENC:arrayType="xsd:int[2]">
+   		<number>3</number>
+   		<number>4</number>
+	</myFavoriteNumbers>}
+
+
+set x [Array new -name "myFavoriteNumbers" -type integer -occurrence 2 -contains {
+	::xorb::aux::Integer new -name "number" -detainee 3
+	::xorb::aux::Integer new -name "number" -detainee 4
+}] 
+	
+
+? {string equal [parse $soapenc] [$x getValue]} 1 "Attribute-wise parsing (SOAP-ENC:arrayType)."
+
+# //////////////////////////////////////////////////////////
+set soapenc {
+	<SOAP-ENC:Array SOAP-ENC:arrayType="xsd:int[2]">
+   		<SOAP-ENC:int>3</SOAP-ENC:int>
+   		<SOAP-ENC:int>4</SOAP-ENC:int>
+	</SOAP-ENC:Array>}
+	
+? {string equal [parse $soapenc] [$x getValue]} 1 "Element-wise parsing (SOAP-ENC:Array + SOAP-ENC:arrayType)."
+
+# //////////////////////////////////////////////////////////
+set soapenc {
+	<myFavoriteNumbers SOAP-ENC:arrayType="xsd:int[2]" xsi:type="SOAP-ENC:Array">
+   		<number>3</number>
+   		<number>4</number>
+	</myFavoriteNumbers>}
+	
+? {string equal [parse $soapenc] [$x getValue]} 1 "Attribute-wise parsing (xsi:type='SOAP-ENC:Array' + SOAP-ENC:arrayType)."
+
+# //////////////////////////////////////////////////////////
+set soapenc {
+	<myFavoriteNumbers SOAP-ENC:arrayType="xsd:ur-type[2]">
+   		<number xsi:type="xsd:int">3</number>
+   		<number xsi:type="xsd:int">4</number>
+	</myFavoriteNumbers>}
+	
+? {string equal [parse $soapenc] [$x getValue]} 1 "ur-type support (1): xsi:type given in sub-elements, SINGLE atom type."
+
+# //////////////////////////////////////////////////////////
+set soapenc {
+	<myFavoriteNumbers SOAP-ENC:arrayType="xsd:ur-type[2]">
+   		<SOAP-ENC:int>3</SOAP-ENC:int>
+   		<SOAP-ENC:int>4</SOAP-ENC:int>
+	</myFavoriteNumbers>}
+	
+? {string equal [parse $soapenc] [$x getValue]} 1 "ur-type support (1a): SINGLE atom type, element-wise type encoding."
+
+# //////////////////////////////////////////////////////////
+set soapenc {
+	<myFavoriteNumbers SOAP-ENC:arrayType="xsd:ur-type[2]">
+   		<number xsi:type="xsd:int">3</number>
+   		<number xsi:type="xsd:string">4</number>
+	</myFavoriteNumbers>}
+	
+? {string equal [parse $soapenc] [$x getValue]} 1 "ur-type support (2): xsi:type given in sub-elements, MIXED atom type."
+
+# //////////////////////////////////////////////////////////
+set soapenc {
+	<myFavoriteNumbers SOAP-ENC:arrayType="xsd:ur-type[2]">
+   		<SOAP-ENC:string>myString</SOAP-ENC:string>
+   		<SOAP-ENC:int>4</SOAP-ENC:int>
+	</myFavoriteNumbers>}
+	
+set x [Array new -name "myFavoriteNumbers" -type integer -occurrence 2 -contains {
+	::xorb::aux::String new -name "number" -detainee "myString"
+	::xorb::aux::Integer new -name "number" -detainee 4
+}] 
+
+? {string equal [parse $soapenc] [$x getValue]} 1 "ur-type support (2): MIXED atom type, element-wise type encoding."
+
+
+
+# //////////////////////////////////////////////////////////
+set soapenc {
+	<myFavoriteNumbers SOAP-ENC:arrayType="xsd:int[2]">
+   		<number xsi:type="xsd:int">3</number>
+   		<number xsi:type="xsd:string">4</number>
+	</myFavoriteNumbers>}
+
+	
+? {catch {[parse $soapenc]}} 1 "Order of predence (typing) xsi:type given in sub-elements, violating compound type."
+
+# //////////////////////////////////////////////////////////
+set soapenc {
+	<myFavoriteNumbers SOAP-ENC:arrayType="xsd:ur-type[2]">
+   		<number>3</number>
+   		<number>4</number>
+	</myFavoriteNumbers>}
+	
+? {catch {[parse $soapenc]} msg} 1 "Order of predence (typing), xsi:type NOT given in sub-elements, violating typing requirement."
+
+
 
 ns_write "<p>
 <hr>

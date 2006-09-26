@@ -19,7 +19,7 @@ SOAP::create synchronousQuery \
     -encoding http://schemas.xmlsoap.org/soap/encoding/
 
 
-set result [::template::synchronousQuery [list 300 400 500]]
+set result [::template::synchronousQuery [list 0 300 1 400]]
 
 set procVarName ::SOAP::_template_synchronousQuery
 foreach name     [array names $procVarName] {

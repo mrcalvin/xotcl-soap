@@ -621,12 +621,6 @@ SoapElement ad_instproc parseAttributes {node} {
 # Soap Syntax Tree
 ###############################################
 
-::xotcl::Class NestedClass -superclass ::xotcl::Class
-	NestedClass ad_instproc new {-mixin args} {} {
-		
-		eval next -childof [self callingobject] [expr {[info exists mixin] ? [list -mixin $mixin] : ""}] $args
-
-	}
 
 
 ::xotcl::Class SoapEnvelope -superclass SoapElement -parameter {encodingStyle nsEnvelopeVersion} -ad_doc {
@@ -705,7 +699,7 @@ SoapEnvelope ad_instproc parse {rootNode} {
    #}
 }
 
-NestedClass SoapHeader -superclass SoapElement -ad_doc {
+::xorb::aux::NestedClass SoapHeader -superclass SoapElement -ad_doc {
 
 	<p>The delegate object for the SOAP-ENV:Header element.</p> 
 
@@ -734,9 +728,9 @@ SoapHeader ad_instproc parse {rootNode} {
     
 } 
 
-NestedClass SoapHeaderEntry -superclass SoapElement
+::xorb::aux::NestedClass SoapHeaderEntry -superclass SoapElement
 
-NestedClass SoapBody -superclass SoapElement -ad_doc {
+::xorb::aux::NestedClass SoapBody -superclass SoapElement -ad_doc {
 
 	<p>The delegate object for the SOAP-ENV:Body element.</p> 
 
@@ -776,7 +770,7 @@ SoapBody ad_instproc parse {rootNode} {
     
 } 
 
-NestedClass SoapBodyEntry -superclass SoapElement -parameter {targetMethod} -ad_doc {
+::xorb::aux::NestedClass SoapBodyEntry -superclass SoapElement -parameter {targetMethod} -ad_doc {
 
 	<p>The delegate object for the single child element of SOAP-ENV:Body as defined for RPC-style SOAP.</p> 
 
@@ -793,7 +787,7 @@ SoapBodyEntry ad_instproc init args {} {
 }
 
 
-NestedClass SoapBodyResponse -superclass SoapBodyEntry -parameter {responseValue}
+::xorb::aux::NestedClass SoapBodyResponse -superclass SoapBodyEntry -parameter {responseValue}
 
 SoapBodyResponse ad_instproc parse {rootNode} {} {
 
@@ -807,7 +801,7 @@ SoapBodyResponse ad_instproc parse {rootNode} {} {
 
 }
 
-NestedClass SoapBodyRequest -superclass SoapBodyEntry -parameter {remoteMethod remoteArgs} 
+::xorb::aux::NestedClass SoapBodyRequest -superclass SoapBodyEntry -parameter {remoteMethod remoteArgs} 
 
 SoapBodyRequest ad_instproc parse {rootNode} {
 
@@ -844,17 +838,6 @@ SoapBodyRequest ad_instproc parse {rootNode} {
 	    
    }
 } 
-
-set payload {<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:soap-enc="http://schemas.xmlsoap.org/soap/encoding/" SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/1999/XMLSchema-instance">
-    <SOAP-ENV:Body>
-        <ns:synchronousQuery xmlns:ns="urn:xmethods-synchronousQuery">
-            <queryStatement soap-enc:arrayType="xsd:int[2]">
-   				<number>3</number>
-   				<number>4</number>
-		</queryStatement>
-        </ns:synchronousQuery>
-    </SOAP-ENV:Body>
-</SOAP-ENV:Envelope>}
 
 
 ::xotcl::Class Soap 
@@ -899,7 +882,6 @@ Argument set mapping(array) ::xorb::aux::Array
 Argument ad_instproc init args {} {
 	
 		my set current [self]
-		my log "+++1"
 		my parse
 }	
 	
@@ -934,24 +916,39 @@ Argument ad_instproc parseAtom {} {} {
 	set typeIdentifier "default"
 
 	if {[string equal -nocase [$domNode namespaceURI] $namespaces(soap-enc)]} {
-		set typeIdentifier [string tolower [$domNode nodeName] 0 0]
+	
+		set typeIdentifier [string tolower [$domNode localName] 0 0]
+		
 	# follows XML schema type-wise encoding of data types
 	} elseif {[$domNode hasAttributeNS $namespaces(xsi) "type"]} {
 			set typeIdentifier [lindex [split [$domNode getAttributeNS $namespaces(xsi) "type"] ":"] 1]
-	} elseif {[$current istype ::xorb::aux::Array]} {
+			if {[$current istype ::xorb::aux::Array] && [$current type] ne "ur-type" && $typeIdentifier ne [$current type]} {
+				my error "Typing of atom '[$domNode nodeName]' violates type limitation by Array declaration ([$current type])."
+			}
+	} elseif {[$current istype ::xorb::aux::Array] } {
+			if {[$current type] ne "ur-type"} {
+				set typeIdentifier [$current type]
+			} else {
 			
-			set typeIdentifier [$current type]
+				my error "Atom is not typed by any means, neither attribute- /element-wise nor by precedence."
+				
+			}
+			
+			
 	}
 	
 	#my log "atom identifier: $typeIdentifier"
+	
 	set container [$mapping($typeIdentifier)]
-	set containerInst [$container new -childof $current -detainee [$domNode text]]
+	$container new -childof $current -name [$domNode nodeName] -detainee [$domNode text]
 	
 	# register atom with the superlevel compound
-	if {$current != [self]} {
+	#if {$current != [self]} {
+	
 	#	my log "current($current): [$current info class], containerInst ($containerInst): [$containerInst info class]"
-		$current ascribe $containerInst $domNode
-	}
+		
+	#	$current ascribe $containerInst 
+	#}
 	
 }
 
@@ -963,18 +960,19 @@ Argument ad_instproc parseCompound {} {} {
 	[1.1 new -volatile] instvar namespaces
 	# struct, array?
 	
+	my log "attr=[$domNode hasAttributeNS $namespaces(soap-enc) "arrayType"]"
 	
 	if {([$domNode namespaceURI] eq $namespaces(soap-enc) && [string equal -nocase [$domNode localName] "Array"]) || [$domNode hasAttributeNS $namespaces(soap-enc) "arrayType"] || ([$domNode hasAttributeNS $namespaces(xsi) "type"] && [string equal -nocase [$domNode getAttributeNS $namespaces(xsi) "type"] "SOAP-ENC:Array"])} {
 			set typeIdentifier "array"
 			set container $mapping($typeIdentifier)
-			set current [$container new -childof $current -domNode $domNode]
+			set current [$container new -childof $current -name [$domNode localName] -domNode $domNode]
 			if {[$domNode hasAttributeNS $namespaces(soap-enc) "arrayType"]} {
 				
 				set arrayDeclaration [$domNode getAttributeNS $namespaces(soap-enc) "arrayType"]
 				set declv [split $arrayDeclaration ":"]
-				
-				if {![regexp -- {^([a-z]+)[[.[.]]([0-9]+)[[.].]]$} [lindex $declv 1] -> t o]} {
-					error "Argument parsing: invalid Array declaration."
+				#regexp -- {^([a-z,A-Z,[.-.]]*)[[.[.]]([0-9]+)[[.].]]$} $a -> t o
+				if {![regexp -- {^([a-z,A-Z,[.-.]]*)[[.[.]]([0-9]+)[[.].]]$} [lindex $declv 1] -> t o]} {
+					my error "Argument parsing: invalid Array declaration."
 				}
 				
 				$current type $t
@@ -985,10 +983,10 @@ Argument ad_instproc parseCompound {} {} {
 		
 		set typeIdentifier "struct"
 		set container [$mapping($typeIdentifier)]
-		set current [$container new -childof $current -domNode $domNode]
+		set current [$container new -childof $current -name [$domNode localName] -domNode $domNode]
 	}
 	
-	
+	my log "typeIdentifier: $typeIdentifier, class: [$current info class]"
 	
 	foreach itemNode [$domNode childNodes] {
 		my domNode $itemNode
@@ -1003,7 +1001,7 @@ Argument ad_instproc rollOut {} {} {
 	
 	if {[my info children] != ""} {
 		
-		
+		my log "childs: [my info children]"
 		return [[lindex [my info children] 0] getValue]
 	} 
 }
