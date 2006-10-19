@@ -93,8 +93,12 @@ Invoker ad_proc invoke {-operation:required -endpoint:required {-uri ""} args} {
 ::xotcl::Class SoapStubBuilder -superclass ::xorb::client::StubBuilder -parameter {uri schemas} -instproc init args  { 
 	
 	my set __callingobject [self callingobject]
+	
 	next
-	set endpoint "http://[string trimleft [my bind] "soap://"]"
+	
+	
+	set endpoint [string map {"soap://" "http://"} [my bind]]
+	
 	
 	[self callingobject] instforward [my method] ::xosoap::client::Invoker invoke -operation %proc -endpoint $endpoint -uri [my uri] 
 	

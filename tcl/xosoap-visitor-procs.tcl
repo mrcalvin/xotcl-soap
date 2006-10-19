@@ -60,7 +60,7 @@ SoapMarshallerVisitor ad_instproc visit obj {
 
     set node {}
 	
-	#my log "+++ obj: $obj, class: [$obj info class]"
+	my log "+++ obj: $obj, class: [$obj info class]"
     set elementPrefix [$obj elementNamespace]
     set elementName {}
     if {[$obj istype ::xosoap::marshaller::SoapBodyEntry]} {
