@@ -787,7 +787,7 @@ SoapBodyEntry ad_instproc init args {} {
 }
 
 
-::xorb::aux::NestedClass SoapBodyResponse -superclass SoapBodyEntry -parameter {responseValue}
+::xorb::aux::NestedClass SoapBodyResponse -superclass SoapBodyEntry -parameter {{responseValue {}}}
 
 SoapBodyResponse ad_instproc parse {rootNode} {} {
 
@@ -796,8 +796,10 @@ SoapBodyResponse ad_instproc parse {rootNode} {} {
 	    
 	set meNode [$bodyNode firstChild]
 	set valueNode [$meNode firstChild]
-	
-	set responseValue [$valueNode text]
+	# handle response messages without return value
+	if {$valueNode ne {}} {
+		set responseValue [$valueNode text]
+	}
 
 }
 
