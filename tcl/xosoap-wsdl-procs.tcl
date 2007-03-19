@@ -1,7 +1,9 @@
 ad_library {
 	
     WSDL 1.1 support for xorb's SOAP-plugin, xosoap
-    see http://www.w3.org/TR/wsdl
+    - see http://www.w3.org/TR/wsdl
+    Validated by means of Mindreef WSDL Validator
+    - http://mindreef.net/tide/scopeit/start.do
 		
     @author stefan.sobernig@wu-wien.ac.at
     @creation-date August 18, 2005
@@ -9,7 +11,7 @@ ad_library {
 
  }
  
-::xosoap::MessageHandler ad_instproc getWSDL -servicePointer:required {} {
+::xorb::RequestHandler ad_instproc getWSDL -servicePointer:required {} {
 	
     # lookup: contract composite
     set bundle [XorbContainer do ::xorb::SCBroker getContract -serialized -name $servicePointer]
