@@ -3,7 +3,7 @@
 # |x|o|s|o|a|p| |t|e|s|t| |s|u|i|t|e|
 # +-+-+-+-+-+-+ +-+-+-+-+ +-+-+-+-+-+
 # author: stefan.sobernig@wu-wien.a.at
-# cvs-id: $Id: xorb-aux-procs.tcl 10 2006-07-21 15:57:15Z ssoberni $
+# cvs-id: $Id$
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
 namespace import -force ::xoexception::try
@@ -153,8 +153,9 @@ set url http://localhost:8000/xosoap/services/Test
 # missing SOAPAction
 # header field
 
- set r1 [::xo::HttpRequest new -url $url \
-		-content_type "text/xml"]
+set r1 [::xo::HttpRequest new -url $url \
+	    -content_type "text/xml" \
+	    -post_data "<test></test>"]
 # "Dispatching http request (missing SOAPAction header field)"
 #ns_write "r1=[$r1 serialize]<br/>"
 ? {$r1 exists statusCode} 0 "Missing SOAPAction header field"

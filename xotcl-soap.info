@@ -5,7 +5,7 @@
     <package-name>xosoap</package-name>
     <pretty-plural></pretty-plural>
     <initial-install-p>f</initial-install-p>
-    <singleton-p>t</singleton-p>
+    <singleton-p>f</singleton-p>
     <auto-mount>xosoap</auto-mount>
 
     <version name="0.3" url="http://media.wu-wien.ac.at/download/xotcl-soap-0.3.apm">
@@ -18,6 +18,8 @@
         <requires url="xotcl-request-broker" version="0.3"/>
 
         <callbacks>
+            <callback type="after-mount"  proc="::xosoap::after-mount"/>
+            <callback type="before-unmount"  proc="::xosoap::before-unmount"/>
         </callbacks>
         <parameters>
             <parameter datatype="string"  min_n_values="1"  max_n_values="1"  name="interceptor_config"  default="standard" description="xosoap allows for creating pre-invocation interceptors for request and post-invocation interceptors for responses. Currently, xosoap comes with two configuration of interceptors chains, i.e. &quot;standard&quot; and &quot;extended&quot;. "/>

@@ -3,7 +3,7 @@ ad_library {
   
   @author stefan.sobernig@wu-wien.ac.at
   @creation-date August, 23 2006
-  @cvs-id $Id: xorb-broker-procs.tcl 11 2006-07-25 01:59:33Z ssoberni $
+  @cvs-id $Id$
 
 }
 
@@ -13,12 +13,18 @@ namespace eval xosoap::client {
   namespace import -force ::xorb::client::*
 
   
+  ::xotcl::Class Soap::Stub -slots {
+    Attribute uri
+    Attribute schemas
+    Attribute action
+  }
+
   # # # # # # # # # # # # # # # # #
   # # # # # # # # # # # # # # # # # 
   # # Mixin Soap::Client
   # # # # # # # # # # # # # # # # #
   # # # # # # # # # # # # # # # # #
-  ::xotcl::Class Soap::Client
+  ::xotcl::Class Soap::Client -superclass Soap::Stub
   Soap::Client instproc handleRequest {requestObj} {
     next; #ClientRequestHandler->handleRequest
   }
