@@ -410,21 +410,30 @@ namespace import -force ::xosoap::xsd::*
 # # # # # # # # # # # # #
 # xsd:string
 set x xsd:string
-? {String validate $x} 1 "xsd:string validation ('$x')"
+set any [XsString new -set __value__ $x]
+? {$any validate} 1 "xsd:string validation ('[$any set __value__]')"
 
 # # # # # # # # # # # # #
 # xsd:integer
 set y 12345
-? {Integer validate $y} 1 "xsd:integer validation ('$y')"
-? {Integer validate -$y} 1 "signed xsd:integer (-) validation ('-$y')"
-? {Integer validate +$y} 1 "signed xsd:integer (+) validation ('+$y')"
-? {Integer validate $x} 0 "xsd:integer validation (true string negative: '$x')"
+set any [XsInteger new -set __value__ $y] 
+? {$any validate} 1 "xsd:integer validation ('$y')"
+$any set __value__ -$y
+? {$any validate} 1 "signed xsd:integer (-) validation ('-$y')"
+$any set __value__ +$y
+? {$any validate} 1 "signed xsd:integer (+) validation ('+$y')"
+$any set __value__ $x
+? {$any validate} 0 "xsd:integer validation (true string negative: '$x')"
 set x 1.12334
-? {Integer validate $x} 0 "xsd:integer validation (true decimal negative: '$x')"
+$any set __value__ $x
+? {$any validate} 0 "xsd:integer validation (true decimal negative: '$x')"
 set upper +4294967296
+$any set __value__ $upper
+
+? {$any validate} 0 "xsd:integer validation (true upper-bound negative: '$upper')"
 set lower -4294967296
-? {Integer validate $upper} 0 "xsd:integer validation (true upper-bound negative: '$upper')"
-? {Integer validate $lower} 0 "xsd:integer validation (true lower-bound negative: '$lower')"
+$any set __value__ $lower
+? {$any validate} 0 "xsd:integer validation (true lower-bound negative: '$lower')"
 
 # # # # # # # # # # # # #
 # xsd:float
@@ -438,12 +447,14 @@ set xs [list 1.1234 {xsd:float validation ('$x')} \
 	    INF {xsd:float validation ('$x')} \
 	    NaN {xsd:float validation ('$x')}]
 
+set any [XsFloat new]
 foreach {x msg} $xs {
-  eval ? "{Float validate $x}" 1 [subst [list $msg]] 
+  $any set __value__ $x
+  eval ? "{$any validate}" 1 [subst [list $msg]] 
 }
 
-set x 6.80564733842e+38
-? {Float validate $x} 0 "xsd:float validaton (true upper-bound negative: '$x')"
+$any set __value__ 6.80564733842e+38
+? {$any validate} 0 "xsd:float validaton (true upper-bound negative: '$x')"
 
 # # # # # # # # # # # # #
 # xsd:double
@@ -457,9 +468,10 @@ set xs [list 1.1234 {xsd:double validation ('$x')} \
 	    INF {xsd:double validation ('$x')} \
 	    NaN {xsd:double validation ('$x')} \
 	    6.80564733842e+38 {xsd:double validation ('$x')}]
-
+set any [XsDouble new]
 foreach {x msg} $xs {
-  eval ? "{Double validate $x}" 1 [subst [list $msg]] 
+  $any set __value__ $x
+  eval ? "{$any validate}" 1 [subst [list $msg]] 
 }
 
 # # # # # # # # # # # # #
@@ -469,9 +481,10 @@ set xs [list 0 {xsd:boolean validation ('$x')} \
 	    1 {xsd:boolean validation ('$x')} \
 	    true {xsd:boolean validation ('$x')} \
 	    false {xsd:boolean validation ('$x')}]
-
+set any [XsBoolean new]
 foreach {x msg} $xs {
-  eval ? "{Boolean validate $x}" 1 [subst [list $msg]] 
+  $any set __value__ $x
+  eval ? "{$any validate}" 1 [subst [list $msg]] 
 }
 
 # # # # # # # # # # # # #
@@ -482,83 +495,109 @@ set xs [list 1.1234 {xsd:decimal validation ('$x')} \
 	    -0 {xsd:decimal validation ('$x')} \
 	    0 {xsd:decimal validation ('$x')}]
 
+set any [XsDecimal new]
 foreach {x msg} $xs {
-  eval ? "{Decimal validate $x}" 1 [subst [list $msg]] 
+  $any set __value__ $x
+  eval ? "{$any validate}" 1 [subst [list $msg]] 
 }
 
-set x xsd:decimal
-? {Decimal validate $x} 0 "xsd:decimal validation (true string negative: '$x')"
-set x -1E4
-? {Decimal validate $x} 0 "xsd:decimal validation (true sic'ish float negative: '$x')"
-set x 1267.43233E12
-? {Decimal validate $x} 0 "xsd:decimal validation (true sic'ish float negative: '$x')"
+$any set __value__ xsd:decimal
+? {$any validate} 0 "xsd:decimal validation (true string negative: '$x')"
+$any set __value__ -1E4
+? {$any validate} 0 "xsd:decimal validation (true sic'ish float negative: '$x')"
+$any set __value__ 1267.43233E12
+? {$any validate} 0 "xsd:decimal validation (true sic'ish float negative: '$x')"
 
 # # # # # # # # # # # # #
 # xsd:base64Binary
 
 set x {SMOkdHRlbiBIw7x0ZSBlaW4gw58gaW0gTmFtZW4sIHfDpHJlbiBzaWUgbcO2Z2xpY2hlcndlaXNlIGtlaW5lIEjDvHRlIG1laHIsDQpzb25kZXJuIEjDvMOfZS4NCg==}
-? {Base64Binary validate $x} 1 "xsd:base64Binary validation"
+set any [XsBase64Binary new]
+$any set __value__ $x
+? {$any validate} 1 "xsd:base64Binary validation"
 set x {SMOkdHRlbiBIw7x0ZSBlaW4gw58gaW0gTmFtZW4sIHfDpHJlbiBzaWUgbcO2Z2xpY2hlcndlaXNlIGtlaW5lIEjDvHRlIG1laHIsDQpzb25kZXJuIEjDvMOfZS4N&?==}
-? {Base64Binary validate $x} 0 "xsd:base64Binary validation (true &? char negative)"
+$any set __value__ $x
+? {$any validate} 0 "xsd:base64Binary validation (true &? char negative)"
 
 # # # # # # # # # # # # #
 # xsd:hexBinary
 
 set x {4992961d}
-? {HexBinary validate $x} 1 "xsd:hexBinary validation"
+set any [XsHexBinary new]
+$any set __value__ $x
+? {$any validate} 1 "xsd:hexBinary validation"
 set x {499%%961d}
-? {HexBinary validate $x} 0 "xsd:hexBinary validation (true %% char negative)"
+$any set __value__ $x
+? {$any validate} 0 "xsd:hexBinary validation (true %% char negative)"
 
 # # # # # # # # # # # # #
 # xsd:dateTime
-
+set any [XsDateTime new]
 set x 2002-10-10T12:00:00-05:00 
-? {DateTime validate $x} 1 "xsd:dateTime validation ('$x')"
+$any set __value__ $x
+? {$any validate} 1 "xsd:dateTime validation ('$x')"
 set x 2002-10-10T17:00:00Z
-? {DateTime validate $x} 1 "xsd:dateTime validation ('$x')"
+$any set __value__ $x
+? {$any validate} 1 "xsd:dateTime validation ('$x')"
 set x 2002-10-10T12:00:00Z
-? {DateTime validate $x} 1 "xsd:dateTime validation ('$x')"
+$any set __value__ $x
+? {$any validate} 1 "xsd:dateTime validation ('$x')"
 set x 2002-10-10T12:00:00
-? {DateTime validate $x} 1 "xsd:dateTime validation ('$x')"
+$any set __value__ $x
+? {$any validate} 1 "xsd:dateTime validation ('$x')"
 
 set x 2002-10-10D12:00:00Z
-? {DateTime validate $x} 0 "xsd:dateTime validation (true T->D char negative)"
+$any set __value__ $x
+? {$any validate} 0 "xsd:dateTime validation (true T->D char negative)"
 set x 2002-10-10T12:00:00+15:00
-? {DateTime validate $x} 0 "xsd:dateTime validation (true time-zone negative)"
+$any set __value__ $x
+? {$any validate} 0 "xsd:dateTime validation (true time-zone negative)"
 set x 2002-10-10
-? {DateTime validate $x} 0 "xsd:dateTime validation (true only-date negative)"
+$any set __value__ $x
+? {$any validate} 0 "xsd:dateTime validation (true only-date negative)"
 set x 12:00:00
-? {DateTime validate $x} 0 "xsd:dateTime validation (true only-time negative)"
+$any set __value__ $x
+? {$any validate} 0 "xsd:dateTime validation (true only-time negative)"
 
 # # # # # # # # # # # # #
 # xsd:date
 
+set any [XsDate new]
 set x 2002-10-10
-? {Date validate $x} 1 "xsd:date validation ('$x')"
+$any set __value__ $x
+? {$any validate} 1 "xsd:date validation ('$x')"
 
 set x 2002-10-10Z
-? {Date validate $x} 1 "xsd:date validation ('$x')"
+$any set __value__ $x
+? {$any validate} 1 "xsd:date validation ('$x')"
 
 set x 2002-10-10-05:00
-? {Date validate $x} 1 "xsd:date validation ('$x')"
+$any set __value__ $x
+? {$any validate} 1 "xsd:date validation ('$x')"
 
 set x 2002-10-10T
-? {Date validate $x} 0 "xsd:date validation (true T-plus negative)"
+$any set __value__ $x
+? {$any validate} 0 "xsd:date validation (true T-plus negative)"
 
 # # # # # # # # # # # # #
 # xsd:time
 
+set any [XsTime new]
 set x 12:00:00
-? {Time validate $x} 1 "xsd:time validation ('$x')"
+$any set __value__ $x
+? {$any validate} 1 "xsd:time validation ('$x')"
 
 set x 12:00:00Z
-? {Time validate $x} 1 "xsd:time validation ('$x')"
+$any set __value__ $x
+? {$any validate} 1 "xsd:time validation ('$x')"
 
 set x 12:00:00+02:00
-? {Time validate $x} 1 "xsd:time validation ('$x')"
+$any set __value__ $x
+? {$any validate} 1 "xsd:time validation ('$x')"
 
 set x 25:00:00
-? {Time validate $x} 0 "xsd:time validation (true extra-hour negative)"
+$any set __value__ $x
+? {$any validate} 0 "xsd:time validation (true extra-hour negative)"
 
 
 

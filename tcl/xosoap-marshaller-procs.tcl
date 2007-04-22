@@ -539,15 +539,19 @@ namespace eval ::xosoap::marshaller {
     set responseNode [$bodyNode firstChild]
     set returnNode [$responseNode firstChild]
     
-    set r {}
-    if {$returnNode ne {}} {
-      if {[$returnNode nodeType] eq "TEXT_NODE"} {
-	set r [$returnNode nodeValue]
-      } else {
-	set r [$returnNode text]
-      }
-    }
-    set responseValue $r
+    #     set r {}
+    #     if {$returnNode ne {}} {
+    #       if {[$returnNode nodeType] eq "TEXT_NODE"} {
+    # 	set r [$returnNode nodeValue]
+    #       } elseif {[$returnNode nodeType] eq "ELEMENT_NODE"} {
+    # 	set r [$returnNode text]
+    #       }
+    #     }
+
+    # / / / / / / / / / / / /
+    # introducing anythings!
+    set any [::xorb::datatypes::Anything new -isRoot true -parse $responseNode]
+    set responseValue $any
   }
 
   # # # # # # # # # # # # #
@@ -586,7 +590,7 @@ namespace eval ::xosoap::marshaller {
     my targetMethod [$meNode localName]
     my parseAttributes $meNode
     foreach argNode [$meNode childNodes] {
-      set x [Argument new -domNode $argNode]
+      set x [SoapParameter new -domNode $argNode -parent [self]]
       lappend methodArgs [list [$argNode nodeName] [$x rollOut]]
     }
   } 
@@ -602,24 +606,170 @@ namespace eval ::xosoap::marshaller {
 
   }
 
-  ::xotcl::Class 1.1 -superclass Soap 
-  1.1 ad_instproc init {} {} {
+  ::xotcl::Class Soap1.1 -superclass Soap 
+  Soap1.1 ad_instproc init {} {} {
     next
     my instvar namespaces
     set namespaces(soap-env) "http://schemas.xmlsoap.org/soap/envelope/"
     set namespaces(soap-enc) "http://schemas.xmlsoap.org/soap/encoding/"
   }
 
-  ::xotcl::Class 1.2 -superclass Soap
-  1.2 ad_instproc init {} {} {
+  ::xotcl::Class Soap1.2 -superclass Soap
+  Soap1.2 ad_instproc init {} {} {
     next
     my instvar namespaces
     set namespaces(soap-env) "http://www.w3.org/2003/05/soap-envelope"
     set namespaces(soap-enc) "http://www.w3.org/2003/05/soap-encoding" 
   }
 
+  # # # # # # # # # # # # 
+  # # # # # # # # # # # # 
+  # # Class SoapParameter
+  # # # # # # # # # # # # 
+  # # # # # # # # # # # # 
+  
+  ::xotcl::Class SoapParameter -slots {
+    Attribute domNode
+    Attribute value -type ::xosoap::xsd::Type
+    Attribute name
+  }
 
+  SoapParameter instproc getObject {-forNode:required} {
+    my instvar objectsForNodes
+    if {[array exists objectsForNodes] && \
+	    [info exists objectsForNodes($forNode)]} {
+      return $objectsForNodes($forNode)
+    }
+  }
 
+  SoapParameter instproc setObject {-forNode:required obj} {
+    my instvar objectsForNodes
+    set objectsForNodes($forNode) $obj
+  }
+
+  SoapParameter instproc init {} {
+    # / / / / / / / / / / / / / / / / / / /
+    # type of parameter: atom or compound?
+    if {[my exists domNode]} {
+       my instvar domNode
+      my setObject -forNode $domNode [self]
+      set childNodeType [[$domNode firstChild] nodeType]
+      if {$childNodeType == "TEXT_NODE"} {
+	my parseAtom
+      } else {
+	my parseCompound
+      }
+    }
+  }
+  
+  SoapParameter instproc isElementWise {node} {
+    Soap1.1 instvar namespaces
+    return [string equal -nocase \
+		[$node namespaceURI] \
+		$namespaces(soap-enc)]
+  }
+
+  SoapParameter instproc isTypeWise {node} {
+    Soap1.1 instvar namespaces
+    return [expr {$node hasAttributeNS $namespaces(xsi) "type"}]
+  }
+  
+  SoapParameter instproc isByPrecedence {node} {
+    my instvar parent
+    Soap1.1 instvar namespaces
+    if {[$parent type] eq "::xosoap::xsd::Array" && \
+	    [$parent type] ne "ur-type"} {
+      return 1
+    } else {
+      return 0
+    }
+  }
+
+  SoapParameter instproc parseAtom {} {
+    my instvar domNode parent value
+    Soap1.1 instvar namespaces
+    # / / / / / / / / / / / / / / /
+    # Atom (primitive) types come in
+    # two (three) encoding flavours:
+    # 1) element-wise (SOAP-specific) 
+    # encoding (e.g. SOAP-ENC:String, ...)
+    # 2) type-wise (XS-specific)
+    # encoding (e.g. <... type="xsd:string" .../>,)
+    # 2a) specific to XS atomic types is that
+    # they can be typed by means of precedence,
+    # i.e. if contained/ member of an Array compound
+    # type, they (if not specific about their type)
+    # inherit the type of the Array parent compound.
+    # 3) custom encoding schemes, specified
+    # by XS specifications (NOT IMPLEMENTED)
+    set atomType "default"
+    if {[my isElementWise $domNode]} {
+      # we have 1)
+      set attribute [$domNode getAttributeNS $namespaces(xsi) "type"]
+      set atomType [lindex [split $attribute ":"] 1]
+    } elseif {[my isTypeWise $domNode]} {
+      # we have 2)
+      
+    } elseif {[my isByPrecedence $domNode]} {
+      set atomType [$parent type]
+    } else {
+      # we have 3) -> exception
+      if {[my isByPrecedence $domNode]} {
+	set atomType [$parent type]
+      } else {
+	error [::xosoap::exceptions::InvalidSoapEncodingException new \
+		   "Causing soap parameter: [$domNode asXML]"]
+      }
+    }
+
+    set typeObj $xsd($atomType)
+    set parent [my getObject -forNode [$domNode parentNode]]
+    if {$parent eq [self]} {
+      set value [$typeObj new -value [$domNode text]]
+    } else {
+      my add -parent $parent \
+	  -child [list $typeObj new -value [$domNode text]] \
+	  -node $domNode
+      $parent slots 
+    }
+    
+  }
+
+  SoapParameter instproc add {
+    -parent
+    -child
+    -node
+  } {
+    $parent mixin [self class]::ComplexType
+    $parent node $node
+    $parent param [self]
+    $parent slots $child
+    $parent mixin delete [self class]::ComplexType
+  }
+
+  Class SoapParameter::ComplexType -slots {
+    Attribute node
+    Attribute param
+  }
+  SoapParameter::ComplexType instproc notify {name} {
+    my instvar node param
+    $param setObject -forNode $node [self]::slot::$name
+    next
+  }
+
+  SoapParameter instproc parseCompound {} {
+    
+  }
+  
+  # # # # # # # # # 
+  # # # # # # # # #
+  # unstaging
+  # # # # # # # # #
+  # # # # # # # # #
+  
+  namespace export SoapElement SoapEnvelope SoapHeader SoapBody \
+      SoapBodyEntry SoapBodyResponse SoapBodyRequest SoapFault \
+      SoapParameter
 
   ::xotcl::Class Argument -parameter {domNode} 
   Argument set mapping(default) ::xorb::aux::String
@@ -662,8 +812,7 @@ namespace eval ::xosoap::marshaller {
     [1.1 new -volatile] instvar namespaces
     
     
-    # follows element-wise encoding of data types as introduced by SOAP 1.1 (SOAP-ENC:...)
-    # any prefix pointing to NS http://schemas.xmlsoap.org/soap/encoding/
+
     
     set typeIdentifier "default"
 
@@ -758,12 +907,4 @@ namespace eval ::xosoap::marshaller {
     } 
   }
 
-# # # # # # # # # 
-# # # # # # # # #
-# unstaging
-# # # # # # # # #
-# # # # # # # # #
-
-namespace export SoapElement SoapEnvelope SoapHeader SoapBody \
-      SoapBodyEntry SoapBodyResponse SoapBodyRequest SoapFault
 }

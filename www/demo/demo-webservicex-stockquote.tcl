@@ -1,34 +1,32 @@
-# # # # # # # # # # # # #
-# staging
-# # # # # # # # # # # # #
+# / / / / / / / / / / / / / / / / / / /
+# Demo
+# / / / / / / / / / / / / / / / / / / /
+# StockQuote example in simple
+# GObject notation 
+# / / / / / / / / / / / / / / / / / / /
+# $Id$
 
-set title demo-webservicex-stockquote
-set html "<html><title>$title</title><body>"
-append html "<h2>$title</h2>"
-# / / / / / / / / / / / /
-# provide (remote / local) invocation handling 
-::xotcl::Class instmixin :xorb::client::InvocationProxy
+namespace import -force ::xosoap::client::*
+namespace import -force ::xorb::stub::*
 
-# / / / / / / / / / / / /
-# declare the soap client stub
-::xorb::client::Stub \
-    StockQuoteStub -bind soap://www.webservicex.net/stockquote.asmx
 
-# / / / / / / / / / / / /
-# getQuote
-StockQuoteStub ad_instproc \
-    -uri "http://www.webserviceX.NET" \
-    -action "http://www.webserviceX.NET/GetQuote" \
-    GetQuote \
-    {-symbol:remote} \
-    {Retrieve quote for company symbol} {}
+# / / / / / / / / / / / / / / / / / / /
+# 1) create a 'glue' object
+set s1 [SoapGlueObject new \
+	    -endpoint http://www.webservicex.net/stockquote.asmx \
+	    -callNamespace "http://www.webserviceX.NET" \
+	    -action "http://www.webserviceX.NET/GetQuote"]
 
-# / / / / / / / / / / / /
-# create a stub object
-set stubInstance [StockQuoteStub new]
+# / / / / / / / / / / / / / / / / / / /
+# 2) provide the 'object' to a proxy client /
+# stub object and declare the remote object
+# interface
 
-# / / / / / / / / / / / /
-# issue remote invocation
-append html "<div>[$stubInstance GetQuote -symbol IBM]</div></body></html>"	
-	
-ns_return 200 text/html $html
+GObject StockQuote -glueobject $s1
+StockQuote ad_proc -returntype string GetQuote {
+  -symbol
+} {Retrieve quote for company symbol} {}
+
+# / / / / / / / / / / / / / / / / / / /
+# return the result
+ns_return 200 text/plain "IBM's quote: [StockQuote GetQuote -symbol IBM]"

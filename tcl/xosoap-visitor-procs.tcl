@@ -92,7 +92,7 @@ namespace eval ::xosoap::visitor {
 
   SoapMarshallerVisitor instproc SoapElement {obj} {
     
-    #my log "+++[$obj info class] ($obj)"
+    my log "+++[$obj info class] ($obj),[$obj serialize]"
     # / / / / / / / / / / / / / / /
     # staging
     my instvar xmlDoc parentNode
@@ -228,12 +228,14 @@ namespace eval ::xosoap::visitor {
   ::xotcl::Class InvocationDataVisitor -parameter {
     scenario
     batch
+    {invocationContext ::xo::cc}
   } -superclass AbstractVisitor
   InvocationDataVisitor instproc init args {
     if {![my exists scenario] || [my scenario] eq {}} {
+      my instvar invocationContext
       foreach scenario [[self class] info children] {
 	if {$scenario ne "[self class]::slot"} {
-	  $scenario instvar conditions
+	  $scenario instvar conditions 
 	  set jexpr [join $conditions " && "]
 	  set evaluation([expr $jexpr],$scenario) $scenario
 	}
@@ -279,10 +281,10 @@ namespace eval ::xosoap::visitor {
   # # # # # # # # # # # # # # #   
   ::xotcl::Class InvocationDataVisitor::InboundRequest \
       -set conditions {
-	{[::xo::cc marshalledRequest] ne {}}
-	{[::xo::cc unmarshalledRequest] ne {}}
-	{[::xo::cc virtualCall] eq {}}
-	{[::xo::cc virtualArgs] eq {}}
+	{[$invocationContext exists marshalledRequest]}
+	{[$invocationContext exists unmarshalledRequest]}
+	{![$invocationContext exists virtualCall]}
+	{![$invocationContext exists virtualArgs]}
       } \
       -instproc SoapBodyRequest {obj} {
 	my instvar serviceMethod serviceArgs
@@ -296,12 +298,12 @@ namespace eval ::xosoap::visitor {
   
   ::xotcl::Class InvocationDataVisitor::OutboundResponse \
       -set conditions {
-	{[::xo::cc marshalledRequest] ne {}}
-	{[::xo::cc unmarshalledRequest] ne {}}
-	{[::xo::cc marshalledResponse] eq {}}
-	{[::xo::cc unmarshalledResponse] eq {}}
-	{[::xo::cc virtualCall] ne {}}
-	{[::xo::cc virtualArgs] ne {}}
+	{[$invocationContext exists marshalledRequest]}
+	{[$invocationContext exists unmarshalledRequest] ne {}}
+	{![$invocationContext exists marshalledResponse]}
+	{![$invocationContext exists unmarshalledResponse]}
+	{[$invocationContext exists virtualCall]}
+	{[$invocationContext exists virtualArgs]}
       } \
       -instproc SoapBodyRequest {obj} {
 	$obj class ::xosoap::marshaller::SoapBodyResponse
@@ -321,32 +323,35 @@ namespace eval ::xosoap::visitor {
 
   ::xotcl::Class InvocationDataVisitor::OutboundRequest \
       -set conditions {
-	{[::xo::cc marshalledResponse] eq {}}
-	{[::xo::cc unmarshalledResponse] eq {}}
-	{[::xo::cc unmarshalledRequest] eq {}}
-	{[::xo::cc marshalledRequest] eq {}}
-	{[::xo::cc virtualCall] ne {}}
-	{[::xo::cc virtualArgs] ne {}}
+	{![$invocationContext exists marshalledResponse]}
+	{![$invocationContext exists unmarshalledResponse]}
+	{![$invocationContext exists unmarshalledRequest]}
+	{![$invocationContext exists marshalledRequest]}
+	{[$invocationContext exists virtualCall]}
+	{[$invocationContext exists virtualArgs]}
       } \
       -instproc SoapBodyRequest {obj} {
-    	my instvar targetNS serviceMethod serviceArgs
-	$obj elementName $serviceMethod
-	$obj set methodArgs $serviceArgs
-	if {$targetNS ne {}} {
-	  $obj registerNS [list "m" $targetNS]
+    	my instvar invocationContext
+	$obj elementName [$invocationContext virtualCall]
+	$obj set methodArgs [$invocationContext virtualArgs]
+	if {[$invocationContext exists callNamespace]} {
+	  # / / / / / / / / / / / / / / /
+	  # TODO: default namespace support!!!!!
+	  $obj registerNS [list "m" [$invocationContext callNamespace]]
 	} 
       }
 
   ::xotcl::Class InvocationDataVisitor::InboundResponse \
       -set conditions {
-	{[::xo::cc unmarshalledRequest] ne {}}
-	{[::xo::cc marshalledRequest] ne {}}
-	{[::xo::cc marshalledResponse] ne {}}
-	{[::xo::cc virtualCall] ne {}}
-	{[::xo::cc virtualArgs] ne {}}
+	{[$invocationContext exists unmarshalledRequest]}
+	{[$invocationContext exists marshalledRequest]}
+	{[$invocationContext exists marshalledResponse]}
+	{[$invocationContext exists virtualCall]}
+	{[$invocationContext exists virtualArgs]}
       } \
       -instproc SoapBodyResponse {obj} {
-	my batch [$obj responseValue]
+	my instvar invocationContext
+	$invocationContext unmarshalledResponse [$obj responseValue]
       }
 
   namespace export AbstractVisitor SoapMarshallerVisitor \

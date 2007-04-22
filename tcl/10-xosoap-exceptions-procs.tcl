@@ -5,7 +5,7 @@ ad_library {
   
   @author stefan.sobernig@wu-wien.ac.at
   @creation-date December 1, 2006
-  @cvs-id $Id: xorb-procs.tcl 17 2006-09-26 14:34:40Z ssoberni $
+  @cvs-id $Id$
   
 }
 
@@ -143,6 +143,7 @@ namespace eval ::xosoap::exceptions {
 	-ad_doc {
 	  The initialisation of an invocation context object failed.
 	}
+
     # / / / / / / / / / / / / / / / / / / / / / / / / /
   
   }
@@ -151,7 +152,13 @@ namespace eval ::xosoap::exceptions {
     
     # / / / / / / / / / / / / / / / / / / / / / / / / /
     # fault category: Client.*
-    
+    ::xosoap::exceptions::FaultableException InvalidSoapEncodingException \
+	-ad_doc {
+	  Demarshalling failed due to unsupported (custom) encoding scheme
+	  detected. Currently, only the SOAP (1.1) encoding and XS 1.1
+	  encoding scheme are supported. This includes failures due to violated 
+	  compound typing rules (i.e. 'by-precedence typing' in case of Arrays).
+	}
   }
   
   namespace export MalformedEndpointException HttpRequestException \
