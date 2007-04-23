@@ -20,23 +20,24 @@ namespace eval ::xosoap::xsd {
   # primitive types/ decorators
   # for anything containers
 
-  ::xotcl::Class XsVoid -superclass Anything \
+  
+  MetaAny XsVoid -superclass Anything \
       -instproc validate {} {
 	my instvar __value__
 	return [expr {$__value__ eq {}}]
       }
 
-  ::xotcl::Class XsString -superclass Anything \
+  MetaAny XsString -superclass Anything \
       -instproc validate {} {
 	my instvar __value__
 	return [string is print $__value__]
       }
-  ::xotcl::Class XsBoolean -superclass Anything \
+  MetaAny XsBoolean -superclass Anything \
       -instproc validate {} {
 	my instvar __value__
 	return [string is boolean $__value__]
       }
-  ::xotcl::Class XsDecimal -superclass Anything \
+  MetaAny XsDecimal -superclass Anything \
       -instproc validate {} {
 	my instvar __value__
 	return [regexp {^[+-]?(\d+(\.\d*)?|(\.\d+))$} $__value__]
@@ -45,14 +46,14 @@ namespace eval ::xosoap::xsd {
 	# return [regexp {^[+-]?((\d+\.\d*)|(\d+))$} $value]
       }
   
-  ::xotcl::Class XsInteger -superclass XsDecimal \
+  MetaAny XsInteger -superclass XsDecimal \
       -instproc validate {} {
 	my instvar __value__
 	set isDecimal [next];# Decimal->validate
 	return [expr {$isDecimal && [string is integer $__value__]}]
       }
   
-  ::xotcl::Class XsDouble -superclass XsDecimal \
+  MetaAny XsDouble -superclass XsDecimal \
       -instproc validate {} {
 	# see http://www.w3.org/TR/xmlschema-2/#double
 	# 1) check for lexical / notational form: decimal / sic
@@ -70,7 +71,7 @@ namespace eval ::xosoap::xsd {
 	  return 0
 	}
       }
-  ::xotcl::Class XsFloat -superclass XsDecimal \
+  MetaAny XsFloat -superclass XsDecimal \
       -instproc validate {} {
 	# see http://www.w3.org/TR/xmlschema-2/#float
 	# 1) check for lexical / notational form: decimal / sic
@@ -87,32 +88,32 @@ namespace eval ::xosoap::xsd {
 	  return 0
 	}
       } 
-  ::xotcl::Class XsDate -superclass Anything  \
+  MetaAny XsDate -superclass Anything  \
       -instproc validate {} {
 	my instvar __value__
 	return [regexp {^-?([1-9]\d\d\d+|0\d\d\d)-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])(Z|(\+|-)(0\d|1[0-4]):[0-5]\d)?$} $__value__]
 	#return [regexp {^\d{4}-\d{2}-\d{2}(Z|[+-].+|$)$} $value]
       }
-  ::xotcl::Class XsTime -superclass Anything  \
+  MetaAny XsTime -superclass Anything  \
       -instproc validate {} {
 	my instvar __value__
 	return [regexp {^(([01]\d|2[0-3]):[0-5]\d:[0-5]\d(\.\d+)?|24:00:00(\.0+)?)(Z|(\+|-)(0\d|1[0-4]):[0-5]\d)?$} $__value__]
 	#return [regexp {^\d{2}:\d{2}:\d{2}(Z|[+-].+|$)$} $value]
       }
-  ::xotcl::Class XsDateTime -superclass Anything \
+  MetaAny XsDateTime -superclass Anything \
       -instproc validate {} {
 	my instvar __value__
 	return [regexp {^-?([1-9]\d\d\d+|0\d\d\d)-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])T(([01]\d|2[0-3]):[0-5]\d:[0-5]\d(\.\d+)?|24:00:00(\.0+)?)(Z|(\+|-)(0\d|1[0-4]):[0-5]\d)?$} $__value__]
 	#return [regexp {^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(Z|[+-].+|$)$} \
 	    # $value]
       }
-  ::xotcl::Class XsBase64Binary -superclass Anything \
+  MetaAny XsBase64Binary -superclass Anything \
       -instproc validate {} {
 	my instvar __value__
 	return [regexp {^((([A-Za-z0-9+/] ?){4})*(([A-Za-z0-9+/] ?){3}[A-Za-z0-9+/]|([A-Za-z0-9+/] ?){2}[AEIMQUYcgkosw048] ?=|[A-Za-z0-9+/] ?[AQgw] ?= ?=))?$} $__value__]
       }
   
-  ::xotcl::Class XsHexBinary -superclass Anything \
+  MetaAny XsHexBinary -superclass Anything \
       -instproc validate {} {
 	my instvar __value__
 	return [string is xdigit $__value__]
@@ -121,7 +122,6 @@ namespace eval ::xosoap::xsd {
   namespace export XsString XsInteger XsDouble\
       XsFloat XsDecimal XsDateTime XsDate XsTime XsBase64Binary XsHexBinary\
       XsBoolean
-
 
   # # # # # # # # # # # # # # #
   # # # # # # # # # # # # # # #

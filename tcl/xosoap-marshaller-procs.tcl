@@ -18,6 +18,7 @@ namespace eval ::xosoap::marshaller {
 
   namespace import -force ::xorb::aux::*
   namespace import -force ::xosoap::exceptions::*
+  namespace import -force ::xorb::datatypes::*
 
   #######################
   #######################
@@ -589,9 +590,14 @@ namespace eval ::xosoap::marshaller {
     my elementName [$meNode localName]
     my targetMethod [$meNode localName]
     my parseAttributes $meNode
+    
     foreach argNode [$meNode childNodes] {
-      set x [SoapParameter new -domNode $argNode -parent [self]]
-      lappend methodArgs [list [$argNode nodeName] [$x rollOut]]
+      # / / / / / / / / / / / / / / / / /
+      # Introducing 'anythings' as generic
+      # type containers/ handlers
+      set any [Anything new -parse $argNode -name [$argNode nodeName]]
+      lappend methodArgs $any
+      #lappend methodArgs [list [$argNode nodeName] [$x rollOut]]
     }
   } 
 

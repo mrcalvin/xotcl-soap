@@ -38,6 +38,7 @@ namespace eval ::xosoap::visitor {
 
   namespace import -force ::xosoap::marshaller::*
   namespace import -force ::xosoap::exceptions::*
+  namespace import -force ::xorb::datatypes::*
 
   ###############################################
   # Visitors:
@@ -160,12 +161,23 @@ namespace eval ::xosoap::visitor {
     # TODO: adapt to multiple / complex return values 
     # (types).
 
-    set suffixedName [string map {Response Return} [$obj elementName]]
-    set returnNode [$__node__ appendChild \
-			[$xmlDoc createElement $suffixedName]]
+    #set suffixedName [string map {Response Return} [$obj elementName]]
+    #set returnNode [$__node__ appendChild \
+	#		[$xmlDoc createElement $suffixedName]]
 
-    set valueNode [$returnNode appendChild \
-		       [$xmlDoc createTextNode [$obj responseValue]]]
+    #set valueNode [$returnNode appendChild \
+    #		       [$xmlDoc createTextNode [$obj responseValue]]]
+    # / / / / / / / / / / / / / / / /
+    # introduce anythings and appropriate
+    # delegation to the concrete marshaller
+    # provided by the actual any implementation
+    # TODO: support for multiple anys
+    if {[$obj responseValue] eq {}} {
+      set any [Anything new -isVoid true]
+    } else {
+      set any [$obj responseValue]
+    }
+    $any marshal $xmlDoc $__node__ $obj
   }
 
   SoapMarshallerVisitor instproc SoapBodyRequest {obj} {
@@ -288,12 +300,13 @@ namespace eval ::xosoap::visitor {
       } \
       -instproc SoapBodyRequest {obj} {
 	my instvar serviceMethod serviceArgs
+	my log CALL=[$obj elementName]
 	::xo::cc virtualCall [$obj elementName]
-	set tmpArgs ""
-	foreach keyvalue [$obj set methodArgs]  {	 
-	  append tmpArgs " " "{[lindex $keyvalue 1]}"     
-	}     
-	::xo::cc virtualArgs $tmpArgs
+	#set tmpArgs ""
+	#foreach keyvalue [$obj set methodArgs]  {	 
+	#  append tmpArgs " " "{[lindex $keyvalue 1]}"     
+	#}     
+	::xo::cc virtualArgs [$obj set methodArgs]
       }
   
   ::xotcl::Class InvocationDataVisitor::OutboundResponse \

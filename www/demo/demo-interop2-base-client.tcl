@@ -18,11 +18,13 @@ set soap [SoapGlueObject new \
 	     -endpoint http://websrv.cs.fsu.edu/~engelen/interop2.cgi \
 	     -callNamespace http://soapinterop.org/]
 
+set local [SoapGlueObject new \
+	       -endpoint http://localhost:8000/xosoap/services/SoapInterop2Impl]
 # / / / / / / / / / / / / / 
 # see http://www.whitemesa.com/interop/proposal2.html
 # for interface description
 
-GObject SoapInterop2Base -glueobject $soap
+GObject SoapInterop2Base -glueobject $local
 
 # / / / / / / / / / / / / /
 # Section 1

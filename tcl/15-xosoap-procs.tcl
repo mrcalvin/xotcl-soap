@@ -6,7 +6,7 @@ ad_library {
   
   @author stefan.sobernig@wu-wien.ac.at
   @creation-date August 18, 2005
-  @cvs-id $Id: xosoap-server-procs.tcl 16 2006-09-19 08:01:35Z ssoberni $
+  @cvs-id $Id$
 
   
 }
@@ -38,7 +38,7 @@ namespace eval ::xosoap {
     # populate with transport + protocol tag
     ::xo::cc actual_query [ns_conn query]
     ::xo::cc transport [my protocol]
-    ::xo::cc protocol [namespace tail [my plugin]]
+    ::xo::cc protocol [my plugin]
     ::xo::cc method [ns_conn method]
     ::xo::cc marshalledRequest [ns_conn content]
 	
@@ -94,7 +94,7 @@ namespace eval ::xosoap {
 	  if {[::xo::cc marshalledRequest] ne {}} {
 	    set super [[my info class] info superclass]
 	    my log "---msg=[::xo::cc marshalledRequest],next=[self next],super=$super,m=[my info methods]"
-	    eval next [::xo::cc marshalledRequest];# TransportListener->processRequest
+	    next [::xo::cc marshalledRequest];# TransportListener->processRequest
 	  } else {
 	    error [HttpRequestException new {
 	      Payload is missing in POST request
@@ -115,7 +115,7 @@ namespace eval ::xosoap {
     my log "---PASSING---"
   }
   SoapHttpListener instproc dispatchResponse {payload} { 
-    ns_return 200 text/xml $payload
+    eval ns_return 200 text/xml $payload
   }
 
   # # # # # # # # # # # # # #
@@ -149,17 +149,19 @@ namespace eval ::xosoap {
 		 $e]
     }
   }
-  Soap instproc handleResponse {requestObj responseObj} {
+  Soap instproc handleResponse {requestObj returnValue} {
      # / / / / / / / / / / / / / / / / / / / / /
     # 1) SoapResponseVisitor
-    set visitor [::xosoap::visitor::SoapResponseVisitor new -volatile \
-		     -batch $responseObj] 
+    set visitor [::xosoap::visitor::InvocationDataVisitor new -volatile \
+		     -batch $returnValue] 
+
     # / / / / / / / / / / / / / / / / / / / / 
     # TODO: default to [::xo::cc unmarshalledRequest] or
     # most current state of request object as skeleton for the response
     # object?
-    set responseObj [::xo::cc unmarshalledRequest];# $requestObj?
-    
+    #set responseObj [::xo::cc unmarshalledRequest];
+    # $requestObj?
+    set responseObj $requestObj
     # / / / / / / / / / / / / / / / / / / / / /
     # 2) Transform request into response object
     $visitor releaseOn $responseObj
@@ -172,7 +174,8 @@ namespace eval ::xosoap {
     ::xo::cc unmarshalledResponse $unmarshalled
     
     # ::xorb::RequestHandler->handleResponse
-    set r [next $requestObj $responseObj];
+    
+    set r [next $responseObj];
     [my listener] dispatchResponse $r
   }
 
@@ -202,7 +205,7 @@ namespace eval ::xosoap {
       # / / / / / / / / / / / / / / / / / / / / 
       # 2) populate invocation context
       ::xo::cc version [my getSoapVersion $requestObj]
-      set $unmarhsalled [::xotcl::Object autoname soap]
+      set unmarshalled [::xotcl::Object autoname soap]
       $requestObj copy $unmarshalled
       ::xo::cc unmarshalledRequest $unmarshalled
       
@@ -210,7 +213,7 @@ namespace eval ::xosoap {
     } catch {Exception e} {
       # rethrow
       error $e
-    }catch {error e} {
+    } catch {error e} {
       error [::xosoap::exceptions::Server::DemarshallingException new $e]
     }
     
@@ -222,7 +225,9 @@ namespace eval ::xosoap {
   DeMarshallingInterceptor instproc handleResponse {responseObj} {
     
     set visitor [::xosoap::visitor::SoapMarshallerVisitor new -volatile]
+    my log RESPONSEOBJ=$responseObj,[$responseObj info class]
     $visitor releaseOn $responseObj
+    my log "XML=[[$visitor xmlDoc] asXML]"
     next [list [[$visitor xmlDoc] asXML]]
     
   }

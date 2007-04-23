@@ -32,7 +32,7 @@ namespace eval ::xosoap::exceptions {
     }
     #my log "---vars=[info vars]"
     set msg "{$__message__($contentType)}"
-    eval $returnCmd $statusCode $contentType $msg
+    $returnCmd $statusCode $contentType $msg
   }
   
   ::xotcl::Class ReturnableException -superclass LoggableException  \
