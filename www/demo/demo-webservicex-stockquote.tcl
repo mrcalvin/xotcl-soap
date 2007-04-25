@@ -23,8 +23,8 @@ set s1 [SoapGlueObject new \
 # interface
 
 GObject StockQuote -glueobject $s1
-StockQuote ad_proc -returntype string GetQuote {
-  -symbol
+StockQuote ad_proc -returns xsString GetQuote {
+  -symbol:xsString
 } {Retrieve quote for company symbol} {}
 
 # / / / / / / / / / / / / / / / / / / /

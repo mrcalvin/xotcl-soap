@@ -102,6 +102,7 @@ namespace eval xosoap::client {
     set url http://[$invocationObject virtualObject]
     set actionHeaderValue [expr {[$invocationObject exists action]?\
 				     [$invocationObject action]:$url}]
+    my log postData=$postData
     set rObj [::xo::HttpRequest new \
 		  -url $url \
 		  -post_data $postData \

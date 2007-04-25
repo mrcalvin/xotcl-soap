@@ -183,12 +183,19 @@ namespace eval ::xosoap::visitor {
   SoapMarshallerVisitor instproc SoapBodyRequest {obj} {
     my instvar xmlDoc parentNode
     $obj instvar methodArgs __node__
-    #my log xml=[$xmlDoc asXML]
-    foreach {k v} $methodArgs {
-      $__node__ appendChild [$xmlDoc createElement \
-				 [string trimleft $k "-"]  argEl]
-      $argEl appendChild [$xmlDoc createTextNode $v]
+    
+    # / / / / / / / / / / / / / / / / /
+    # Introducing anythings!
+    my log methodArgs=$methodArgs
+    foreach any $methodArgs {
+      $any marshal $xmlDoc $__node__ $obj
     }
+    
+    #foreach {k v} $methodArgs {
+    #  $__node__ appendChild [$xmlDoc createElement \
+	#[string trimleft $k "-"]  argEl]
+      #$argEl appendChild [$xmlDoc createTextNode $v]
+    #}
   }
 
   SoapMarshallerVisitor instproc SoapFault {obj} {

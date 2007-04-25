@@ -24,7 +24,8 @@ set local [SoapGlueObject new \
 # see http://www.whitemesa.com/interop/proposal2.html
 # for interface description
 
-GObject SoapInterop2Base -glueobject $local
+GObject SoapInterop2Base -glueobject $soap
+
 
 # / / / / / / / / / / / / /
 # Section 1
@@ -123,4 +124,28 @@ SoapInterop2Base ad_proc -returns xsBoolean \
 ns_write "<p>echoBoolean=[SoapInterop2Base echoBoolean -inputBoolean 1]</p>"
 
 
+# / / / / / / / / / / / / /
+# Section 2
+# Complex data types
 
+# / / / / / / / / / / / / / 
+# echoStruct
+# http://www.whitemesa.com/interop/proposal2.html#echoStruct
+
+
+Class exampleStruct -slots {
+  ::xorb::datatypes::AnyAttribute varString -type ::xosoap::xsd::XsString
+  ::xorb::datatypes::AnyAttribute varInt -type ::xosoap::xsd::XsInteger
+  ::xorb::datatypes::AnyAttribute varFloat -type ::xosoap::xsd::XsFloat
+}
+
+set struct [exampleStruct new]
+$struct varString "hello world"
+$struct varInt "42"
+$struct varFloat 0.005
+
+SoapInterop2Base ad_proc -returns object=::template::exampleStruct \
+    echoStruct {-inputStruct:object=::template::exampleStruct}\
+    {see http://www.whitemesa.com/interop/proposal2.html#echoStruct} \
+    {}
+ns_write "<p>echoStruct=[SoapInterop2Base echoStruct -inputStruct $struct]</p>"
