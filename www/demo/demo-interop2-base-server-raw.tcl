@@ -77,6 +77,19 @@ set payload(echoBoolean) {<?xml version="1.0" encoding="UTF-8"?>
 </SOAP-ENV:Body>
 </SOAP-ENV:Envelope>}
 
+set payload(echoStruct) {<?xml version="1.0" encoding="UTF-8"?>
+<SOAP-ENV:Envelope SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+<SOAP-ENV:Body>
+<m:echoStruct xmlns:m="http://soapinterop.org/">
+<inputStruct>
+<varInt>42</varInt>
+<varFloat>0.005</varFloat>
+<varString>hello world</varString>
+</inputStruct>
+</m:echoStruct>
+</SOAP-ENV:Body>
+</SOAP-ENV:Envelope>}
+
 ns_write <html><title></title><body>
 foreach call [array names payload] {
   set url http://localhost:8000/xosoap/services/SoapInterop2Impl

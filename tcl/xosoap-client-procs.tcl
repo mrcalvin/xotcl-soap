@@ -67,9 +67,8 @@ namespace eval xosoap::client {
     namespace import ::xosoap::marshaller::*
     # / / / / / / / / / / / /
     # 1) initiate demarshalling
+
     set responseEnvelope [::xosoap::marshaller::SoapEnvelope new -response]
-    my log ctx-vars=[$invocationContext info vars]
-    my log result=[$invocationContext marshalledResponse]
     set doc [dom parse [$invocationContext marshalledResponse]]
     set root [$doc documentElement]
     $responseEnvelope parse $root
@@ -98,6 +97,7 @@ namespace eval xosoap::client {
       -set key "http"
 
   HttpTransportProvider instproc handle {invocationObject} {
+    namespace import -force ::xosoap::exceptions::*
     set postData [$invocationObject marshalledRequest]
     set url http://[$invocationObject virtualObject]
     set actionHeaderValue [expr {[$invocationObject exists action]?\
@@ -108,6 +108,31 @@ namespace eval xosoap::client {
 		  -post_data $postData \
 		  -content_type "text/xml" \
 		  -request_header_fields [list SOAPAction $actionHeaderValue]]
+    # handling of exception situations
+    # http status code 500
+    if {[my exists statusCode] && [my set statusCode] eq 500} {
+      # handle as fault
+      try {
+	set faultMsg [$rObj set data] 
+	set envelope [SoapEnvelope new -nest {
+	  ::xosoap::marshaller::SoapFault new}]
+	set doc [dom parse $faultMsg]
+	set root [$doc documentElement]
+	$envelope parse $root
+      } catch {error e} {
+	error [HttpTransportProviderException new [subst {
+	  Recasting a SOAP fault message into a local
+	  exception failed due to '$e'
+	}]]
+      }
+    } elseif {[my exists statusCode] && [my set statusCode] ne 200} {
+      # encapsulate arbitrary http error messages
+      error [HttpTransportProviderException new [subst {
+	Http request transport did not suceed with 
+	status code [my set statusCode] and message '[$rObj set data]'
+      }]]
+    }
+    my log data=[$rObj set data]
     return [$rObj set data]
   }
 

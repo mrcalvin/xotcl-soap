@@ -106,6 +106,14 @@ namespace eval ::xosoap::exceptions {
   } -statusCode 500
 
   # / / / / / / / / / / / / / / / / / / / / / / / / /
+  # Client exception types + documentation
+
+  LoggableException HttpTransportProviderException -ad_doc {
+    An exception was triggered at the level of the
+    Http transport provider
+  }
+
+  # / / / / / / / / / / / / / / / / / / / / / / / / /
   # SoapFaults (categories) + documentation
   
   Class Server -contains {
@@ -162,5 +170,6 @@ namespace eval ::xosoap::exceptions {
   }
   
   namespace export MalformedEndpointException HttpRequestException \
-      ReturnableException UnknownException Server Client
+      ReturnableException UnknownException Server Client \
+      HttpTransportProviderException
 }

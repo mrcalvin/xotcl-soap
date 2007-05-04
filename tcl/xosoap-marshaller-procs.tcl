@@ -18,6 +18,7 @@ namespace eval ::xosoap::marshaller {
 
   namespace import -force ::xorb::aux::*
   namespace import -force ::xosoap::exceptions::*
+  #namespace import -force ::xosoap::xsd::*
   namespace import -force ::xorb::datatypes::*
 
 
@@ -618,7 +619,8 @@ As specified for the RPC mode of operation, a single child of type
 
     # / / / / / / / / / / / /
     # introducing anythings!
-    set any [::xorb::datatypes::Anything new -isRoot true -parse $responseNode]
+    set any [::xosoap::xsd::XsAnything new -isRoot true -parse $responseNode]
+    my log ANYTHING=[$any serialize]
     set responseValue $any
   }
 
@@ -662,7 +664,9 @@ As specified for the RPC mode of operation, a single child of type
       # / / / / / / / / / / / / / / / / /
       # Introducing 'anythings' as generic
       # type containers/ handlers
-      set any [Anything new -parse $argNode -name [$argNode nodeName]]
+      set any [::xosoap::xsd::XsAnything new \
+		   -parse $argNode \
+		   -name [$argNode nodeName]]
       lappend methodArgs $any
     }
   } 

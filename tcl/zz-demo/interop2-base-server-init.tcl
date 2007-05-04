@@ -11,6 +11,16 @@ namespace eval ::xosoap::demo {
 
   namespace import -force ::xorb::*
 
+  # / / / / / / / / / / / / / / / / / /
+  # Staging
+  # - defining complex types used
+
+  Class exampleStruct -slots {
+    ::xorb::datatypes::AnyAttribute varString -anyType ::xosoap::xsd::XsString
+    ::xorb::datatypes::AnyAttribute varInt -anyType ::xosoap::xsd::XsInteger
+    ::xorb::datatypes::AnyAttribute varFloat -anyType ::xosoap::xsd::XsFloat
+  }
+
    #     ___________________
   #   ,'                   `.
   #  /                       \
@@ -84,10 +94,18 @@ namespace eval ::xosoap::demo {
 	}
     ::xorb::Abstract echoBoolean \
 	-arguments {
-	  inputBoolean:xsBoolean
+	  inputBoolean:xsString
 	} -returns "returnValue:xsBoolean" \
 	-description {
 	  see http://www.whitemesa.com/interop/proposal2.html#echoBoolean
+	}
+
+    ::xorb::Abstract echoStruct \
+	-arguments {
+	  inputStruct:soapStruct=::xosoap::demo::exampleStruct
+	} -returns "returnValue:soapStruct=::xosoap::demo::exampleStruct" \
+	-description {
+	  see http://www.whitemesa.com/interop/proposal2.html#echoStruct
 	}
 
   } -ad_doc {
@@ -174,6 +192,14 @@ namespace eval ::xosoap::demo {
 	  inputBoolean:required
 	} {Echoes an incoming boolean value} {
 	  return $inputBoolean
+	}
+	# / / / / / / / / / / / / /
+	# echoStruct
+	::xorb::Method echoStruct {
+	  inputStruct:required
+	} {Echoes an incoming struct} {
+	  my log inputStruct(varFloat)=[$inputStruct varFloat]
+	  return $inputStruct
 	}
       }
   

@@ -13,9 +13,12 @@
 
 namespace import ::xosoap::client::*
 namespace import ::xorb::stub::*
+namespace import ::xosoap::xsd::*
 
+set gsoap http://websrv.cs.fsu.edu/~engelen/interop2.cgi
+set nusoap http://dietrich.ganx4.com/nusoap/testbed/round2_base_server.php
 set soap [SoapGlueObject new \
-	     -endpoint http://websrv.cs.fsu.edu/~engelen/interop2.cgi \
+	     -endpoint $nusoap\
 	     -callNamespace http://soapinterop.org/]
 
 set local [SoapGlueObject new \
@@ -134,9 +137,9 @@ ns_write "<p>echoBoolean=[SoapInterop2Base echoBoolean -inputBoolean 1]</p>"
 
 
 Class exampleStruct -slots {
-  ::xorb::datatypes::AnyAttribute varString -type ::xosoap::xsd::XsString
-  ::xorb::datatypes::AnyAttribute varInt -type ::xosoap::xsd::XsInteger
-  ::xorb::datatypes::AnyAttribute varFloat -type ::xosoap::xsd::XsFloat
+  ::xorb::datatypes::AnyAttribute varString -anyType ::xosoap::xsd::XsString
+  ::xorb::datatypes::AnyAttribute varInt -anyType ::xosoap::xsd::XsInteger
+  ::xorb::datatypes::AnyAttribute varFloat -anyType ::xosoap::xsd::XsFloat
 }
 
 set struct [exampleStruct new]
@@ -144,8 +147,88 @@ $struct varString "hello world"
 $struct varInt "42"
 $struct varFloat 0.005
 
-SoapInterop2Base ad_proc -returns object=::template::exampleStruct \
-    echoStruct {-inputStruct:object=::template::exampleStruct}\
+SoapInterop2Base ad_proc -returns soapStruct=::template::exampleStruct \
+    echoStruct {-inputStruct:soapStruct=::template::exampleStruct}\
     {see http://www.whitemesa.com/interop/proposal2.html#echoStruct} \
     {}
-ns_write "<p>echoStruct=[SoapInterop2Base echoStruct -inputStruct $struct]</p>"
+set r [SoapInterop2Base echoStruct -inputStruct $struct]
+ns_write "<p>echoStruct(varFloat)=[$r varFloat]<br/>echoStruct(varInt)=[$r varInt]<br/>echoStruct(varString)=[$r varString]</p>"
+
+# / / / / / / / / / / / / / 
+# echoStringArray
+# http://www.whitemesa.com/interop/proposal2.html#echoStringArray
+
+set stringArray [ArrayBuilder new -type ::xosoap::xsd::XsString -size 2]
+set i [$stringArray new]
+$i 0 hello
+$i 1 world
+
+SoapInterop2Base ad_proc -returns soapArray=xsString(2) \
+    echoStringArray {-inputStringArray:soapArray=xsString(2)}\
+    {see http://www.whitemesa.com/interop/proposal2.html#echoStringArray} \
+    {}
+
+set r [SoapInterop2Base echoStringArray -inputStringArray $i]
+ns_write "<p>echoStringArray(0)=[$r 0]<br/>echoStringArray(1)=[$r 1]</p>"
+
+# / / / / / / / / / / / / / 
+# echoIntegerArray
+# http://www.whitemesa.com/interop/proposal2.html#echoIntegerArray
+
+set integerArray [ArrayBuilder new -type ::xosoap::xsd::XsInteger -size 2]
+set i [$integerArray new]
+$i 0 100
+$i 1 200
+
+SoapInterop2Base ad_proc -returns soapArray=xsInteger(2) \
+    echoIntegerArray {-inputIntegerArray:soapArray=xsInteger(2)}\
+    {see http://www.whitemesa.com/interop/proposal2.html#echoIntegerArray} \
+    {}
+
+set r [SoapInterop2Base echoIntegerArray -inputIntegerArray $i]
+ns_write "<p>echoIntegerArray(0)=[$r 0]<br/>echoIntegerArray(1)=[$r 1]</p>"
+
+# / / / / / / / / / / / / / 
+# echoFloatArray
+# http://www.whitemesa.com/interop/proposal2.html#echoFloatArray
+
+set floatArray [ArrayBuilder new -type ::xosoap::xsd::XsFloat -size 2]
+set i [$floatArray new]
+$i 0 0.00000555
+$i 1 12999.9
+
+SoapInterop2Base ad_proc -returns soapArray=xsFloat(2) \
+    echoFloatArray {-inputFloatArray:soapArray=xsFloat(2)}\
+    {see http://www.whitemesa.com/interop/proposal2.html#echoFloatArray} \
+    {}
+
+set r [SoapInterop2Base echoFloatArray -inputFloatArray $i]
+ns_write "<p>echoFloatArray(0)=[$r 0]<br/>echoFloatArray(1)=[$r 1]</p>"
+
+# / / / / / / / / / / / / / 
+# echoStructArray
+# http://www.whitemesa.com/interop/proposal2.html#echoStructArray
+
+set structArray [ArrayBuilder new \
+		     -type ::template::exampleStruct \
+		     -size 2]
+ns_log notice structArray=[$structArray serialize]
+set i [$structArray new]
+$i 0 [exampleStruct new \
+	  -varInt 42 \
+	  -varString "hello world" \
+	  -varFloat 0.005]
+$i 1 [exampleStruct new \
+	  -varInt 42 \
+	  -varString "hello world" \
+	  -varFloat 0.005]
+
+ns_log notice i=[$i serialize]
+
+SoapInterop2Base ad_proc -returns soapArray=::template::exampleStruct(2) \
+    echoStructArray {-inputStructArray:soapArray=::template::exampleStruct(2)}\
+    {see http://www.whitemesa.com/interop/proposal2.html#echoStructArray} \
+    {}
+
+set r [SoapInterop2Base echoStructArray -inputStructArray $i]
+ns_write "<p>echoStructArray(0)=[$r info class]<br/>echoStructArray(1)=[$r info class]</p>"

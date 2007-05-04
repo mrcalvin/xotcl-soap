@@ -39,6 +39,7 @@ namespace eval ::xosoap::visitor {
   namespace import -force ::xosoap::marshaller::*
   namespace import -force ::xosoap::exceptions::*
   namespace import -force ::xorb::datatypes::*
+  #namespace import -force ::xosoap::xsd::*
 
   ###############################################
   # Visitors:
@@ -173,11 +174,14 @@ namespace eval ::xosoap::visitor {
     # provided by the actual any implementation
     # TODO: support for multiple anys
     if {[$obj responseValue] eq {}} {
-      set any [Anything new -isVoid true]
+      set any [::xosoap::xsd::XsAnything new -isVoid true]
     } else {
       set any [$obj responseValue]
     }
-    $any marshal $xmlDoc $__node__ $obj
+    set name [string map {Response Return} [$obj elementName]]
+    set anyNode [$__node__ appendChild \
+		     [$xmlDoc createElement $name]]
+    $any marshal $xmlDoc $anyNode $obj
   }
 
   SoapMarshallerVisitor instproc SoapBodyRequest {obj} {
@@ -186,9 +190,11 @@ namespace eval ::xosoap::visitor {
     
     # / / / / / / / / / / / / / / / / /
     # Introducing anythings!
-    my log methodArgs=$methodArgs
     foreach any $methodArgs {
-      $any marshal $xmlDoc $__node__ $obj
+      my log REQUEST-ANY=[$any serialize]
+      set anyNode [$__node__ appendChild \
+		       [$xmlDoc createElement [$any name]]]
+      $any marshal $xmlDoc $anyNode $obj
     }
     
     #foreach {k v} $methodArgs {
