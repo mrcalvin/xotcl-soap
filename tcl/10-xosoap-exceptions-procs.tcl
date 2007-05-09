@@ -105,6 +105,10 @@ namespace eval ::xosoap::exceptions {
     An unspecified exception was caught
   } -statusCode 500
 
+  ReturnableException WsdlGenerationException -ad_doc {
+    The generation of a WSDL document failed.
+  } -statusCode 500
+  
   # / / / / / / / / / / / / / / / / / / / / / / / / /
   # Client exception types + documentation
 
@@ -171,5 +175,5 @@ namespace eval ::xosoap::exceptions {
   
   namespace export MalformedEndpointException HttpRequestException \
       ReturnableException UnknownException Server Client \
-      HttpTransportProviderException
+      HttpTransportProviderException WsdlGenerationException
 }
