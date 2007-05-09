@@ -234,15 +234,55 @@ namespace eval ::xosoap::xsd {
 	} else {
 	  error "Cannot resolve accessor '$s' to nested element in Anything object."
 	}
+	# / / / / / / / / / / / / /
+	# TODO: better place to provide
+	# for type key expansion?
+	if {[my isclass $type] && \
+		![$type info superclass ::xorb::datatypes::Anything]} {
+	  set type soapStruct=$type
+	} else {
+
+	  set constraints [string map {"(" " \{ " ")" " \} "} $type]
+	  if {![info complete $constraints]} {
+	    error "Array constraints not properly defined."
+	  }
+	  my log constraints=$constraints,l=[llength $constraints]
+	  if {[llength $constraints] > 1} {
+	    set type  soapArray=$type
+	  }
+	}
 	my log any=$any,typeKey=$type
 	set unwrapped [$any as $type]
 	my log unwrapped=$unwrapped
-	$anyObj set $s [$any as $type]
+	$anyObj set $s $unwrapped
       }
       #$anyObj mixin add $template
       $anyObj class $template
       return $anyObj
     }
+  } -instproc parseObject {class object} {
+    
+    # / / / / / / / / / / / / / /
+    # TODO: find a more efficient
+    # way of expanding any types 
+    # in compounds than looping
+    foreach s [$class info slots] {
+      $s instvar anyType
+      if {[my isclass $anyType] &&\
+	      ![$anyType info superclass ::xorb::datatypes::Anything]} {
+	$s anyType soapStruct=$anyType
+      } else {
+
+	set constraints [string map {"(" " \{ " ")" " \} "} $anyType]
+	if {![info complete $constraints]} {
+	  error "Array constraints not properly defined."
+	}
+	if {[llength $constraints] > 1} {
+	  set anyType soapArray=$anyType
+	}
+      }
+    }
+    next
   }
 
   
@@ -268,7 +308,6 @@ namespace eval ::xosoap::xsd {
   # is implemented as XsCompound
 
   MetaAny SoapStruct -superclass XsCompound
-
   # / / / / / / / / / / / /
   # SoapArray + ArrayBuilder
   # as derivations of XsCompound
@@ -309,6 +348,17 @@ namespace eval ::xosoap::xsd {
     set last [string trim [lindex $constraints end]]
     set allowedType [string trim [lindex $constraints 0]]
     set allowedType [Anything getTypeClass [string trimleft $allowedType =]]
+    # / / / / / / / / / / / / / / /
+    # expand nested types: 1) nested struct specs
+    if {$allowedType ne {} && [my isclass $allowedType] \
+	    && ![$allowedType info superclass ::xorb::datatypes::Anything]} {
+      # default to soapStructs
+      set allowedType soapStruct=$allowedType
+    } elseif {[llength $constraints] > 2} {
+      # / / / / / / / / / / / / / / /
+      # TODO expand nested types: 2) nested array specs
+      set allowedType soapArray=$allowedType
+    } 
     set template [ArrayBuilder new -type $allowedType -size $last]
     if {[llength $__ordinary_map__] > [$template size]} {
       return false
@@ -326,10 +376,19 @@ namespace eval ::xosoap::xsd {
     # <... xsi:type="SOAP-ENC:Array" SOAP-ENC:arrayType="xsd:string[2]" ...>
     my instvar template
     $template instvar type size
-     set xstype [string trimleft [namespace tail $type] Xs]
-      set xstype [string tolower $xstype 0 0]
+    # / / / / / / / / / / / / / /
+    # Introduce specifc serialisation
+    # rules for soap structs
+    if {[my isclass $type] &&\
+	    ![$type info superclass ::xorb::datatypes::Anything]} {
+      set xstype "m:SoapStruct"
+    } else {
+      set xstype [string trimleft [namespace tail $type] Xs]
+      set xstype "xsd:[string tolower $xstype 0 0]"
+    }
+    
     $node setAttribute xsi:type "SOAP-ENC:Array"
-    $node setAttribute SOAP-ENC:arrayType "xsd:$xstype\[$size\]"
+    $node setAttribute SOAP-ENC:arrayType "$xstype\[$size\]"
     next $document $node $soapElement;# XsCompound->marshal
   }
   SoapArray instproc parseObject {class object} {
@@ -350,7 +409,6 @@ namespace eval ::xosoap::xsd {
     set template [ArrayBuilder new -type $allowedType -size $last]
     next $template $object;# Anything->parseObject
   }
-  
   namespace export XsString XsInteger XsDouble\
       XsFloat XsDecimal XsDateTime XsDate XsTime XsBase64Binary XsHexBinary\
       XsBoolean SoapArray SoapStruct ArrayBuilder

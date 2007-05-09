@@ -41,16 +41,18 @@ namespace eval ::xosoap {
     ::xo::cc protocol [my plugin]
     ::xo::cc method [ns_conn method]
     ::xo::cc marshalledRequest [ns_conn content]
-	
     # we require the SOAPAction header field to
     # be present in the http post request,
     # however its value is of no significance
     # (for endpoint resolution etc.)
     set headerSet [ns_conn header]
     set idx [ns_set find $headerSet SOAPAction]
-    if {$idx != -1} {
+    if {[::xo::cc method] eq "POST" && $idx != -1} {
       # keep in context object for later use!
       ::xo::cc action [ns_set value $headerSet $idx]
+      return filter_ok;
+    } elseif {[::xo::cc method] eq "GET"} {
+      my log context=[::xo::cc serialize]
       return filter_ok;
     } else {
       return filter_return;
@@ -78,11 +80,22 @@ namespace eval ::xosoap {
 	error [MalformedEndpointException new]
       }
       ::xo::cc virtualObject [lindex $urlv 2]
+      my log INSIDE=[::xo::cc serialize]
       switch -exact [::xo::cc method] {
 	"GET" {
 	  # meant to be request for wsdl; verify first
 	  if {[::xo::cc actual_query] eq "wsdl"} {
-	    eval [my getWSDL -servicePointer  [::xo::cc virtualObject]]
+	    # / / / / / / / / / / / / /
+	    # TODO: introduce general dispatch mechanism
+	    # later on OR introduce admin service
+	    # which deals with these tasks (wsdl etc.)
+	    ::xorb::Skeleton mixin add ::xosoap::Wsdl1.1
+	    set implObj [::xorb::Skeleton getImplementation \
+			     -name [::xo::cc virtualObject]]
+	    set wsdl [::xorb::Skeleton getContract \
+			  -name [$implObj implements]]
+	    ::xorb::Skeleton mixin delete ::xosoap::Wsdl1.1
+	    #eval [my getWSDL -servicePointer  [::xo::cc virtualObject]]
 	  } else {
 	    error [HttpRequestException new {
 	      'wsdl' only is allowed / required as parameter in GET requests

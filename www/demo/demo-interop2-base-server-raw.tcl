@@ -90,6 +90,62 @@ set payload(echoStruct) {<?xml version="1.0" encoding="UTF-8"?>
 </SOAP-ENV:Body>
 </SOAP-ENV:Envelope>}
 
+set payload(echoStringArray) {<?xml version="1.0" encoding="UTF-8"?>
+<SOAP-ENV:Envelope SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+<SOAP-ENV:Body>
+<m:echoStringArray xmlns:m="http://soapinterop.org/">
+<inputStringArray SOAP-ENC:arrayType="ns:string[2]" SOAP-ENC:offset="[0]" xmlns:ns="http://www.w3.org/2001/XMLSchema">
+<item>hello</item>
+<item>world</item>
+</inputStringArray>
+</m:echoStringArray>
+</SOAP-ENV:Body>
+</SOAP-ENV:Envelope>}
+
+set payload(echoIntegerArray) {<?xml version="1.0" encoding="UTF-8"?>
+<SOAP-ENV:Envelope SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+<SOAP-ENV:Body>
+<m:echoIntegerArray xmlns:m="http://soapinterop.org/">
+<inputIntegerArray SOAP-ENC:arrayType="ns:int[2]" SOAP-ENC:offset="[0]" xmlns:ns="http://www.w3.org/2001/XMLSchema">
+<item>100</item>
+<item>200</item>
+</inputIntegerArray>
+</m:echoIntegerArray>
+</SOAP-ENV:Body>
+</SOAP-ENV:Envelope>}
+
+set payload(echoFloatArray) {<?xml version="1.0" encoding="UTF-8"?>
+<SOAP-ENV:Envelope SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+<SOAP-ENV:Body>
+<m:echoFloatArray xmlns:m="http://soapinterop.org/">
+<inputFloatArray SOAP-ENC:arrayType="ns:float[2]" SOAP-ENC:offset="[0]" xmlns:ns="http://www.w3.org/2001/XMLSchema">
+<item>0.00000555</item>
+<item>12999.9</item>
+</inputFloatArray>
+</m:echoFloatArray>
+</SOAP-ENV:Body>
+</SOAP-ENV:Envelope>}
+
+set payload(echoStructArray) {<?xml version="1.0" encoding="UTF-8"?>
+<SOAP-ENV:Envelope SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+<SOAP-ENV:Body>
+<m:echoStructArray xmlns:m="http://soapinterop.org/">
+<inputStructArray SOAP-ENC:arrayType="ns:SOAPStruct[2]" SOAP-ENC:offset="[0]" xmlns:ns="http://soapinterop.org/xsd">
+<item>
+<varInt>42</varInt>
+<varFloat>0.005</varFloat>
+<varString>hello world</varString>
+</item>
+<item>
+<varInt>42</varInt>
+<varFloat>0.005</varFloat>
+<varString>hello world</varString>
+</item>
+</inputStructArray>
+</m:echoStructArray>
+</SOAP-ENV:Body>
+</SOAP-ENV:Envelope>}
+
 ns_write <html><title></title><body>
 foreach call [array names payload] {
   set url http://localhost:8000/xosoap/services/SoapInterop2Impl

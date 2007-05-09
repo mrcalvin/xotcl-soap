@@ -1,14 +1,14 @@
-# # # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # #
-# # Demo scenario
-# # Realising Interop2 Base test
-# # suite
-# # see http://www.whitemesa.com/interop/proposal2.html
-# # # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # #
-
 namespace eval ::xosoap::demo {
 
+  # # # # # # # # # # # # # # # # # #
+  # # # # # # # # # # # # # # # # # #
+  # # Demo scenario
+  # # Realising Interop2 Base test
+  # # suite
+  # # see http://www.whitemesa.com/interop/proposal2.html
+  # # # # # # # # # # # # # # # # # #
+  # # # # # # # # # # # # # # # # # #
+  
   namespace import -force ::xorb::*
 
   # / / / / / / / / / / / / / / / / / /
@@ -107,7 +107,34 @@ namespace eval ::xosoap::demo {
 	-description {
 	  see http://www.whitemesa.com/interop/proposal2.html#echoStruct
 	}
-
+    ::xorb::Abstract echoStringArray \
+	-arguments {
+	  inputStringArray:soapArray=xsString(2)
+	} -returns "returnValue:soapArray=xsString(2)" \
+	-description {
+	  see http://www.whitemesa.com/interop/proposal2.html#echoStringArray
+	}
+    ::xorb::Abstract echoIntegerArray \
+	-arguments {
+	  inputIntegerArray:soapArray=xsInteger(2)
+	} -returns "returnValue:soapArray=xsInteger(2)" \
+	-description {
+	  see http://www.whitemesa.com/interop/proposal2.html#echoIntegerArray
+	}
+    ::xorb::Abstract echoFloatArray \
+	-arguments {
+	  inputFloatArray:soapArray=xsFloat(2)
+	} -returns "returnValue:soapArray=xsFloat(2)" \
+	-description {
+	  see http://www.whitemesa.com/interop/proposal2.html#echoFloatArray
+	}
+    ::xorb::Abstract echoStructArray \
+	-arguments {
+	  inputStructArray:soapArray=::xosoap::demo::exampleStruct(2)
+	} -returns "returnValue:soapArray=::xosoap::demo::exampleStruct(2)" \
+	-description {
+	  see http://www.whitemesa.com/interop/proposal2.html#echoStructArray
+	}
   } -ad_doc {
     This contract provides the interface description
     for the Soap Interop2 Base test suite.
@@ -127,6 +154,7 @@ namespace eval ::xosoap::demo {
   # - 	It is possible to declare the 
   #	specification object as servant object,
   #	by means of the Method attribute slot
+
 
   ServiceImplementation SoapInterop2Impl \
       -implements SoapInterop2 \
@@ -201,12 +229,111 @@ namespace eval ::xosoap::demo {
 	  my log inputStruct(varFloat)=[$inputStruct varFloat]
 	  return $inputStruct
 	}
+	# / / / / / / / / / / / / /
+	# echoStringArray
+	::xorb::Method echoStringArray {
+	  inputStringArray:required
+	} {Echoes an incoming array of strings} {
+	  return $inputStringArray
+	}
+	# / / / / / / / / / / / / /
+	# echoIntegerArray
+	::xorb::Method echoIntegerArray {
+	  inputIntegerArray:required
+	} {Echoes an incoming array of integers} {
+	  return $inputIntegerArray
+	}
+	# / / / / / / / / / / / / /
+	# echoFloatArray
+	::xorb::Method echoFloatArray {
+	  inputFloatArray:required
+	} {Echoes an incoming array of floats} {
+	  return $inputFloatArray
+	}
+	# / / / / / / / / / / / / /
+	# echoStructArray
+	::xorb::Method echoStructArray {
+	  inputStructArray:required
+	} {Echoes an incoming array of structs} {
+	  return $inputStructArray
+	}
       }
   
   # / / / / / / / / / / / /
   # deployment descriptor
-  # + actualy deployment
+  # + actual deployment
 
   SoapInterop2Impl deploy
   
+  # # # # # # # # # # # # # # # # # #
+  # # # # # # # # # # # # # # # # # #
+  # # Demo scenario
+  # # Realising Soap Interop2 Group 'B' tests
+  # # suite
+  # # see http://www.whitemesa.com/interop/proposalB.html
+  # # # # # # # # # # # # # # # # # #
+  # # # # # # # # # # # # # # # # # #
+
+  Class nestedStruct -slots {
+    ::xorb::datatypes::AnyAttribute varString -anyType ::xosoap::xsd::XsString
+    ::xorb::datatypes::AnyAttribute varInt -anyType ::xosoap::xsd::XsInteger
+    ::xorb::datatypes::AnyAttribute varFloat -anyType ::xosoap::xsd::XsFloat
+  }
+
+  Class exampleNestingStruct -slots {
+    ::xorb::datatypes::AnyAttribute varString -anyType ::xosoap::xsd::XsString
+    ::xorb::datatypes::AnyAttribute varInt -anyType ::xosoap::xsd::XsInteger
+    ::xorb::datatypes::AnyAttribute varFloat -anyType ::xosoap::xsd::XsFloat
+    ::xorb::datatypes::AnyAttribute varStruct -anyType ::xosoap::demo::nestedStruct
+  }
+
+  Class nestedArrayStruct -slots {
+    ::xorb::datatypes::AnyAttribute varString -anyType ::xosoap::xsd::XsString
+    ::xorb::datatypes::AnyAttribute varInt -anyType ::xosoap::xsd::XsInteger
+    ::xorb::datatypes::AnyAttribute varFloat -anyType ::xosoap::xsd::XsFloat
+    ::xorb::datatypes::AnyAttribute varArray -anyType xsString(3)
+  }
+
+  ServiceContract SoapInterop2GroupB -defines {
+    ::xorb::Abstract echoNestedStruct \
+	-arguments {
+	  inputStruct:soapStruct=::xosoap::demo::exampleNestingStruct
+	} -returns "returnValue:soapStruct=::xosoap::demo::exampleNestingStruct" \
+	-description {
+	  see http://www.whitemesa.com/interop/proposalB.html#echoNestedStruct
+	}
+    ::xorb::Abstract echoNestedArray \
+	-arguments {
+	  inputStruct:soapStruct=::xosoap::demo::nestedArrayStruct
+	} -returns "returnValue:soapStruct=::xosoap::demo::nestedArrayStruct" \
+	-description {
+	  see http://www.whitemesa.com/interop/proposalB.html#echoNestedArray
+	}
+  } -ad_doc {
+    This contract represents the interface description for the
+    Whitemesa Soap Interop2 Group 'B' test suite.
+  }
+
+  ServiceImplementation SoapInterop2GroupBImpl \
+      -implements SoapInterop2GroupB \
+      -using {
+	# / / / / / / / / / / / / /
+	# echoNestedStruct
+	::xorb::Method echoNestedStruct {
+	  inputStruct:required
+	} {Echoes an incoming nested structure of structs} {
+	  return $inputStruct
+	}
+	# / / / / / / / / / / / / /
+	# echoNestedArray
+	::xorb::Method echoNestedArray {
+	  inputStruct:required
+	} {Echoes an incoming struct with a nested array} {
+	  return $inputStruct
+	}
+      }
+  
+  # / / / / / / / / / / / /
+  # deploy the 
+  SoapInterop2GroupBImpl deploy
 }
