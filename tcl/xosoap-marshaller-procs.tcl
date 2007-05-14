@@ -104,6 +104,13 @@ namespace eval ::xosoap::marshaller {
     my set nsArray($prefix) $uri
   }
 
+  SoapNamespace instproc delete {prefix} {
+    my instvar nsArray 
+    if {[info exists nsArray($prefix)]} {
+      unset nsArray($prefix) 
+    }
+  }
+
   SoapNamespace ad_instproc get {prefix} {
     <p>
     Returns the namespace URI corresponding to the key represented
@@ -289,7 +296,12 @@ namespace eval ::xosoap::marshaller {
       $ns add [lindex $l 0] [lindex $l 1]
     }
   }
-
+  SoapElement instproc unregisterNS {prefix} {
+    if {$prefix ne {}} {
+      set ns [my resolveNSHandler]
+      $ns delete $prefix
+    }
+  }
   SoapElement ad_instproc resolveEncHandler {} {
 
     <p>It identifies the responsible encoding handler \

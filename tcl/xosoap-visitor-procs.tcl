@@ -142,47 +142,58 @@ namespace eval ::xosoap::visitor {
     # 5) element-type-specific marshalling?
     set m [namespace tail [$obj info class]]
     #my log "method-to-call=$m, available? [my info methods]"
+    
+    # / / / / / / / / / / / / / / / / / /
+    # Introducing styles
+    set wasStyled 0
+    if {[$obj exists style] && [$obj set style] ne {}} {
+      my mixin add [$obj set style]::[namespace tail [self class]]
+      set wasStyled 1
+    }
     if {[lsearch -glob [my info methods] $m] ne "-1"} {
      #my log "CALLED $m"
       my $m $obj
     }
-  }
-
-  SoapMarshallerVisitor instproc SoapBodyResponse {obj} {
-    my instvar xmlDoc parentNode
-    $obj instvar __node__
-    
-    # / / / / / / / / / / / / / / / / / / / / / / / /
-    # SOAP 1.1 spec only stipulates / recommends that 
-    # the first child element of SoapBody is suffixed
-    # with *Response. There is no naming convention,
-    # apart from framework-specific ones, on elements
-    # containing the return value(s).
-    # Currently, we provide for a suffix: *Return
-    # TODO: adapt to multiple / complex return values 
-    # (types).
-
-    #set suffixedName [string map {Response Return} [$obj elementName]]
-    #set returnNode [$__node__ appendChild \
-	#		[$xmlDoc createElement $suffixedName]]
-
-    #set valueNode [$returnNode appendChild \
-    #		       [$xmlDoc createTextNode [$obj responseValue]]]
-    # / / / / / / / / / / / / / / / /
-    # introduce anythings and appropriate
-    # delegation to the concrete marshaller
-    # provided by the actual any implementation
-    # TODO: support for multiple anys
-    if {[$obj responseValue] eq {}} {
-      set any [::xosoap::xsd::XsAnything new -isVoid true]
-    } else {
-      set any [$obj responseValue]
+    if {$wasStyled} {
+      my mixin delete [$obj set style]::[namespace tail [self class]]
     }
-    set name [string map {Response Return} [$obj elementName]]
-    set anyNode [$__node__ appendChild \
-		     [$xmlDoc createElement $name]]
-    $any marshal $xmlDoc $anyNode $obj
   }
+
+#   SoapMarshallerVisitor instproc SoapBodyResponse {obj} {
+#     my instvar xmlDoc parentNode
+#     $obj instvar __node__
+    
+#     # / / / / / / / / / / / / / / / / / / / / / / / /
+#     # SOAP 1.1 spec only stipulates / recommends that 
+#     # the first child element of SoapBody is suffixed
+#     # with *Response. There is no naming convention,
+#     # apart from framework-specific ones, on elements
+#     # containing the return value(s).
+#     # Currently, we provide for a suffix: *Return
+#     # TODO: adapt to multiple / complex return values 
+#     # (types).
+
+#     #set suffixedName [string map {Response Return} [$obj elementName]]
+#     #set returnNode [$__node__ appendChild \
+# 	#		[$xmlDoc createElement $suffixedName]]
+
+#     #set valueNode [$returnNode appendChild \
+#     #		       [$xmlDoc createTextNode [$obj responseValue]]]
+#     # / / / / / / / / / / / / / / / /
+#     # introduce anythings and appropriate
+#     # delegation to the concrete marshaller
+#     # provided by the actual any implementation
+#     # TODO: support for multiple anys
+#     if {[$obj responseValue] eq {}} {
+#       set any [::xosoap::xsd::XsAnything new -isVoid true]
+#     } else {
+#       set any [$obj responseValue]
+#     }
+#     set name [string map {Response Return} [$obj elementName]]
+#     set anyNode [$__node__ appendChild \
+# 		     [$xmlDoc createElement $name]]
+#     $any marshal $xmlDoc $anyNode $obj
+#   }
 
   SoapMarshallerVisitor instproc SoapBodyRequest {obj} {
     my instvar xmlDoc parentNode
@@ -249,6 +260,10 @@ namespace eval ::xosoap::visitor {
   # # InvocationDataVisitor
   # # # # # # # # # # # # # # # 
   # # # # # # # # # # # # # # # 
+  ::xotcl::Class InvocationDataVisitor -slots {
+    Attribute batch
+    Attribute invocationContext -default ::xo::cc
+  }
   
   ::xotcl::Class InvocationDataVisitor -parameter {
     scenario
@@ -256,6 +271,12 @@ namespace eval ::xosoap::visitor {
     {invocationContext ::xo::cc}
   } -superclass AbstractVisitor
   InvocationDataVisitor instproc init args {
+    # / / / / / / / / / / / / / /
+    # solve parameter retrieval problem!
+    # set style ::xosoap::RpcLiteral
+    set style ::xosoap::DocumentLiteral
+    #set style [parameter::get -parameter "default_invocation_style"]
+    my log style=$style
     if {![my exists scenario] || [my scenario] eq {}} {
       my instvar invocationContext
       foreach scenario [[self class] info children] {
@@ -269,12 +290,12 @@ namespace eval ::xosoap::visitor {
       if {[llength $key] ne "1"} {
 	error [::xosoap::exceptions::Server::InvocationScenarioException new \
 		   "key: $key"]
-
-
-      }
-      my scenario $evaluation($key)
+     }
+      set direction [namespace tail $evaluation($key)]
+      my scenario ${style}::$direction
     } else {
-      my scenario [self class]::[my scenario]
+      set direction [namespace tail [my scenario]]
+      my scenario ${style}::$direction
     }
     next
   }
@@ -310,16 +331,6 @@ namespace eval ::xosoap::visitor {
 	{[$invocationContext exists unmarshalledRequest]}
 	{![$invocationContext exists virtualCall]}
 	{![$invocationContext exists virtualArgs]}
-      } \
-      -instproc SoapBodyRequest {obj} {
-	my instvar serviceMethod serviceArgs
-	my log CALL=[$obj elementName]
-	::xo::cc virtualCall [$obj elementName]
-	#set tmpArgs ""
-	#foreach keyvalue [$obj set methodArgs]  {	 
-	#  append tmpArgs " " "{[lindex $keyvalue 1]}"     
-	#}     
-	::xo::cc virtualArgs [$obj set methodArgs]
       }
   
   ::xotcl::Class InvocationDataVisitor::OutboundResponse \
@@ -330,11 +341,6 @@ namespace eval ::xosoap::visitor {
 	{![$invocationContext exists unmarshalledResponse]}
 	{[$invocationContext exists virtualCall]}
 	{[$invocationContext exists virtualArgs]}
-      } \
-      -instproc SoapBodyRequest {obj} {
-	$obj class ::xosoap::marshaller::SoapBodyResponse
-	$obj elementName [$obj set targetMethod]Response
-	$obj responseValue [my batch]
       }
   
   
@@ -355,16 +361,6 @@ namespace eval ::xosoap::visitor {
 	{![$invocationContext exists marshalledRequest]}
 	{[$invocationContext exists virtualCall]}
 	{[$invocationContext exists virtualArgs]}
-      } \
-      -instproc SoapBodyRequest {obj} {
-    	my instvar invocationContext
-	$obj elementName [$invocationContext virtualCall]
-	$obj set methodArgs [$invocationContext virtualArgs]
-	if {[$invocationContext exists callNamespace]} {
-	  # / / / / / / / / / / / / / / /
-	  # TODO: default namespace support!!!!!
-	  $obj registerNS [list "m" [$invocationContext callNamespace]]
-	} 
       }
 
   ::xotcl::Class InvocationDataVisitor::InboundResponse \
@@ -374,12 +370,8 @@ namespace eval ::xosoap::visitor {
 	{[$invocationContext exists marshalledResponse]}
 	{[$invocationContext exists virtualCall]}
 	{[$invocationContext exists virtualArgs]}
-      } \
-      -instproc SoapBodyResponse {obj} {
-	my instvar invocationContext
-	$invocationContext unmarshalledResponse [$obj responseValue]
       }
-
+  
   namespace export AbstractVisitor SoapMarshallerVisitor \
       InvocationDataVisitor
   

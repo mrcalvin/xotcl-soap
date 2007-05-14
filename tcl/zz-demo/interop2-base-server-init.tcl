@@ -102,36 +102,36 @@ namespace eval ::xosoap::demo {
 
     ::xorb::Abstract echoStruct \
 	-arguments {
-	  inputStruct:soapStruct=::xosoap::demo::exampleStruct
-	} -returns "returnValue:soapStruct=::xosoap::demo::exampleStruct" \
+	  inputStruct:soapStruct(::xosoap::demo::exampleStruct)
+	} -returns "returnValue:soapStruct(::xosoap::demo::exampleStruct)" \
 	-description {
 	  see http://www.whitemesa.com/interop/proposal2.html#echoStruct
 	}
     ::xorb::Abstract echoStringArray \
 	-arguments {
-	  inputStringArray:soapArray=xsString(2)
-	} -returns "returnValue:soapArray=xsString(2)" \
+	  inputStringArray:soapArray(xsString)<2>
+	} -returns "returnValue:soapArray(xsString)<2>" \
 	-description {
 	  see http://www.whitemesa.com/interop/proposal2.html#echoStringArray
 	}
     ::xorb::Abstract echoIntegerArray \
 	-arguments {
-	  inputIntegerArray:soapArray=xsInteger(2)
-	} -returns "returnValue:soapArray=xsInteger(2)" \
+	  inputIntegerArray:soapArray(xsInteger)<2>
+	} -returns "returnValue:soapArray(xsInteger)<2>" \
 	-description {
 	  see http://www.whitemesa.com/interop/proposal2.html#echoIntegerArray
 	}
     ::xorb::Abstract echoFloatArray \
 	-arguments {
-	  inputFloatArray:soapArray=xsFloat(2)
-	} -returns "returnValue:soapArray=xsFloat(2)" \
+	  inputFloatArray:soapArray(xsFloat)<2>
+	} -returns "returnValue:soapArray(xsFloat)<2>" \
 	-description {
 	  see http://www.whitemesa.com/interop/proposal2.html#echoFloatArray
 	}
     ::xorb::Abstract echoStructArray \
 	-arguments {
-	  inputStructArray:soapArray=::xosoap::demo::exampleStruct(2)
-	} -returns "returnValue:soapArray=::xosoap::demo::exampleStruct(2)" \
+	  inputStructArray:soapArray(soapStruct(xosoap::demo::exampleStruct))<2>
+	} -returns "returnValue:soapArray(soapStruct(xosoap::demo::exampleStruct))<2>" \
 	-description {
 	  see http://www.whitemesa.com/interop/proposal2.html#echoStructArray
 	}
@@ -284,28 +284,28 @@ namespace eval ::xosoap::demo {
     ::xorb::datatypes::AnyAttribute varString -anyType ::xosoap::xsd::XsString
     ::xorb::datatypes::AnyAttribute varInt -anyType ::xosoap::xsd::XsInteger
     ::xorb::datatypes::AnyAttribute varFloat -anyType ::xosoap::xsd::XsFloat
-    ::xorb::datatypes::AnyAttribute varStruct -anyType ::xosoap::demo::nestedStruct
+    ::xorb::datatypes::AnyAttribute varStruct -anyType soapStruct(::xosoap::demo::nestedStruct)
   }
 
   Class nestedArrayStruct -slots {
     ::xorb::datatypes::AnyAttribute varString -anyType ::xosoap::xsd::XsString
     ::xorb::datatypes::AnyAttribute varInt -anyType ::xosoap::xsd::XsInteger
     ::xorb::datatypes::AnyAttribute varFloat -anyType ::xosoap::xsd::XsFloat
-    ::xorb::datatypes::AnyAttribute varArray -anyType xsString(3)
+    ::xorb::datatypes::AnyAttribute varArray -anyType soapArray(xsString)<3>
   }
 
   ServiceContract SoapInterop2GroupB -defines {
     ::xorb::Abstract echoNestedStruct \
 	-arguments {
-	  inputStruct:soapStruct=::xosoap::demo::exampleNestingStruct
-	} -returns "returnValue:soapStruct=::xosoap::demo::exampleNestingStruct" \
+	  inputStruct:soapStruct(::xosoap::demo::exampleNestingStruct)
+	} -returns "returnValue:soapStruct(::xosoap::demo::exampleNestingStruct)" \
 	-description {
 	  see http://www.whitemesa.com/interop/proposalB.html#echoNestedStruct
 	}
     ::xorb::Abstract echoNestedArray \
 	-arguments {
-	  inputStruct:soapStruct=::xosoap::demo::nestedArrayStruct
-	} -returns "returnValue:soapStruct=::xosoap::demo::nestedArrayStruct" \
+	  inputStruct:soapStruct(::xosoap::demo::nestedArrayStruct)
+	} -returns "returnValue:soapStruct=(xosoap::demo::nestedArrayStruct)" \
 	-description {
 	  see http://www.whitemesa.com/interop/proposalB.html#echoNestedArray
 	}

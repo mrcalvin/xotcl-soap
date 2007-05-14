@@ -19,6 +19,7 @@ namespace eval ::xosoap {
   namespace import -force ::xorb::transport::*
   namespace import -force ::xorb::protocols::*
   namespace import -force ::xorb::context::*
+  namespace import -force ::xorb::datatypes::*
 
   # # # # # # # # # # # # # #
   # # # # # # # # # # # # # #
@@ -321,9 +322,160 @@ namespace eval ::xosoap {
     {version "1.1"}
   } -superclass RemotingInvocationContext
 
-  namespace export SoapHttpListener Soap DeMarshallingInterceptor \
-      LoggingInterceptor SoapInvocationContext
+  # # # # # # # # # # # # # # #
+  # # # # # # # # # # # # # # #
+  # # 5) Invocation Data and Dispatch
+  # # Styles
+  
+  ::xotcl::Class RpcLiteral -contains {
+    Class SoapMarshallerVisitor \
+	-instproc SoapBodyResponse {obj} {
+	  my instvar xmlDoc parentNode
+	  $obj instvar __node__
+	  
+	  # / / / / / / / / / / / / / / / / / / / / / / / /
+	  # SOAP 1.1 spec only stipulates / recommends that 
+	  # the first child element of SoapBody is suffixed
+	  # with *Response. There is no naming convention,
+	  # apart from framework-specific ones, on elements
+	  # containing the return value(s).
+	  # Currently, we provide for a suffix: *Return
+	  # TODO: adapt to multiple / complex return values 
+	  # (types).
+	  
+	  # / / / / / / / / / / / / / / / /
+	  # introduce anythings and appropriate
+	  # delegation to the concrete marshaller
+	  # provided by the actual any implementation
+	  # TODO: support for multiple anys
+	  
+	  if {[$obj responseValue] eq {}} {
+	    set any [::xosoap::xsd::XsAnything new -isVoid true]
+	  } else {
+	    set any [$obj responseValue]
+	  }
+	  set name [string map {Response Return} [$obj elementName]]
+	  set anyNode [$__node__ appendChild \
+			   [$xmlDoc createElement $name]]
+	  $any marshal $xmlDoc $anyNode $obj
+	}
+    Class InboundRequest \
+	-instproc SoapBodyRequest {obj} {
+	my instvar serviceMethod serviceArgs
+	my log CALL=[$obj elementName]
+	::xo::cc virtualCall [$obj elementName]
+	#set tmpArgs ""
+	#foreach keyvalue [$obj set methodArgs]  {	 
+	#  append tmpArgs " " "{[lindex $keyvalue 1]}"     
+	#}     
+	::xo::cc virtualArgs [$obj set methodArgs]
+      }
+    Class OutboundResponse \
+      -instproc SoapBodyRequest {obj} {
+	$obj class ::xosoap::marshaller::SoapBodyResponse
+	$obj elementName [$obj set targetMethod]Response
+	$obj set style [[self class] info parent]
+	$obj responseValue [my batch]
+      }
+    Class OutboundRequest \
+	-instproc SoapBodyRequest {obj} {
+	  my instvar invocationContext
+	  $obj elementName [$invocationContext virtualCall]
+	  $obj set methodArgs [$invocationContext virtualArgs]
+	  if {[$invocationContext exists callNamespace]} {
+	    # / / / / / / / / / / / / / / /
+	    # TODO: default namespace support!!!!!
+	    $obj registerNS [list "m" [$invocationContext callNamespace]]
+	  } 
+	}
+    Class InboundResponse \
+	-instproc SoapBodyResponse {obj} {
+	  my instvar invocationContext
+	  $invocationContext unmarshalledResponse [$obj responseValue]
+	}
+  }
+  
+  ::xotcl::Class DocumentLiteral -contains {
+    Class SoapMarshallerVisitor \
+	-instproc SoapBodyResponse {obj} {
+	  my instvar xmlDoc parentNode
+	  $obj instvar __node__
+	  if {[$obj responseValue] eq {}} {
+	    set any [::xosoap::xsd::XsAnything new -isVoid true]
+	  } else {
+	    set any [$obj responseValue]
+	  }
+	  $any marshal $xmlDoc $__node__ $obj
+	}
+    Class InboundRequest \
+	-instproc SoapBodyRequest {obj} {
+	  my instvar serviceMethod serviceArgs
+	  my log CALL=[$obj elementName]
+	  # / / / / / / / / / / / / / / / / /
+	  # resolve call from SOAPAction
+	  # header (as necessary in D/L style)
+	  set actionUrl [::xo::cc action]
+	  if {$actionUrl eq {}} {
+	    error "Dispatch impossible."
+	  }
+	  # / / / / / / / / / / / / / / / / /
+	  # provide for Chain of Resp. for
+	  # resolving the call info:
+	  # 1) action header
+	  # 2) element namespace?
+	  # header (as necessary in D/L style)
+	  set url [string trim $actionUrl /]
+	  set urlv [split $url /]
+	  ::xo::cc virtualCall [lindex $urlv end]
+	  #set tmpArgs ""
+	  #foreach keyvalue [$obj set methodArgs]  {	 
+	  #  append tmpArgs " " "{[lindex $keyvalue 1]}"     
+	  #}     
+	  # / / / / / / / / / / /
+	  # repack Request element into
+	  # Anything! 
+	  # TODO: what if multiple
+	  # request elements?
+	  # TODO: Use of 'parameters' as default when only
+	  # one element! Seems to be a hint/ hack from .NET
+	  # Remoting that therefore tries to expose a true
+	  # RPC service as a Document based one!
+	  # TODO: How to handle Document/Literal if multiple
+	  # arguments are passed, not indicating the argument
+	  # flag: In XOTcl terms, how to handle nonposArgs 
+	  # in this matter:
+	  # - translate into posArgs (as hack for legacy 
+	  # service contracts)?
+	  set any [::xorb::datatypes::Anything new -name "parameters"]
+	  foreach a [$obj set methodArgs] {
+	    $any add -parse $a
+	  }
+	  ::xo::cc virtualArgs $any
+	}
+	  
+    Class OutboundResponse \
+	-instproc SoapBodyRequest {obj} {
+	  $obj class ::xosoap::marshaller::SoapBodyResponse
+	  set any [my batch] 
+	  if {[$any istype ::xosoap::xsd::XsCompound]} {
+	    set n [string tolower \
+		       [namespace tail [$any set template]] 0 0]
+	    $obj elementName $n
+	    $obj responseValue [my batch]
+	    $obj set style [[self class] info parent]
+	    $obj unregisterNS "m"
+	  }
+	  #my log RESPONSEANY=[$any serialize]
+	  #$obj elementName []
+	  #$obj elementName [$obj set targetMethod]Response
+	}
+    Class OutboundRequest
+    Class InboundResponse
+  }
+  
 
+  namespace export SoapHttpListener Soap DeMarshallingInterceptor \
+      LoggingInterceptor SoapInvocationContext RpcLiteral DocumentLiteral
 }
 
 

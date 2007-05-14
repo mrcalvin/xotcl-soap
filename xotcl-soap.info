@@ -22,9 +22,9 @@
             <callback type="before-unmount"  proc="::xosoap::before-unmount"/>
         </callbacks>
         <parameters>
+            <parameter datatype="string"  min_n_values="1"  max_n_values="1"  name="default_invocation_style"  default="::xosoap::RpcLiteral" description="Currently, xotcl-soap provides two invocation styles that are partyl related to the WSDL specification and the invocation models depicted by this specification. You might choose between RPC/Literal (::xosoap::RpcLiteral) or Document/Literal (::xosoap::DocumentLiteral), respectively." section_name="main"/>
             <parameter datatype="string"  min_n_values="1"  max_n_values="1"  name="interceptor_config"  default="standard" description="xosoap allows for creating pre-invocation interceptors for request and post-invocation interceptors for responses. Currently, xosoap comes with two configuration of interceptors chains, i.e. &quot;standard&quot; and &quot;extended&quot;. "/>
             <parameter datatype="string"  min_n_values="1"  max_n_values="1"  name="service_url"  default="services" description="The parameter value specifies the url segment that will prefix url endpoints of services, i.e. http://#base_url#/#package_key#/#service_url#/#service#. It defaults to &quot;services&quot;."/>
-            <parameter datatype="number"  min_n_values="1"  max_n_values="1"  name="use_tclcurl"  default="0" description="The xotcl-soap protocol-plugin for xotcl-request-broker may use TclCurl, provided that it is available as AOLServer module, as transport component for http and https (as an alternative for xotcl-core's comm environment)." section_name="transport::client"/>
         </parameters>
 
     </version>
