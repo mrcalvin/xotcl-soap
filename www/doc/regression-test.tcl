@@ -299,96 +299,96 @@ test section "SOAP 1.1 marshalling"
 
 set v [::xosoap::visitor::SoapMarshallerVisitor new] 
 
-# / / / / / / / / / / / / / / / / /
-# default request object
+# # / / / / / / / / / / / / / / / / /
+# # default request object
 
-?+ { 
-  set req [SoapEnvelope new -nest {
-    ::xosoap::marshaller::SoapBodyRequest new \
-	-elementName RemoteMethod \
-	-targetMethod RemoteMethod
-  }]
-} "Creating a default SOAP 1.1 request object"
-
-
-
-# / / / / / / / / / / / / / / / / /
-# marshalling default request object
-
-$v releaseOn $req
-set xml [[$v xmlDoc] asXML]
-set verify {<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
-    <SOAP-ENV:Body>
-        <m:RemoteMethod xmlns:m="Some-URI"/>
-    </SOAP-ENV:Body>
-</SOAP-ENV:Envelope>
-}
-
-? {expr {$xml eq $verify}} 1 "Marshalling default SOAP 1.1 request (outbound)"
-
-# / / / / / / / / / / / / / / / / /
-# default response
-
-?+ {
-  set respV [InvocationDataVisitor new -volatile \
-		-scenario OutboundResponse -batch "OUTPUT"]
-} "Creating a default SOAP 1.1 response object"
-$respV releaseOn $req
-$v releaseOn $req
-set xml [[$v xmlDoc] asXML]
-set verified {<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
-    <SOAP-ENV:Body>
-        <m:RemoteMethodResponse xmlns:m="Some-URI">
-            <RemoteMethodReturn>OUTPUT</RemoteMethodReturn>
-        </m:RemoteMethodResponse>
-    </SOAP-ENV:Body>
-</SOAP-ENV:Envelope>
-}
-
-? {expr {$xml eq $verified}} 1 \
-    "Marshalling default SOAP 1.1 response (outbound)"
-
-#ns_write <pre>|[ad_quotehtml $xml]|</pre>
-#ns_write <pre>|[ad_quotehtml $verified]|</pre>
-# / / / / / / / / / / / / / / / / / / / / /
-# creating a 'faulty' fault
-# malformed call to SoapElement->registerNS
-
-?-- { set fault [SoapEnvelope new -nest {
-		 ::xosoap::marshaller::SoapFault new \
-		     -faultcode "xosoap:Server.Test" \
-		     -faultstring "This would be the class' doc." \
-		     -detail "This would be the errorInfo."} \
-		    -registerNS [list a]] } \
-    ::xosoap::exceptions::Server::MalformedNamespaceDeclaration \
-    "Creating a SOAP envelope containing a 'faulty' SoapFault"
-
-
-# / / / / / / / / / / / / / / / / / / / / /
-# creating a valid fault
-
-?+ { set fault [SoapEnvelope new -nest {
-		 ::xosoap::marshaller::SoapFault new \
-		     -faultcode "xosoap:Server.Test" \
-		     -faultstring "This would be the class' doc." \
-		     -detail "This would be the errorInfo."}] } \
-    "Creating a SOAP envelope containing a correct SoapFault"
+# ?+ { 
+#   set req [SoapEnvelope new -nest {
+#     ::xosoap::marshaller::SoapBodyRequest new \
+# 	-elementName RemoteMethod \
+# 	-targetMethod RemoteMethod
+#   }]
+# } "Creating a default SOAP 1.1 request object"
 
 
 
-$v releaseOn $fault
-set xml [[$v xmlDoc] asXML]
-set verified {<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
-    <SOAP-ENV:Body>
-        <SOAP-ENV:Fault xmlns:xosoap="urn:xotcl-soap">
-            <faultcode>xosoap:Server.Test</faultcode>
-            <faultstring>This would be the class' doc.</faultstring>
-            <detail>This would be the errorInfo.</detail>
-        </SOAP-ENV:Fault>
-    </SOAP-ENV:Body>
-</SOAP-ENV:Envelope>
-}
-? {expr {$xml eq $verified}} 1 "Marshalling default SOAP 1.1 FAULT (outbound)"
+# # / / / / / / / / / / / / / / / / /
+# # marshalling default request object
+
+# $v releaseOn $req
+# set xml [[$v xmlDoc] asXML]
+# set verify {<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
+#     <SOAP-ENV:Body>
+#         <m:RemoteMethod xmlns:m="Some-URI"/>
+#     </SOAP-ENV:Body>
+# </SOAP-ENV:Envelope>
+# }
+
+# ? {expr {$xml eq $verify}} 1 "Marshalling default SOAP 1.1 request (outbound)"
+
+# # / / / / / / / / / / / / / / / / /
+# # default response
+
+# ?+ {
+#   set respV [InvocationDataVisitor new -volatile \
+# 		-scenario OutboundResponse -batch "OUTPUT"]
+# } "Creating a default SOAP 1.1 response object"
+# $respV releaseOn $req
+# $v releaseOn $req
+# set xml [[$v xmlDoc] asXML]
+# set verified {<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
+#     <SOAP-ENV:Body>
+#         <m:RemoteMethodResponse xmlns:m="Some-URI">
+#             <RemoteMethodReturn>OUTPUT</RemoteMethodReturn>
+#         </m:RemoteMethodResponse>
+#     </SOAP-ENV:Body>
+# </SOAP-ENV:Envelope>
+# }
+
+# ? {expr {$xml eq $verified}} 1 \
+#     "Marshalling default SOAP 1.1 response (outbound)"
+
+# #ns_write <pre>|[ad_quotehtml $xml]|</pre>
+# #ns_write <pre>|[ad_quotehtml $verified]|</pre>
+# # / / / / / / / / / / / / / / / / / / / / /
+# # creating a 'faulty' fault
+# # malformed call to SoapElement->registerNS
+
+# ?-- { set fault [SoapEnvelope new -nest {
+# 		 ::xosoap::marshaller::SoapFault new \
+# 		     -faultcode "xosoap:Server.Test" \
+# 		     -faultstring "This would be the class' doc." \
+# 		     -detail "This would be the errorInfo."} \
+# 		    -registerNS [list a]] } \
+#     ::xosoap::exceptions::Server::MalformedNamespaceDeclaration \
+#     "Creating a SOAP envelope containing a 'faulty' SoapFault"
+
+
+# # / / / / / / / / / / / / / / / / / / / / /
+# # creating a valid fault
+
+# ?+ { set fault [SoapEnvelope new -nest {
+# 		 ::xosoap::marshaller::SoapFault new \
+# 		     -faultcode "xosoap:Server.Test" \
+# 		     -faultstring "This would be the class' doc." \
+# 		     -detail "This would be the errorInfo."}] } \
+#     "Creating a SOAP envelope containing a correct SoapFault"
+
+
+
+# $v releaseOn $fault
+# set xml [[$v xmlDoc] asXML]
+# set verified {<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
+#     <SOAP-ENV:Body>
+#         <SOAP-ENV:Fault xmlns:xosoap="urn:xotcl-soap">
+#             <faultcode>xosoap:Server.Test</faultcode>
+#             <faultstring>This would be the class' doc.</faultstring>
+#             <detail>This would be the errorInfo.</detail>
+#         </SOAP-ENV:Fault>
+#     </SOAP-ENV:Body>
+# </SOAP-ENV:Envelope>
+# }
+# ? {expr {$xml eq $verified}} 1 "Marshalling default SOAP 1.1 FAULT (outbound)"
 
 #ns_write <pre>|[ad_quotehtml $xml]|</pre>
 #ns_write <pre>|[ad_quotehtml $verified]|</pre>
@@ -430,11 +430,33 @@ $any set __value__ $x
 set upper +4294967296
 $any set __value__ $upper
 
-? {$any validate} 0 "xsd:integer validation (true upper-bound negative: '$upper')"
+? {$any validate} 1 "xsd:integer validation (Tcl upper-bound positive: '$upper')"
 set lower -4294967296
 $any set __value__ $lower
-? {$any validate} 0 "xsd:integer validation (true lower-bound negative: '$lower')"
+? {$any validate} 1 "xsd:integer validation (Tcl lower-bound positive: '$lower')"
 
+set lower -4294967296.1
+$any set __value__ $lower
+? {$any validate} 0 "xsd:integer validation (decimal wannabe negative: '$lower')"
+
+set any [XsLong new -set __value__ +9223372036854775808] 
+? {$any validate} 0 "xsd:long validation (upper bound negative: '[$any set __value__]')"
+
+$any set __value__ -9223372036854775808
+? {$any validate} 0 "xsd:long validation (lower bound negative: '[$any set __value__]')"
+
+$any set __value__ -9223372036854775806
+? {$any validate} 1 "xsd:long validation (positive '[$any set __value__]')"
+
+
+set any [XsInt new -set __value__ +2147483648]
+? {$any validate} 0 "xsd:int validation (upper bound negative: '[$any set __value__]')"
+
+$any set __value__ -2147483648
+? {$any validate} 0 "xsd:int validation (lower bound negative: '[$any set __value__]')"
+
+$any set __value__ +2147483
+? {$any validate} 1 "xsd:int validation (positive '[$any set __value__]')"
 # # # # # # # # # # # # #
 # xsd:float
 set xs [list 1.1234 {xsd:float validation ('$x')} \

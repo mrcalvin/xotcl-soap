@@ -144,8 +144,38 @@ namespace eval ::xosoap::xsd {
       -instproc validate args {
 	my instvar __value__
 	set isDecimal [next];# Decimal->validate
-	return [expr {$isDecimal && [string is integer $__value__]}]
-      }  
+	# / / / / / / / / / / / / / / /
+	# We do not check for compatibility to
+	# Tcl Integers that are limited to 32-bit
+	# integers (and the respective value space:
+	# +/-4294967295). Integer must be valid
+	# decimals, without fractions and trailing
+	# comma ...
+	set isInteger [regexp {^[+-]?\d+$} $__value__]
+	return [expr {$isDecimal && $isInteger}]
+      }
+  MetaAny XsLong -superclass XsInteger \
+      -instproc validate args {
+	# Longs are the maximum capacity of Tcl
+	# to represent (by expr wrapping)
+	# catch takes care of all integers beyond or
+	# below that value space
+	my instvar __value__
+	set isInteger [next];# XsInteger->validate
+	if {[catch {
+	  set r [expr {$isInteger && 9223372036854775807 >= abs($__value__)}]
+	}]} { 
+	  return 0 
+	} else {
+	  return $r
+	}
+      }
+  MetaAny XsInt -superclass XsLong \
+      -instproc validate args {
+	my instvar __value__
+	set isLong [next];# XsLong->validate
+	return [expr {$isLong && 2147483647 >= abs($__value__)}]
+      }
   MetaAny XsDouble -superclass XsDecimal \
       -instproc validate args {
 	# see http://www.w3.org/TR/xmlschema-2/#double
@@ -634,7 +664,7 @@ namespace eval ::xosoap::xsd {
   }
   namespace export XsString XsInteger XsDouble\
       XsFloat XsDecimal XsDateTime XsDate XsTime XsBase64Binary XsHexBinary\
-      XsBoolean SoapArray SoapStruct ArrayBuilder
+      XsBoolean SoapArray SoapStruct ArrayBuilder XsLong XsInt
 
   # # # # # # # # # # # # # # #
   # # # # # # # # # # # # # # #
