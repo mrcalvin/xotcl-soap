@@ -29,27 +29,27 @@ set payload(createLearningActivity) {<?xml version="1.0" encoding="UTF-8"?>
 }
 
 set payload(createLearningActivity) {<?xml version="1.0" encoding="UTF-8"?>
-<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:tns="http://abt-wi-016.wu-wien.ac.at:8000/xosoap/services/PMSServiceImpl/" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xsd1="http://oacs-dotlrn-conf2007.wu-wien.ac.at:8000/xosoap/services/PMSServiceImpl/">
    <soap:Body>
-      <tns:CreateLearningActivityRequest>
-         <description>cxscxc</description>
+      <xsd1:CreateLearningActivityRequest>
+         <description>k</description>
          <location>
-            <email>dsd</email>
-            <state>dsd</state>
-            <city>sd</city>
-            <phone>sd</phone>
-            <street>sd</street>
-            <zip>sdsd</zip>
-            <url>sdsd</url>
+            <email>lk</email>
+            <state>klk</state>
+            <city>lk</city>
+            <phone>lk</phone>
+            <street>lk</street>
+            <zip>klk</zip>
+            <url>klk</url>
          </location>
          <schedule>
-            <begin>2007-05-15T15:27:12Z</begin>
-            <end>2007-05-18T15:27:12Z</end>
+            <begin>2007-05-16T02:04:53Z</begin>
+            <end>2007-05-17T02:04:53Z</end>
          </schedule>
-         <learningActivityId>sdsd</learningActivityId>
+         <learningActivityId>lk</learningActivityId>
          <duration>12:00:00</duration>
-         <learningActivityTitle>sdsd</learningActivityTitle>
-      </tns:CreateLearningActivityRequest>
+         <learningActivityTitle>klk</learningActivityTitle>
+      </xsd1:CreateLearningActivityRequest>
    </soap:Body>
 </soap:Envelope>}
 
@@ -111,7 +111,7 @@ set payload(removeParticipant) {<?xml version="1.0" encoding="UTF-8"?>
 
 ns_write <html><title></title><body>
 foreach call [array names payload] {
-  set url http://localhost:8000/xosoap/services/PMSServiceImpl
+  set url http://openacs-dotlrn.wu-wien.ac.at:8000/xosoap/services/PMSServiceImpl
   set r [::xo::HttpRequest new \
 	     -content_type "text/xml" \
 	     -url $url \

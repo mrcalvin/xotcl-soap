@@ -50,7 +50,9 @@ namespace eval ::xosoap {
     set idx [ns_set find $headerSet SOAPAction]
     if {[::xo::cc method] eq "POST" && $idx != -1} {
       # keep in context object for later use!
-      ::xo::cc action [ns_set value $headerSet $idx]
+      # FIXED: apply trimming to header strings for
+      # quotation marks!
+      ::xo::cc action [string trim [ns_set value $headerSet $idx] \"]
       return filter_ok;
     } elseif {[::xo::cc method] eq "GET"} {
       my log context=[::xo::cc serialize]
