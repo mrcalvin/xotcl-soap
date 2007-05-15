@@ -21,13 +21,11 @@ namespace eval ::xosoap {
     Attribute contract
     Attribute xml
     Attribute style
-  } -set ns(tns) {$url/} \
-      -set ns(soap) "http://schemas.xmlsoap.org/wsdl/soap/" \
+  } -set ns(soap) "http://schemas.xmlsoap.org/wsdl/soap/" \
       -set ns(soap-enc) "http://schemas.xmlsoap.org/soap/encoding/" \
       -set ns(xsd) "http://www.w3.org/2001/XMLSchema" \
       -set ns(wsdl) "http://schemas.xmlsoap.org/wsdl/" \
       -set ns(xsd1) {$url/}
-  
   Wsdl1.1Builder instproc init {} {
     my instvar contract xml url doc style
     if {[$contract istype ServiceContract]} {
@@ -45,7 +43,7 @@ namespace eval ::xosoap {
       
       # add attrs to definitions el (doc, name attrs)
       $current setAttribute "name" [$contract name]
-      $current setAttribute "targetNamespace" [subst $ns(tns)]
+      $current setAttribute "targetNamespace" [subst $ns(xsd1)]
 
       # # # # # # # # # # # # # # # # # #
       # # 1) stage
@@ -62,7 +60,7 @@ namespace eval ::xosoap {
       $current appendFromScript {
 	wsdl:portType [list name [$contract name]PortType] {}
 	wsdl:binding [list name [$contract name]SoapBinding \
-			  type tns:[$contract name]PortType] {
+			  type xsd1:[$contract name]PortType] {
 			    soap:binding {
 			      transport http://schemas.xmlsoap.org/soap/http
 			    } {}
@@ -70,7 +68,7 @@ namespace eval ::xosoap {
 	wsdl:service [list name [$contract name]] {
 	  wsdl:documentation [list t [$contract description]]
 	  wsdl:port [list name [$contract name]Port \
-			 binding tns:[$contract name]SoapBinding] {
+			 binding xsd1:[$contract name]SoapBinding] {
 			   soap:address [list location $url] {}
 			   
 			 }
@@ -202,8 +200,8 @@ namespace eval ::xosoap {
       
       $portType appendFromScript {
 	wsdl:operation [list "name" [$obj name]] {
-	  wsdl:input [list message "tns:[$obj name]Input"] {}
-	  wsdl:output [list message "tns:[$obj name]Output"] {}
+	  wsdl:input [list message "xsd1:[$obj name]Input"] {}
+	  wsdl:output [list message "xsd1:[$obj name]Output"] {}
 	}
       }
       
@@ -322,8 +320,8 @@ namespace eval ::xosoap {
       
       $portType appendFromScript {
 	wsdl:operation [list "name" [$obj name]] {
-	  wsdl:input [list message "tns:[$obj name]Input"] {}
-	  wsdl:output [list message "tns:[$obj name]Output"] {}
+	  wsdl:input [list message "xsd1:[$obj name]Input"] {}
+	  wsdl:output [list message "xsd1:[$obj name]Output"] {}
 	}
       }
       
@@ -356,7 +354,10 @@ namespace eval ::xosoap {
       # - per-implementation
       # - package
       # ...
-      set style ::xosoap::DocumentLiteral
+      set style [parameter::get \
+		     -parameter "default_invocation_style" \
+		     -package_id [::xo::cc set package_id]]
+      #set style ::xosoap::DocumentLiteral
       set b [Wsdl1.1Builder new \
 		 -contract $obj \
 		 -style $style \

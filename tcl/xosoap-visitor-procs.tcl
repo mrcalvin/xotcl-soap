@@ -274,8 +274,10 @@ namespace eval ::xosoap::visitor {
     # / / / / / / / / / / / / / /
     # solve parameter retrieval problem!
     # set style ::xosoap::RpcLiteral
-    set style ::xosoap::DocumentLiteral
-    #set style [parameter::get -parameter "default_invocation_style"]
+    #set style ::xosoap::DocumentLiteral
+    set style [parameter::get \
+		   -parameter "default_invocation_style" \
+		   -package_id [::xo::cc set package_id]]
     my log style=$style
     if {![my exists scenario] || [my scenario] eq {}} {
       my instvar invocationContext

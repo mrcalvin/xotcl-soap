@@ -458,8 +458,7 @@ namespace eval ::xosoap {
 	  $obj class ::xosoap::marshaller::SoapBodyResponse
 	  set any [my batch] 
 	  if {[$any istype ::xosoap::xsd::XsCompound]} {
-	    set n [string tolower \
-		       [namespace tail [$any set template]] 0 0]
+	    set n [namespace tail [$any set template]]
 	    $obj elementName $n
 	    $obj responseValue [my batch]
 	    $obj set style [[self class] info parent]
