@@ -221,7 +221,7 @@ namespace eval ::prolix::pms {
       -messageId -1 \
       -globalProcessId -1 \
       -userId -1 \
-      -timestamp 12:00:00 \
+      -timestamp 2007-05-17T17:31:10Z \
       -messageType dummy \
       -sender Alice \
       -receiver Bob
