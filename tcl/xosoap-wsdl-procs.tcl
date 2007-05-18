@@ -105,7 +105,7 @@ namespace eval ::xosoap {
 	
 	$current insertBeforeFromScript [subst {
 	    wsdl:types {} {
-	      xsd:schema {targetNamespace $ns(types)} {
+	      xsd:schema {targetNamespace [subst $ns(types)]} {
 		$tlist
 	      }
 	    }

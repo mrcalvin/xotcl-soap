@@ -426,7 +426,7 @@ namespace eval ::xosoap::xsd {
 	} else {
 	 # -1-
 	  set t [subst {
-	    xsd:element {name $castName type types:${castName}} {
+	    xsd:element {name $castName} {
 	      xsd:complexType {} {
 		xsd:all {} {
 		  $members
