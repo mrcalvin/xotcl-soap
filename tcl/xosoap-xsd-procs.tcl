@@ -348,7 +348,7 @@ namespace eval ::xosoap::xsd {
   MetaAny SoapStruct -superclass XsCompound
   SoapStruct instproc expand=xsType {reader} {
     $reader instvar cast
-    return xsd1:[namespace tail [$cast]]
+    return types:[namespace tail [$cast]]
   }
   RpcLiteral contains {
     Class SoapStruct -instproc expand=xsDescription {reader} {
@@ -403,17 +403,43 @@ namespace eval ::xosoap::xsd {
       # added in document/literal style to types section!
       my log NAME($castName)=MEMBERS=$members
       if {![info exists types($castName)]} {
-	$observer set types($castName) [subst {
-	  xsd:element {name $castName type xsd1:${castName}Type} {}
-	  xsd:complexType {name ${castName}Type} {
-	    xsd:all {} {
-	      $members
+	# -1- if element referred from message part,
+	# serialise into nested/ embedded complex type
+	# -2- if referred from type attribute within
+	# schema section, make it a new global type
+	# declaration
+	# This is semantically more correct, in the sense
+	# of Document/Literal. It also provides for
+	# compatibility to frameworks, such as Axis,
+	# that can hardly deal with multiple similarily
+	# named (only difference through minors/majors etc.), 
+	# reified types ...
+	if {[$reader inCompound]} {
+	  # -2-
+	  set t [subst {
+	    xsd:complexType {name ${castName}} {
+	      xsd:all {} {
+		$members
+	      }
 	    }
-	  }
-	}]
+	  }]
+	} else {
+	 # -1-
+	  set t [subst {
+	    xsd:element {name $castName type types:${castName}} {
+	      xsd:complexType {} {
+		xsd:all {} {
+		  $members
+		}
+	      }
+	    }
+	  }]
+	}
+	$observer set types($castName) $t
       }
+      # return type reference to the global type definition!
       if {[$reader inCompound]} {
-	return "xsd:element {name $name type xsd1:${castName}Type} {}"
+	return "xsd:element {name $name type types:${castName}} {}"
       }
     }
   }
@@ -475,9 +501,9 @@ namespace eval ::xosoap::xsd {
     $reader instvar suffix cast
     set ar [::xorb::datatypes::AnyReader new -typecode $cast]
     #set idx [string map {"<" "[" ">" "]"} $suffix]
-    set t [string map {xsd1: "" xsd: ""} [$ar get xsType]]
+    set t [string map {types: "" xsd: ""} [$ar get xsType]]
     set t [string toupper $t 0 0]
-    return xsd1:ArrayOf$t
+    return types:ArrayOf$t
     #my instvar name
     #return tns:${name}Type
     #     $reader instvar cast suffix
@@ -508,7 +534,7 @@ namespace eval ::xosoap::xsd {
       # xsd:element {name $name type ${name}Type} {} is
       # added in document/literal style to types section!
       $observer instvar types
-      set t [string map {xsd1: "" xsd: ""} [$ar get xsType]]
+      set t [string map {types: "" xsd: ""} [$ar get xsType]]
       set t [string toupper $t 0 0]
       if {![info exists types(ArrayOf$t)]} {
 	$observer set types(ArrayOf$t) [subst {
@@ -547,11 +573,11 @@ namespace eval ::xosoap::xsd {
       # xsd:element {name $name type ${name}Type} {} is
       # added in document/literal style to types section!
       $observer instvar types
-      set t [string map {xsd1: "" xsd: ""} [$ar get xsType]]
+      set t [string map {types: "" xsd: ""} [$ar get xsType]]
       set t [string toupper $t 0 0]
       if {![info exists types(ArrayOf$t)]} {
 	$observer set types(ArrayOf$t) [subst {
-	  xsd:element {name $name type xsd1:ArrayOf${t}} {}
+	  xsd:element {name $name type types:ArrayOf${t}} {}
 	  xsd:complexType {name ArrayOf${t}} {
 	    xsd:sequence {} {
 	      xsd:element {
