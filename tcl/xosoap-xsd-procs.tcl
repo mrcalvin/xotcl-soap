@@ -23,13 +23,13 @@ namespace eval ::xosoap::xsd {
 
   ::xotcl::Class XsAnything -superclass Anything
   XsAnything instproc parse {node} {
-    my instvar __value__ isRoot isVoid
-    #my log n=$node,type=[$node nodeType],xml=[$node asXML]
+    my instvar __value__ isRoot__ isVoid__
+    my log n=$node,type=[$node nodeType],xml=[$node asXML]
     set checkNode [$node firstChild]
     #set checkNode [expr {$initial?$node:[$node firstChild]}]
-    if {$isRoot && $checkNode eq {}} {
+    if {$isRoot__ && $checkNode eq {}} {
       # XsVoid
-      set isVoid true
+      set isVoid__ true
     } elseif {[$checkNode nodeType] eq "TEXT_NODE"} {
       set __value__ [$node text]
     } elseif {[$checkNode nodeType] eq "ELEMENT_NODE"} {
@@ -38,9 +38,9 @@ namespace eval ::xosoap::xsd {
       # 	1. return-element encoding flaviours: as leaf or 
       #	intermediary composite type
       #my log isRoot=$isRoot
-      if {$isRoot && [[$checkNode firstChild] nodeType] eq "TEXT_NODE"} {
+      if {$isRoot__ && [[$checkNode firstChild] nodeType] eq "TEXT_NODE"} {
 	set __value__ [$checkNode text]
-	set isRoot false
+	set isRoot__ false
       } else {
 	puts children=[$node childNodes]
 	foreach c [$node childNodes] {
@@ -49,7 +49,7 @@ namespace eval ::xosoap::xsd {
 	  #incr i
 	  set any [[self class] new \
 		       -childof [self] \
-		       -name [$c nodeName] \
+		       -name__ [$c nodeName] \
 		       -parse $c]
 	  my add -parse $any
 	}
@@ -66,7 +66,7 @@ namespace eval ::xosoap::xsd {
 
   DocumentLiteral contains {
     Class XsSimple -instproc expand=xsDescription {reader} {
-      my instvar name
+      my instvar name__
       #      $reader instvar observer
       # / / / / / / / / / / / /
       # Register element in general?
@@ -83,7 +83,7 @@ namespace eval ::xosoap::xsd {
       # / / / / / / / / / / / /
       # Return element entry into compound?
       if {[$reader inCompound]} {
-	return "xsd:element {name $name type [my expand=xsType $reader]} {}"
+	return "xsd:element {name $name__ type [my expand=xsType $reader]} {}"
       }
     }
   }
@@ -92,9 +92,9 @@ namespace eval ::xosoap::xsd {
     # / / / / / / / / / / / / / / /
     # currently provides for XS-like
     # streaming/ annotation of anys
-    my instvar isVoid
-    if {!$isVoid && [my isPrimitive]} {
-      my instvar __value__ name
+    my instvar isVoid__
+    if {!$isVoid__ && [my isPrimitive]} {
+      my instvar __value__ name__
       # / / / / / / / / / / / / / / / / /
       # TODO: get xsd key from actual objects
       # abstract from the xotcl-soap case here
@@ -325,13 +325,13 @@ namespace eval ::xosoap::xsd {
 
   
   XsCompound instproc marshal {document node soapElement} {
-    my instvar isVoid
-    if {!$isVoid} {
+    my instvar isVoid__
+    if {!$isVoid__} {
       # complex type
       my instvar __ordinary_map__
       foreach c $__ordinary_map__ {
 	set cNode [$node appendChild \
-		       [$document createElement [$c name]]]
+		       [$document createElement [$c name__]]]
 	$c marshal $document $cNode $soapElement
       }
     }
@@ -353,7 +353,7 @@ namespace eval ::xosoap::xsd {
   RpcLiteral contains {
     Class SoapStruct -instproc expand=xsDescription {reader} {
       $reader instvar cast observer name
-      set name [namespace tail [$cast]]
+      set lname [namespace tail [$cast]]
       set members {}
       foreach s [$cast info slots] {
 	set n [namespace tail $s]
@@ -368,9 +368,9 @@ namespace eval ::xosoap::xsd {
       $observer instvar types
       # xsd:element {name $name type ${name}Type} {} is
       # added in document/literal style to types section!
-      if {![info exists types($name)]} {
-	$observer set types($name) [subst {
-	  xsd:complexType {name $name} {
+      if {![info exists types($lname)]} {
+	$observer set types($lname) [subst {
+	  xsd:complexType {name $lname} {
 	    xsd:all {} {
 	      $members
 	    }
@@ -378,7 +378,7 @@ namespace eval ::xosoap::xsd {
 	}]
       }
       if {[$reader inCompound]} {
-	return "xsd:element {name $name type $name} {}"
+	return "xsd:element {name $lname type $lname} {}"
       }
     }
   }
@@ -520,7 +520,7 @@ namespace eval ::xosoap::xsd {
       # see Section 5.2.3, e.g.
       # http://www.ws-i.org/Profiles/BasicProfile-1.0-2004-04-16.html#refinement16556272
       $reader instvar cast suffix observer
-      my instvar name tagName
+      my instvar name__ tagName
       #set idx [string map {"<" "[" ">" "]"} $suffix]
       #set idx [string map {"<" "" ">" " "} $suffix]
       #set idx [lindex $idx end]
@@ -559,7 +559,7 @@ namespace eval ::xosoap::xsd {
       # see Section 5.2.3, e.g.
       # http://www.ws-i.org/Profiles/BasicProfile-1.0-2004-04-16.html#refinement16556272
       $reader instvar cast suffix observer
-      my instvar name tagName
+      my instvar name__ tagName
       #set idx [string map {"<" "[" ">" "]"} $suffix]
       #set idx [string map {"<" "" ">" " "} $suffix]
       #set idx [lindex $idx end]

@@ -631,7 +631,7 @@ As specified for the RPC mode of operation, a single child of type
 
     # / / / / / / / / / / / /
     # introducing anythings!
-    set any [::xosoap::xsd::XsAnything new -isRoot true -parse $responseNode]
+    set any [::xosoap::xsd::XsAnything new -isRoot__ true -parse $responseNode]
     my log ANYTHING=[$any serialize]
     set responseValue $any
   }
@@ -677,8 +677,8 @@ As specified for the RPC mode of operation, a single child of type
       # Introducing 'anythings' as generic
       # type containers/ handlers
       set any [::xosoap::xsd::XsAnything new \
-		   -parse $argNode \
-		   -name [$argNode nodeName]]
+		   -name__ [$argNode nodeName] \
+		   -parse $argNode]
       lappend methodArgs $any
     }
   } 

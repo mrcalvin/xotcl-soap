@@ -230,7 +230,9 @@ namespace eval ::xosoap {
       # rethrow
       error $e
     } catch {error e} {
-      error [::xosoap::exceptions::Server::DemarshallingException new $e]
+      global errorInfo
+      error [::xosoap::exceptions::Server::DemarshallingException new \
+		 $errorInfo]
     }
     
     # / / / / / / / / / / / / / / / / / / / / /
@@ -352,7 +354,7 @@ namespace eval ::xosoap {
 	  # TODO: support for multiple anys
 	  
 	  if {[$obj responseValue] eq {}} {
-	    set any [::xosoap::xsd::XsAnything new -isVoid true]
+	    set any [::xosoap::xsd::XsAnything new -isVoid__ true]
 	  } else {
 	    set any [$obj responseValue]
 	  }
@@ -403,7 +405,7 @@ namespace eval ::xosoap {
 	  my instvar xmlDoc parentNode
 	  $obj instvar __node__
 	  if {[$obj responseValue] eq {}} {
-	    set any [::xosoap::xsd::XsAnything new -isVoid true]
+	    set any [::xosoap::xsd::XsAnything new -isVoid__ true]
 	  } else {
 	    set any [$obj responseValue]
 	  }
@@ -448,7 +450,7 @@ namespace eval ::xosoap {
 	  # in this matter:
 	  # - translate into posArgs (as hack for legacy 
 	  # service contracts)?
-	  set any [::xorb::datatypes::Anything new -name "parameters"]
+	  set any [::xorb::datatypes::Anything new -name__ "parameters"]
 	  foreach a [$obj set methodArgs] {
 	    $any add -parse $a
 	  }
