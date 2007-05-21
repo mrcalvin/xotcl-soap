@@ -68,27 +68,25 @@ namespace eval ::xosoap::xsd {
     return xsd:$xstype
   }
 
-  DocumentLiteral contains {
-    Class XsSimple -instproc expand=xsDescription {reader} {
-      my instvar name__
-      #      $reader instvar observer
-      # / / / / / / / / / / / /
-      # Register element in general?
-#      if {[info exists observer]} {
-#	$observer instvar types
-	# xsd:element {name $name type ${name}Type} {} is
-	# added in document/literal style to types section!
-#	if {![info exists types($name)]} {
-#	  $observer set types($name) [subst {
-#	    xsd:element {name $name type [my expand=xsType $reader]} {}
-#	  }]
-#	}
-#     }
-      # / / / / / / / / / / / /
-      # Return element entry into compound?
-      if {[$reader inCompound]} {
-	return "xsd:element {name $name__ type [my expand=xsType $reader]} {}"
-      }
+  XsSimple instproc expand=xsDescription {reader} {
+    my instvar name__
+    #      $reader instvar observer
+    # / / / / / / / / / / / /
+    # Register element in general?
+    #      if {[info exists observer]} {
+    #	$observer instvar types
+    # xsd:element {name $name type ${name}Type} {} is
+    # added in document/literal style to types section!
+    #	if {![info exists types($name)]} {
+    #	  $observer set types($name) [subst {
+    #	    xsd:element {name $name type [my expand=xsType $reader]} {}
+    #	  }]
+    #	}
+    #     }
+    # / / / / / / / / / / / /
+    # Return element entry into compound?
+    if {[$reader inCompound]} {
+      return "xsd:element {name $name__ type [my expand=xsType $reader]} {}"
     }
   }
   
@@ -360,6 +358,7 @@ namespace eval ::xosoap::xsd {
       set lname [namespace tail [$cast]]
       set members {}
       foreach s [$cast info slots] {
+	my log member=$s,anyType=[$s anyType]
 	set n [namespace tail $s]
 	set ar [::xorb::datatypes::AnyReader new \
 		    -name $n \
@@ -501,21 +500,6 @@ namespace eval ::xosoap::xsd {
   MetaAny SoapArray -superclass XsCompound -slots {
     Attribute tagName -default "member"
   }
-  SoapArray instproc expand=xsType {reader} {
-    $reader instvar suffix cast
-    set ar [::xorb::datatypes::AnyReader new -typecode $cast]
-    #set idx [string map {"<" "[" ">" "]"} $suffix]
-    set t [string map {types: "" xsd: ""} [$ar get xsType]]
-    set t [string toupper $t 0 0]
-    return types:ArrayOf$t
-    #my instvar name
-    #return tns:${name}Type
-    #     $reader instvar cast suffix
-    #     set idx [string map {"<" "[" ">" "]"} $suffix]
-    #     set ar [AnyReader new -typecode $cast]
-    #     return [$ar get xsType]$idx
-  }
-
   RpcLiteral contains {
     Class SoapArray -instproc expand=xsDescription {reader} {
       # / / / / / / / / / / / / / / / / / / / / / / /
@@ -553,6 +537,48 @@ namespace eval ::xosoap::xsd {
 	  }
 	}]
       }
+    } -instproc expand=xsType {reader} {
+      $reader instvar suffix cast
+      set ar [::xorb::datatypes::AnyReader new \
+		  -style [[self class] info parent]\
+		  -typecode $cast]
+      #set idx [string map {"<" "[" ">" "]"} $suffix]
+      set t [string map {types: "" xsd: ""} [$ar get xsType]]
+      set t [string toupper $t 0 0]
+      return types:ArrayOf$t
+      #my instvar name
+      #return tns:${name}Type
+      #     $reader instvar cast suffix
+      #     set idx [string map {"<" "[" ">" "]"} $suffix]
+      #     set ar [AnyReader new -typecode $cast]
+      #     return [$ar get xsType]$idx
+    } -instproc marshal {document node soapElement} {
+      # / / / / / / / / / / / / / /
+      # Enforce default soap array
+      # encoding (appropriate annotation)
+      # Currently, we stick with the attribute-wise,
+      # XS-based annotation!
+      # e.g.: 
+      my instvar template
+      $template instvar type size
+      set ar [AnyReader new \
+		  -style [[self class] info parent]\
+		  -typecode $type]
+      set xstype [$ar get xsType]
+      # / / / / / / / / / / / / / /
+      # Introduce specifc serialisation
+      # rules for soap structs
+      #  if {[my isclass $type] &&\
+	  # 	    ![$type info superclass ::xorb::datatypes::Anything]} {
+      #       set xstype "m:SoapStruct"
+      #     } else {
+      #       set xstype [string trimleft [namespace tail $type] Xs]
+      #       set xstype "xsd:[string tolower $xstype 0 0]"
+      #     }
+      
+      #$node setAttribute xsi:type "SOAP-ENC:Array"
+      #$node setAttribute SOAP-ENC:arrayType "$xstype\[$size\]"
+      next $document $node $soapElement;# XsCompound->marshal
     }
   }
   DocumentLiteral contains {
@@ -636,36 +662,7 @@ namespace eval ::xosoap::xsd {
       return true
     }
   }
-  SoapArray instproc marshal {document node soapElement} {
-    # / / / / / / / / / / / / / /
-    # Enforce default soap array
-    # encoding (appropriate annotation)
-    # Currently, we stick with the attribute-wise,
-    # XS-based annotation!
-    # e.g.: 
-    # <... xsi:type="SOAP-ENC:Array" SOAP-ENC:arrayType="xsd:string[2]" ...>
-    my instvar template
-    $template instvar type size
-    set ar [AnyReader new -typecode $type]
-    set xstype [$ar get xsType]
-
-
-
-    # / / / / / / / / / / / / / /
-    # Introduce specifc serialisation
-    # rules for soap structs
-   #  if {[my isclass $type] &&\
-# 	    ![$type info superclass ::xorb::datatypes::Anything]} {
-#       set xstype "m:SoapStruct"
-#     } else {
-#       set xstype [string trimleft [namespace tail $type] Xs]
-#       set xstype "xsd:[string tolower $xstype 0 0]"
-#     }
-    
-    $node setAttribute xsi:type "SOAP-ENC:Array"
-    $node setAttribute SOAP-ENC:arrayType "$xstype\[$size\]"
-    next $document $node $soapElement;# XsCompound->marshal
-  }
+  
   SoapArray instproc parseObject {reader object} {
     # 1)
     my instvar template

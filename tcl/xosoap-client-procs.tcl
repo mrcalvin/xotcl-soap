@@ -25,6 +25,7 @@ namespace eval xosoap::client {
     Attribute callNamespace
     Attribute schemas
     Attribute action
+    Attribute invocationStyle -default ::xosoap::RpcLiteral
   } -superclass ContextObject \
       -clientPlugin ::xosoap::client::Soap::Client
   SoapGlueObject instforward endpoint %self virtualObject

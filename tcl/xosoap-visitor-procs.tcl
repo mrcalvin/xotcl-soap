@@ -204,7 +204,7 @@ namespace eval ::xosoap::visitor {
     foreach any $methodArgs {
       my log REQUEST-ANY=[$any serialize]
       set anyNode [$__node__ appendChild \
-		       [$xmlDoc createElement [$any name]]]
+		       [$xmlDoc createElement [$any name__]]]
       $any marshal $xmlDoc $anyNode $obj
     }
     
@@ -271,16 +271,28 @@ namespace eval ::xosoap::visitor {
     {invocationContext ::xo::cc}
   } -superclass AbstractVisitor
   InvocationDataVisitor instproc init args {
+    my instvar invocationContext
     # / / / / / / / / / / / / / /
     # solve parameter retrieval problem!
     # set style ::xosoap::RpcLiteral
-    #set style ::xosoap::DocumentLiteral
-    set style [parameter::get \
-		   -parameter "default_invocation_style" \
-		   -package_id [::xo::cc set package_id]]
-    my log style=$style
+    # set style ::xosoap::DocumentLiteral
+    # / / / / / / / / / / / / / /
+    # resolving the style information:
+    # 1) for client calls (invocationContext)
+    # corresponds to instance of ::xorb::stub::ContextObject
+    
+    if {[$invocationContext istype ::xosoap::client::SoapGlueObject]} {
+      # visitor is initiated from a consumer/ client
+      set style [$invocationContext invocationStyle]
+    } else {
+      # visitor is called from within a provider/ server
+      set style [parameter::get \
+		     -parameter "default_invocation_style" \
+		     -package_id [$invocationContext set package_id]]
+    }
+
+   # my log style=$style
     if {![my exists scenario] || [my scenario] eq {}} {
-      my instvar invocationContext
       foreach scenario [[self class] info children] {
 	if {$scenario ne "[self class]::slot"} {
 	  $scenario instvar conditions 

@@ -21,6 +21,7 @@ namespace eval ::xosoap {
   namespace import -force ::xorb::context::*
   namespace import -force ::xorb::datatypes::*
   namespace import -force ::xorb::aux::*
+ 
 
 
   # # # # # # # # # # # # # #
@@ -150,9 +151,11 @@ namespace eval ::xosoap {
  
   } -superclass RemotingPlugin
   Soap instproc handleRequest {requestObj} {
-    my log "---requestObj-1:$requestObj"
+
     catch {
+      ::xorb::Invoker instmixin add [self class]::Invoker
       next;#::xorb::RequestHandler->handleRequest
+      ::xorb::Invoker instmixin delete [self class]::Invoker
     } e
     
     if {[::xoexception::Throwable isThrowable e]} {
@@ -195,6 +198,17 @@ namespace eval ::xosoap {
     
     set r [next $responseObj];
     [my listener] dispatchResponse $r
+  }
+
+  Class Soap::Invoker -instproc init {requestObj} {
+    # / / / / / / / / / / / / / / / / / / /
+    # Call InvocationDataVisitor to
+    # extract the invocation data from
+    # the SOAP message object into the 
+    # context object (::xo::cc)
+    set visitor [::xosoap::visitor::InvocationDataVisitor new -volatile]
+    $visitor releaseOn $requestObj
+    next;# Invoker->init
   }
 
   # # # # # # # # # # # # # # #
