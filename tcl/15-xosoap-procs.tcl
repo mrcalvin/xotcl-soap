@@ -20,6 +20,8 @@ namespace eval ::xosoap {
   namespace import -force ::xorb::protocols::*
   namespace import -force ::xorb::context::*
   namespace import -force ::xorb::datatypes::*
+  namespace import -force ::xorb::aux::*
+
 
   # # # # # # # # # # # # # #
   # # # # # # # # # # # # # #
@@ -331,7 +333,7 @@ namespace eval ::xosoap {
   # # 5) Invocation Data and Dispatch
   # # Styles
   
-  ::xotcl::Class RpcLiteral -contains {
+  AggregationClass RpcLiteral -contains {
     Class SoapMarshallerVisitor \
 	-instproc SoapBodyResponse {obj} {
 	  my instvar xmlDoc parentNode
@@ -399,7 +401,7 @@ namespace eval ::xosoap {
 	}
   }
   
-  ::xotcl::Class DocumentLiteral -contains {
+  AggregationClass DocumentLiteral -contains {
     Class SoapMarshallerVisitor \
 	-instproc SoapBodyResponse {obj} {
 	  my instvar xmlDoc parentNode

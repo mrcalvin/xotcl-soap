@@ -25,6 +25,10 @@ namespace eval ::xosoap::xsd {
   XsAnything instproc parse {node} {
     my instvar __value__ isRoot__ isVoid__
     my log n=$node,type=[$node nodeType],xml=[$node asXML]
+    # / / / / / / / / / / / / / / / / / /
+    # TODO: handles cases of empty/'nilled' incoming
+    # elements!!!!!!!!
+    # e.g. <messageType/>
     set checkNode [$node firstChild]
     #set checkNode [expr {$initial?$node:[$node firstChild]}]
     if {$isRoot__ && $checkNode eq {}} {

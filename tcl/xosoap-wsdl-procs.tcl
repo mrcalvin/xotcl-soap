@@ -149,7 +149,11 @@ namespace eval ::xosoap {
 		    -name $name \
 		    -observer [self] \
 		    -style $style]
-	append argNodes "wsdl:part {name $name type [$ar get xsType]} {}"
+	append argNodes [subst {
+	  wsdl:part {
+	    name $name type [$ar get xsType]
+	  } {}
+	}]
 	# / / / / / / / / / / /
 	# retrieve xs type definitions
 	# will populate the instance variable
