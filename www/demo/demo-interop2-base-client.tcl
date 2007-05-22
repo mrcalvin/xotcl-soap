@@ -19,7 +19,8 @@ set gsoap http://websrv.cs.fsu.edu/~engelen/interop2.cgi
 set nusoap http://dietrich.ganx4.com/nusoap/testbed/round2_base_server.php
 set soap [SoapGlueObject new \
 	     -endpoint $nusoap\
-	     -callNamespace http://soapinterop.org/]
+	     -callNamespace http://soapinterop.org/ \
+	     -invocationStyle ::xosoap::RpcEncoded]
 
 set local [SoapGlueObject new \
 	       -endpoint http://localhost:8000/xosoap/services/SoapInterop2Impl]

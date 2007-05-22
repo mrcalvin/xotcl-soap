@@ -96,6 +96,9 @@ namespace eval ::xosoap {
 	dom createNodeCmd elementNode xsd:sequence
 	dom createNodeCmd elementNode wsdl:types
 	dom createNodeCmd elementNode xsd:schema
+	dom createNodeCmd elementNode xsd:complexContent
+	dom createNodeCmd elementNode restriction
+	dom createNodeCmd elementNode attribute
 
 	set tlist {} 
 	my log TYPES=[array get types]
@@ -113,6 +116,118 @@ namespace eval ::xosoap {
       }
       set xml [$current asXML]
     }        
+  }
+
+  RpcEncoded contains {
+    Class Wsdl1.1Builder -instproc Abstract {obj} {
+      [my info class] instvar ns
+      my instvar url doc types style
+      set current [$doc documentElement]
+      # / / / / / / / / / / / / / / / / /
+      # 1) register elements
+      dom createNodeCmd elementNode wsdl:operation
+      dom createNodeCmd elementNode soap:operation
+      dom createNodeCmd elementNode wsdl:message
+      dom createNodeCmd elementNode wsdl:portType
+      dom createNodeCmd elementNode wsdl:input
+      dom createNodeCmd elementNode wsdl:output
+      dom createNodeCmd elementNode wsdl:part
+      dom createNodeCmd elementNode soap:body
+
+      # / / / / / / / / / / / / / / / / /
+      # 2) stream input
+      $obj instvar arguments returns
+      set portType [$doc getElementsByTagName "wsdl:portType"]
+
+      set argNodes {}
+      set typeNodes {}
+      foreach arg $arguments {
+	set idx [string first : $arg]
+	# / / / / / / / / / / / / / / / / / /
+	# TODO: parse resolution to anythings!
+	set name [string range $arg 0 [expr {$idx-1}]]
+	set type [string range $arg [expr {$idx+1}] end]
+	set ar [::xorb::datatypes::AnyReader new \
+		    -typecode $type \
+		    -name $name \
+		    -observer [self] \
+		    -style $style]
+	append argNodes [subst {
+	  wsdl:part {
+	    name $name type [$ar get xsType]
+	  } {}
+	}]
+	# / / / / / / / / / / /
+	# retrieve xs type definitions
+	# will populate the instance variable
+	# 'types' with a appropriate dom
+	# generation scripts
+	$ar get xsDescription
+      }
+
+      $current insertBeforeFromScript [subst {
+	wsdl:message [list "name" "[$obj name]Input"] {
+	  $argNodes
+	} 
+      }] $portType
+
+      # / / / / / / / / / / / / / / / / /
+      # 3) stream output
+      
+
+
+      set returnNodes {}
+      foreach r $returns {
+	set idx [string first : $r]
+	# / / / / / / / / / / / / / / / / / /
+	# TODO: parse resolution to anythings!
+	set name [string range $r 0 [expr {$idx-1}]]
+	set type [string range $r [expr {$idx+1}] end]
+	set ar [::xorb::datatypes::AnyReader new \
+		    -name $name \
+		    -observer [self] \
+		    -typecode $type \
+		    -style $style] 
+	append returnNodes "wsdl:part {name $name type [$ar get xsType]} {}"
+	# / / / / / / / / / / /
+	# retrieve xs type definitions
+	# will populate the instance variable
+	# 'types' with a appropriate dom
+	# generation scripts
+	$ar get xsDescription
+      }
+      
+      $current insertBeforeFromScript [subst {
+	wsdl:message [list "name" "[$obj name]Output"] {
+	  $returnNodes
+	} 
+      }] $portType
+      
+      # / / / / / / / / / / / / / / / / /
+      # 4) portType + binding: input + output
+      
+      $portType appendFromScript {
+	wsdl:operation [list "name" [$obj name]] {
+	  wsdl:input [list message "tns:[$obj name]Input"] {}
+	  wsdl:output [list message "tns:[$obj name]Output"] {}
+	}
+      }
+      
+      set binding [$doc getElementsByTagName "wsdl:binding"]
+      $binding appendFromScript {
+	wsdl:operation [list name [$obj name]] {
+	  soap:operation [list style rpc soapAction ${url}/[$obj name]] {}
+	  wsdl:input {} {
+	    soap:body \
+		[list use encoded namespace $url encodingStyle $ns(soap-enc)] {}
+	  }
+	  wsdl:output {} {
+	    soap:body \
+		[list use encoded namespace $url encodingStyle $ns(soap-enc)] {}
+	  }
+	}
+      }
+    }
   }
   
   RpcLiteral contains {
@@ -216,11 +331,11 @@ namespace eval ::xosoap {
 	  soap:operation [list style rpc soapAction ${url}/[$obj name]] {}
 	  wsdl:input {} {
 	    soap:body \
-		[list use literal namespace $url encodingStyle $ns(soap-enc)] {}
+		[list use literal] {}
 	  }
 	  wsdl:output {} {
 	    soap:body \
-		[list use literal namespace $url encodingStyle $ns(soap-enc)] {}
+		[list use literal] {}
 	  }
 	}
       }

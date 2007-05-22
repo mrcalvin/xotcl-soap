@@ -92,29 +92,25 @@ namespace eval ::xosoap::xsd {
   
   XsSimple instproc marshal {document node soapElement} {
     # / / / / / / / / / / / / / / /
-    # currently provides for XS-like
-    # streaming/ annotation of anys
+    # Provides for basic marshalling
+    # into a text node to the current
+    # element node. It is common
+    # to all marshaling styles.
     my instvar isVoid__
     if {!$isVoid__ && [my isPrimitive]} {
-      my instvar __value__ name__
-      # / / / / / / / / / / / / / / / / /
-      # TODO: get xsd key from actual objects
-      # abstract from the xotcl-soap case here
-      # no simple trimleft of prefix 'Xs'
-      #set xstype [string trimleft [namespace tail [my info class]] Xs]
-      #set xstype [string tolower $xstype 0 0]
-      set xstype [my expand=xsType]
-     #  if {[$soapElement istype ::xosoap::marshaller::SoapBodyResponse] && \
-# 	      ![info exists name]} {
-# 	set name [string map {Response Return} [$soapElement elementName]]
-#       }
-      # set anyNode [$node appendChild \
-# 			  [$document createElement $name]]
-      # / / / / / / / / / / / / / / / / /
-      # TODO: Reactivate for RpcEncoded!
-      # $node setAttribute xsi:type "xsd:$xstype"
+      my instvar __value__ name__      
       $node appendChild \
 	  [$document createTextNode $__value__]
+    }
+  }
+
+  RpcEncoded contains {
+    Class XsSimple -instproc marshal {document node soapElement}  {
+      my instvar isVoid__
+      if {!$isVoid__ && [my isPrimitive]} {
+	$node setAttribute xsi:type [my expand=xsType]
+      }
+      next;# ::xosoap::xsd::XsSimple->marshal
     }
   }
 
@@ -352,6 +348,54 @@ namespace eval ::xosoap::xsd {
     $reader instvar cast
     return types:[namespace tail [$cast]]
   }
+
+  RpcEncoded contains {
+    Class SoapStruct -instproc expand=xsDescription {reader} {
+      $reader instvar cast observer name
+      set lname [namespace tail [$cast]]
+      set members {}
+      foreach s [$cast info slots] {
+	my log member=$s,anyType=[$s anyType]
+	set n [namespace tail $s]
+	set ar [::xorb::datatypes::AnyReader new \
+		    -name $n \
+		    -typecode [$s anyType]\
+		    -style [[self class] info parent] \
+		    -observer $observer \
+		    -inCompound true]
+	append members "[$ar get xsDescription]\n"
+      }
+      $observer instvar types
+      # xsd:element {name $name type ${name}Type} {} is
+      # added in document/literal style to types section!
+      if {![info exists types($lname)]} {
+	$observer set types($lname) [subst {
+	  xsd:complexType {name $lname} {
+	    xsd:all {} {
+	      $members
+	    }
+	  }
+	}]
+      }
+      if {[$reader inCompound]} {
+	return "xsd:element {name $lname type $lname} {}"
+      }
+    } -instproc marshal {document node soapElement} {
+      my instvar isVoid__
+      if {!$isVoid__} {
+	my instvar template
+	# / / / / / / / / / / /
+	# TODO: Unify and merge with
+	# expand=xsType!!!!
+	set t [namespace tail $template]
+	$node setAttribute xsi:type types:$t
+      }
+      next;#::xosoap::xsd::XsCompound->marshal
+    }
+  }
+
+
+
   RpcLiteral contains {
     Class SoapStruct -instproc expand=xsDescription {reader} {
       $reader instvar cast observer name
@@ -500,6 +544,69 @@ namespace eval ::xosoap::xsd {
   MetaAny SoapArray -superclass XsCompound -slots {
     Attribute tagName -default "member"
   }
+
+  RpcEncoded contains {
+    Class SoapArray -instproc expand=xsDescription {reader} {
+      # / / / / / / / / / / / / / / / / 
+      # for rpc/encoded, we follow
+      # the original wsdl 1.1 guideline
+      # on how to describe and serialise
+      # array types.
+      $reader instvar cast suffix observer
+      my instvar name__ tagName
+      set ar [::xorb::datatypes::AnyReader new \
+		  -typecode $cast \
+		  -observer $observer \
+		  -style [[self class] info parent] \
+		  -observer $observer \
+		  -inCompound true]
+      $observer instvar types
+      set fulltype [$ar get xsType]
+      set t [string map {types: "" xsd: ""} $fulltype]
+      set t [string toupper $t 0 0]
+
+      if {![info exists types(ArrayOf$t)]} {
+	$observer set types(ArrayOf$t) [subst -nocommands {
+	  xsd:complexType {name ArrayOf$t} {
+	    xsd:complexContent {} {
+	      restriction {base SOAP-ENC:Array} {
+		attribute {ref SOAP-ENC:arrayType wsdl:arrayType $fulltype[]} {}
+	      }
+	    }
+	  }
+	}]
+      }
+    } -instproc expand=xsType {reader} {
+      $reader instvar suffix cast
+      set ar [::xorb::datatypes::AnyReader new \
+		  -style [[self class] info parent]\
+		  -typecode $cast]
+      #set idx [string map {"<" "[" ">" "]"} $suffix]
+      set t [string map {types: "" xsd: ""} [$ar get xsType]]
+      set t [string toupper $t 0 0]
+      return types:ArrayOf$t
+      #my instvar name
+      #return tns:${name}Type
+      #     $reader instvar cast suffix
+      #     set idx [string map {"<" "[" ">" "]"} $suffix]
+      #     set ar [AnyReader new -typecode $cast]
+      #     return [$ar get xsType]$idx
+    } -instproc marshal {document node soapElement} {
+      # / / / / / / / / / / / / / /
+      # Enforce default soap array:
+      # Type-wise SOAP encoding!
+      my instvar template
+      $template instvar type size
+      set ar [::xorb::datatypes::AnyReader new \
+		  -style [[self class] info parent]\
+		  -typecode $type]
+      set xstype [$ar get xsType]
+      $node setAttribute xsi:type "SOAP-ENC:Array"
+      $node setAttribute SOAP-ENC:arrayType "$xstype\[$size\]"
+      next $document $node $soapElement;# XsCompound->marshal
+    }
+  }
+
   RpcLiteral contains {
     Class SoapArray -instproc expand=xsDescription {reader} {
       # / / / / / / / / / / / / / / / / / / / / / / /
@@ -561,7 +668,7 @@ namespace eval ::xosoap::xsd {
       # e.g.: 
       my instvar template
       $template instvar type size
-      set ar [AnyReader new \
+      set ar [::xorb::datatypes::AnyReader new \
 		  -style [[self class] info parent]\
 		  -typecode $type]
       set xstype [$ar get xsType]

@@ -291,7 +291,7 @@ namespace eval ::xosoap::visitor {
 		     -package_id [$invocationContext set package_id]]
     }
 
-   # my log style=$style
+    my log style=$style
     if {![my exists scenario] || [my scenario] eq {}} {
       foreach scenario [[self class] info children] {
 	if {$scenario ne "[self class]::slot"} {

@@ -346,6 +346,123 @@ namespace eval ::xosoap {
   # # # # # # # # # # # # # # #
   # # 5) Invocation Data and Dispatch
   # # Styles
+
+  AggregationClass RpcEncoded -contains {
+    Class SoapMarshallerVisitor \
+	-instproc SoapBodyResponse {obj} {
+	  my instvar xmlDoc parentNode
+	  $obj instvar __node__
+	  
+	  # / / / / / / / / / / / / / / / / / / / / / / / /
+	  # SOAP 1.1 spec only stipulates / recommends that 
+	  # the first child element of SoapBody is suffixed
+	  # with *Response. There is no naming convention,
+	  # apart from framework-specific ones, on elements
+	  # containing the return value(s).
+	  # Currently, we provide for a suffix: *Return
+	  # TODO: adapt to multiple / complex return values 
+	  # (types).
+	  
+	  # / / / / / / / / / / / / / / / /
+	  # introduce anythings and appropriate
+	  # delegation to the concrete marshaller
+	  # provided by the actual any implementation
+	  # TODO: support for multiple anys
+	  
+	  if {[$obj responseValue] eq {}} {
+	    set any [::xosoap::xsd::XsAnything new -isVoid__ true]
+	  } else {
+	    set any [$obj responseValue]
+	  }
+	  set name [string map {Response Return} [$obj elementName]]
+	  set anyNode [$__node__ appendChild \
+			   [$xmlDoc createElement $name]]
+	  
+	  set style [[self class] info parent]
+
+	  # / / / / / / / / / / / / / / /
+	  # Introduce styles for marshaling
+	  # of messages!
+	  set class [$any info class]
+	  foreach h [concat $class [$class info heritage]] {
+	    set hstripped [namespace tail $h]
+	    set mixins {}
+	    if {[my isclass ${style}::${hstripped}]} {
+	      append mixins ${style}::${hstripped}
+	      $any mixin add ${style}::${hstripped}
+	    }
+	  }
+	  $any marshal $xmlDoc $anyNode $obj
+	  foreach m $mixins {
+	    $any mixin delete $m
+	  }
+	}  -instproc SoapBodyRequest {obj} {
+	  my instvar xmlDoc parentNode
+	  $obj instvar methodArgs __node__
+	  
+	  # / / / / / / / / / / / / / / / / /
+	  # Introducing anythings!
+	  foreach any $methodArgs {
+	    set anyNode [$__node__ appendChild \
+			     [$xmlDoc createElement [$any name__]]]
+	    # / / / / / / / / / / / / / / /
+	    # Introduce styles for marshaling
+	    # of messages!
+	    set style [[self class] info parent]
+	    set class [$any info class]
+	    my log MAR=cl=$class,style=$style
+	    set mixins {}
+	    foreach h [concat $class [$class info heritage]] {
+	      set hstripped [namespace tail $h]
+	      if {[my isclass ${style}::${hstripped}]} {
+		append mixins ${style}::${hstripped}
+		$any mixin add ${style}::${hstripped}
+	      }
+	    }
+	    my log mixins=$mixins
+	    $any marshal $xmlDoc $anyNode $obj
+	    foreach m $mixins {
+	      $any mixin delete $m
+	    }
+	  }
+	}
+    Class InboundRequest \
+	-instproc SoapBodyRequest {obj} {
+	my instvar serviceMethod serviceArgs
+	my log CALL=[$obj elementName]
+	::xo::cc virtualCall [$obj elementName]
+	#set tmpArgs ""
+	#foreach keyvalue [$obj set methodArgs]  {	 
+	#  append tmpArgs " " "{[lindex $keyvalue 1]}"     
+	#}     
+	::xo::cc virtualArgs [$obj set methodArgs]
+      }
+    Class OutboundResponse \
+      -instproc SoapBodyRequest {obj} {
+	$obj class ::xosoap::marshaller::SoapBodyResponse
+	$obj elementName [$obj set targetMethod]Response
+	$obj set style [[self class] info parent]
+	$obj responseValue [my batch]
+      }
+    Class OutboundRequest \
+	-instproc SoapBodyRequest {obj} {
+	  my instvar invocationContext
+	  $obj elementName [$invocationContext virtualCall]
+	  $obj set methodArgs [$invocationContext virtualArgs]
+	  $obj set style [[self class] info parent]
+	  if {[$invocationContext exists callNamespace]} {
+	    # / / / / / / / / / / / / / / /
+	    # TODO: default namespace support!!!!!
+	    $obj registerNS [list "m" [$invocationContext callNamespace]]
+	  } 
+	}
+    Class InboundResponse \
+	-instproc SoapBodyResponse {obj} {
+	  my instvar invocationContext
+	  $invocationContext unmarshalledResponse [$obj responseValue]
+	}
+  }
+
   
   AggregationClass RpcLiteral -contains {
     Class SoapMarshallerVisitor \
@@ -402,6 +519,7 @@ namespace eval ::xosoap {
 	  my instvar invocationContext
 	  $obj elementName [$invocationContext virtualCall]
 	  $obj set methodArgs [$invocationContext virtualArgs]
+	  $obj set style [[self class] info parent]
 	  if {[$invocationContext exists callNamespace]} {
 	    # / / / / / / / / / / / / / / /
 	    # TODO: default namespace support!!!!!
@@ -494,7 +612,8 @@ namespace eval ::xosoap {
   
 
   namespace export SoapHttpListener Soap DeMarshallingInterceptor \
-      LoggingInterceptor SoapInvocationContext RpcLiteral DocumentLiteral
+      LoggingInterceptor SoapInvocationContext RpcLiteral DocumentLiteral \
+      RpcEncoded
 }
 
 
