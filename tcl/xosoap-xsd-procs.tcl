@@ -27,14 +27,14 @@ namespace eval ::xosoap::xsd {
     my log n=$node,type=[$node nodeType],xml=[$node asXML]
     # / / / / / / / / / / / / / / / / / /
     # TODO: handles cases of empty/'nilled' incoming
-    # elements!!!!!!!!
+    # elements!!!!!!!! >> checkNode eq {}
     # e.g. <messageType/>
     set checkNode [$node firstChild]
     #set checkNode [expr {$initial?$node:[$node firstChild]}]
     if {$isRoot__ && $checkNode eq {}} {
       # XsVoid
       set isVoid__ true
-    } elseif {[$checkNode nodeType] eq "TEXT_NODE"} {
+    } elseif {$checkNode eq {} || [$checkNode nodeType] eq "TEXT_NODE"} {
       set __value__ [$node text]
     } elseif {[$checkNode nodeType] eq "ELEMENT_NODE"} {
       # / / / / / / / / / / / / / / /

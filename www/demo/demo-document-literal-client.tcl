@@ -121,68 +121,91 @@ set payload(removeParticipant) {<?xml version="1.0" encoding="UTF-8"?>
 </soap:Envelope>}
 }
 
-set payload(createCourse) {<?xml version="1.0" encoding="UTF-8"?>
-<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xsd1="http://oacs-dotlrn-conf2007.wu-wien.ac.at/xosoap/services/PMSServiceImpl2/">
-   <soap:Body>
-      <xsd1:createCourseRequest>
-         <header>
-            <userId>4</userId>
-            <timestamp>2007-05-24T20:29:33Z</timestamp>
-            <receiver>erewr</receiver>
-            <globalProcessId>werwe</globalProcessId>
-            <sender>werw</sender>
-            <messageId>wer</messageId>
-            <messageType>sdasdas</messageType>
-         </header>
-         <body>
-            <description>re</description>
-            <location>
-               <email>emailValue</email>
-               <name>MyNameValue</name>
-               <state>StateValue</state>
-               <city>CityValue</city>
-               <phone>PhoneValue</phone>
-               <street>StreetValue</street>
-               <zip>ZipValue</zip>
-               <url>UrlValue</url>
-            </location>
-            <schedule>
-               <begin>2007-05-25T20:29:33Z</begin>
-               <end>2007-05-26T20:29:33Z</end>
-            </schedule>
-            <duration>12:00:00</duration>
-            <courseId>2</courseId>
-            <courseTitle>DFSDFSD</courseTitle>
-         </body>
-      </xsd1:createCourseRequest>
-   </soap:Body>
-</soap:Envelope>}
+set comment {
+set payload(deleteLearningActivity) {<?xml version="1.0" encoding="UTF-8"?><soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+<soapenv:Body>
+<deleteLearningActivityRequest xmlns="http://www.prolixproject.org/PMSService/"><header xmlns="">
+<messageId>ID</messageId>
+<globalProcessId>GPID</globalProcessId>
+<userId>UID</userId>
+<timestamp>2007-05-23T10:12:24.610Z</timestamp>
+<messageType>type</messageType>
+<sender>LPEP</sender>
+<receiver>PMS</receiver></header>
+<body xmlns="">
+<learningActivityId>1</learningActivityId>
+</body>
+</deleteLearningActivityRequest>
+</soapenv:Body>
+</soapenv:Envelope>
+}
 
-set payload(addParticipant) {<?xml version="1.0" encoding="UTF-8"?>
-<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xsd1="http://oacs-dotlrn-conf2007.wu-wien.ac.at/xosoap/services/PMSServiceImpl2/">
-   <soap:Body>
-      <xsd1:addParticipantRequest>
-         <header>
-            <userId>323</userId>
-            <timestamp>2007-05-16T22:04:02Z</timestamp>
-            <receiver>232</receiver>
-            <globalProcessId>323</globalProcessId>
-            <sender>232</sender>
-            <messageId>232</messageId>
-            <messageType>23</messageType>
-         </header>
-         <body>
-            <courseId>2323</courseId>
-            <uid>232</uid>
-            <role>232</role>
-         </body>
-      </xsd1:addParticipantRequest>
-   </soap:Body>
-</soap:Envelope>}
+
+set payload(removeParticipant) {<?xml version="1.0" encoding="UTF-8"?><soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+<soapenv:Body>
+<removeParticipantRequest xmlns="http://www.prolixproject.org/PMSService/">
+<header xmlns=""><messageId>ID</messageId>
+<globalProcessId>GPID</globalProcessId><userId>UID</userId><timestamp>2007-05-23T10:16:51.063Z</timestamp>
+<messageType>type</messageType>
+<sender>LPEP</sender><receiver>PMS</receiver>
+</header>
+<body xmlns="">
+<learningActivityId>LID</learningActivityId>
+<uid>UID</uid>
+</body>
+</removeParticipantRequest>
+</soapenv:Body>
+</soapenv:Envelope>}
+
+set payload(addParticipant) {<?xm
+l version="1.0" encoding="UTF-8"?><soapenv:Envelope xmlns:soapenv="http://schema
+s.xmlsoap.org/soap/envelope/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns
+:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Body><addParticipantRe
+quest xmlns="http://www.prolixproject.org/PMSService/"><header xmlns=""><message
+Id>ID</messageId><globalProcessId>GPID</globalProcessId><userId>UID</userId><tim
+estamp>2007-05-23T10:16:50.579Z</timestamp><messageType>type</messageType><sende
+r>LPEP</sender><receiver>PMS</receiver></header><body xmlns=""><learningActivity
+Id>LID</learningActivityId><uid>UID</uid><role>Role</role></body></addParticipan
+tRequest></soapenv:Body></soapenv:Envelope>
+}
+}
+
+set payload(createLearningActivity) {<?xml version="1.0" encoding="UTF-8"?><soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+<soapenv:Body>
+<createLearningActivityRequest xmlns="http://www.prolixproject.org/PMSService/">
+<header xmlns="">
+<messageId>ID</messageId>
+<globalProcessId>GPID</globalProcessId>
+<userId>UID</userId>
+<timestamp>2007-05-23T10:12:50.548Z</timestamp>
+<messageType>type</messageType>
+<sender>LPEP</sender>
+<receiver>PMS</receiver>
+</header>
+<body xmlns=""><learningActivityId>1</learningActivityId>
+<learningActivityTitle>Test WSDL Course</learningActivityTitle>
+<description></description>
+<location><name>ABCDE</name>
+<street>AAA</street>
+<zip>66777</zip>
+<city>Saarbr&#xFC;cken</city>
+<state>Saarland</state>
+<phone>0049</phone>
+<email>a@a.com</email>
+<url>URL</url>
+</location><schedule>
+<begin>2007-05-23T10:12:50.548Z</begin>
+<end>2007-05-23T10:12:50.548Z</end>
+</schedule>
+<duration>11:12:50.548Z</duration>
+</body></createLearningActivityRequest>
+</soapenv:Body>
+</soapenv:Envelope>
+}
 
 ns_write <html><title></title><body>
 foreach call [array names payload] {
-  set url http://localhost:8000/xosoap/services/PMSServiceImpl2
+  set url http://openacs-dotlrn.wu-wien.ac.at/xosoap/services/PMSServiceImpl
   set r [::xo::HttpRequest new \
 	     -content_type "text/xml" \
 	     -url $url \
