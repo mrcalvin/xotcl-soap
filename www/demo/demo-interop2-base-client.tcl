@@ -28,7 +28,7 @@ set local [SoapGlueObject new \
 # see http://www.whitemesa.com/interop/proposal2.html
 # for interface description
 
-GObject SoapInterop2Base -glueobject $soap
+GObject SoapInterop2Base -glueobject $local
 
 
 # / / / / / / / / / / / / /

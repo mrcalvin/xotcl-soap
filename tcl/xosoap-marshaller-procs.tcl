@@ -602,6 +602,29 @@ As specified for the RPC mode of operation, a single child of type
     my elementNamespace "SOAP-ENV"
     my registerNS {xosoap urn:xotcl-soap}
   }
+  SoapFault instproc parse {rootNode} {
+    set fault [$rootNode getElementsByTagName *Fault]
+    my elementNamespace [$fault prefix]
+    my parseAttributes $fault
+    foreach s [[self class] info slots] {
+      set a [namespace tail $s]
+      set node [$rootNode getElementsByTagName *$a]
+      if {$a ne {}} {
+	my $a [$node text]
+      }
+    }
+  }
+  SoapFault instproc show {} {
+    my instvar faultcode faultstring detail
+    set r {}
+    foreach v [info vars] {
+      append r [subst {
+	$v: [set $v]
+     }]
+    }
+    return $r
+  }
+  
 
   # # # # # # # # # # # # #
   # # # # # # # # # # # # #

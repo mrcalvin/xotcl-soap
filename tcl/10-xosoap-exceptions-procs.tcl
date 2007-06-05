@@ -31,7 +31,7 @@ namespace eval ::xosoap::exceptions {
       }
     }
     #my log "---vars=[info vars]"
-    set msg "{$__message__($contentType)}"
+    set msg "$__message__($contentType)"
     $returnCmd $statusCode $contentType $msg
   }
   
@@ -117,6 +117,11 @@ namespace eval ::xosoap::exceptions {
     Http transport provider
   }
 
+  LoggableException CaughtFaultException -ad_doc {
+    A fault message was retrieved from the server/
+    provider
+  }
+
   # / / / / / / / / / / / / / / / / / / / / / / / / /
   # SoapFaults (categories) + documentation
   
@@ -175,5 +180,6 @@ namespace eval ::xosoap::exceptions {
   
   namespace export MalformedEndpointException HttpRequestException \
       ReturnableException UnknownException Server Client \
-      HttpTransportProviderException WsdlGenerationException
+      HttpTransportProviderException WsdlGenerationException \
+      CaughtFaultException
 }

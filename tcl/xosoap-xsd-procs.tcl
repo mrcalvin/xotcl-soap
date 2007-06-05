@@ -42,14 +42,18 @@ namespace eval ::xosoap::xsd {
       # 	1. return-element encoding flaviours: as leaf or 
       #	intermediary composite type
       #my log isRoot=$isRoot
-      if {$isRoot__ && [[$checkNode firstChild] nodeType] eq "TEXT_NODE"} {
+      set lookAhead [$checkNode firstChild]
+      if {$isRoot__ && $lookAhead eq {}} {
+	# XsVoid
+	set isVoid__ true
+      } elseif {$isRoot__ && \
+		    [$lookAhead nodeType] eq "TEXT_NODE"} {
 	set __value__ [$checkNode text]
 	set isRoot__ false
       } else {
-	puts children=[$node childNodes]
 	foreach c [$node childNodes] {
 	  #my set $i [[self class] new -childof [self] -parse $c]
-	 # my set __map__([$c nodeName]) $i
+	  # my set __map__([$c nodeName]) $i
 	  #incr i
 	  set any [[self class] new \
 		       -childof [self] \

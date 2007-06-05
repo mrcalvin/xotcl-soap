@@ -257,6 +257,37 @@ namespace eval ::xosoap::visitor {
 
   # # # # # # # # # # # # # # # 
   # # # # # # # # # # # # # # # 
+  # # FaultDataVisitor
+  # # # # # # # # # # # # # # # 
+  # # # # # # # # # # # # # # # 
+
+  ::xotcl::Class FaultDataVisitor -slots {
+    Attribute data -default {}
+  }
+  
+  FaultDataVisitor instproc visit {obj} {
+    if {[$obj istype ::xosoap::marshaller::SoapFault]} {
+      my instvar data
+      set data [my show $obj]
+    }
+  }
+  
+  FaultDataVisitor instproc show {obj} {
+    set c [$obj info class]
+    set r {}
+    foreach v [$c info slots] {
+      set v [namespace tail $v]
+      if {[$obj exists $v]} {
+	append r [subst {
+	  $v: [$obj set $v]
+	}]
+      }
+    }
+    return $r
+  }
+  
+  # # # # # # # # # # # # # # # 
+  # # # # # # # # # # # # # # # 
   # # InvocationDataVisitor
   # # # # # # # # # # # # # # # 
   # # # # # # # # # # # # # # # 
@@ -387,7 +418,7 @@ namespace eval ::xosoap::visitor {
       }
   
   namespace export AbstractVisitor SoapMarshallerVisitor \
-      InvocationDataVisitor
+      InvocationDataVisitor FaultDataVisitor
   
 }
 

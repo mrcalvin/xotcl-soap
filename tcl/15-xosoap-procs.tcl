@@ -520,6 +520,7 @@ namespace eval ::xosoap {
 	  $obj elementName [$invocationContext virtualCall]
 	  $obj set methodArgs [$invocationContext virtualArgs]
 	  $obj set style [[self class] info parent]
+	  my log METHODARGS=[$obj set methodArgs]
 	  if {[$invocationContext exists callNamespace]} {
 	    # / / / / / / / / / / / / / / /
 	    # TODO: default namespace support!!!!!

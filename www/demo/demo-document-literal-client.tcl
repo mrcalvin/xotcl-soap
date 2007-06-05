@@ -203,6 +203,55 @@ set payload(createLearningActivity) {<?xml version="1.0" encoding="UTF-8"?><soap
 </soapenv:Envelope>
 }
 
+set payload(deleteLearningActivity) {<?xml version="1.0" encoding="UTF-8"?><soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+<soapenv:Body>
+<deleteLearningActivityRequest xmlns="http://www.prolixproject.org/PMSService/"><header xmlns="">
+<messageId>ID</messageId>
+<globalProcessId>GPID</globalProcessId>
+<userId>UID</userId>
+<timestamp>2007-05-23T10:12:24.610Z</timestamp>
+<messageType>type</messageType>
+<sender>LPEP</sender>
+<receiver>PMS</receiver></header>
+<body xmlns="">
+<learningActivityId>1</learningActivityId>
+</body>
+</deleteLearningActivityRequest>
+</soapenv:Body>
+</soapenv:Envelope>
+}
+
+set payload(removeParticipant) {<?xml version="1.0" encoding="UTF-8"?><soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+<soapenv:Body>
+<removeParticipantRequest xmlns="http://www.prolixproject.org/PMSService/">
+<header xmlns=""><messageId>ID</messageId>
+<globalProcessId>GPID</globalProcessId><userId>UID</userId><timestamp>2007-05-23T10:16:51.063Z</timestamp>
+<messageType>type</messageType>
+<sender>LPEP</sender><receiver>PMS</receiver>
+</header>
+<body xmlns="">
+<learningActivityId>LID</learningActivityId>
+<uid>UID</uid>
+</body>
+</removeParticipantRequest>
+</soapenv:Body>
+</soapenv:Envelope>}
+
+set payload(addParticipant) {<?xml version="1.0" encoding="UTF-8"?><soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+<soapenv:Body><addParticipantRequest xmlns="http://www.prolixproject.org/PMSService/">
+<header xmlns="">
+<messageId>ID</messageId>
+<globalProcessId>GPID</globalProcessId><userId>UID</userId>
+<timestamp>2007-05-23T10:16:50.579Z</timestamp>
+<messageType>type</messageType>
+<sender>LPEP</sender>
+<receiver>PMS</receiver>
+</header><body xmlns="">
+<learningActivityId>LID</learningActivityId>
+<uid>UID</uid><role>Role</role></body>
+</addParticipantRequest></soapenv:Body>
+</soapenv:Envelope>}
+
 ns_write <html><title></title><body>
 foreach call [array names payload] {
   set url http://openacs-dotlrn.wu-wien.ac.at/xosoap/services/PMSServiceImpl

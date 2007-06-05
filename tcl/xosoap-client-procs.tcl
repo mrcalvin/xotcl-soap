@@ -111,30 +111,44 @@ namespace eval xosoap::client {
 		  -request_header_fields [list SOAPAction $actionHeaderValue]]
     # handling of exception situations
     # http status code 500
-    if {[my exists statusCode] && [my set statusCode] eq 500} {
+    if {[$rObj exists statusCode] && [$rObj set statusCode] eq 500} {
       # handle as fault
       try {
 	set faultMsg [$rObj set data] 
-	set envelope [SoapEnvelope new -nest {
-	  ::xosoap::marshaller::SoapFault new}]
+	set envelope [::xosoap::marshaller::SoapEnvelope new \
+			  -nest {
+			    ::xosoap::marshaller::SoapFault new
+			  }]
 	set doc [dom parse $faultMsg]
 	set root [$doc documentElement]
 	$envelope parse $root
+	my log FAULT=[$envelope serialize]
+	# / / / / / / / / / / / / / / / /
+	# cast into local error message
+	# or rather exception type!
+	set fv [::xosoap::visitor::FaultDataVisitor new -volatile]
+	$envelope accept $fv
+	set exception [CaughtFaultException new [$fv data]]
       } catch {error e} {
+	global errorInfo
 	error [HttpTransportProviderException new [subst {
 	  Recasting a SOAP fault message into a local
-	  exception failed due to '$e'
+	  exception failed due to '$errorInfo'
 	}]]
       }
-    } elseif {[my exists statusCode] && [my set statusCode] ne 200} {
+      if {[info exists exception]} {
+	error $exception
+      }
+    } elseif {[$rObj exists statusCode] && [$rObj set statusCode] ne 200} {
       # encapsulate arbitrary http error messages
       error [HttpTransportProviderException new [subst {
 	Http request transport did not suceed with 
-	status code [my set statusCode] and message '[$rObj set data]'
+	status code [$rObj set statusCode] and message '[$rObj set data]'
       }]]
+    } else {
+      my log data=[$rObj set data]
+      return [$rObj set data]
     }
-    my log data=[$rObj set data]
-    return [$rObj set data]
   }
 
   namespace export SoapGlueObject HttpTransportProvider
