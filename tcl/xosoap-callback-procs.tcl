@@ -13,7 +13,7 @@ namespace eval ::xosoap {
     -package_id
     -node_id
   } {} {
-    XoSoapPackage initialise \
+    ::xosoap::XoSoapPackage initialise \
 	-package_id $package_id \
 	-node_id $node_id
   }
@@ -22,6 +22,8 @@ namespace eval ::xosoap {
     -package_id
     -node_id
   } {} {
-    ::$package_id remove
+    if {[::xotcl::Object isobject ::$package_id]} {
+      ::$package_id remove
+    }
   }
 }

@@ -1,0 +1,5 @@
+2007-06-28  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
+
+	* tcl/xosoap-callback-procs.tcl: Fixed for a missing namespace
+          qualifiers for the package class. Now initiates silently.
+

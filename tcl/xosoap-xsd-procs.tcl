@@ -127,6 +127,8 @@ namespace eval ::xosoap::xsd {
   MetaAny XsString -superclass XsSimple \
       -instproc validate args {
 	my instvar __value__
+	# TODO: change to a tcl-independent
+	# regexp!
 	return [string is print $__value__]
       }
   MetaAny XsBoolean -superclass XsSimple \
