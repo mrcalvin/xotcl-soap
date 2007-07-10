@@ -138,7 +138,9 @@ namespace eval ::xosoap::demo {
   } -ad_doc {
     This contract provides the interface description
     for the Soap Interop2 Base test suite.
-  }
+  } 
+
+  #SoapInterop2 deploy
 
    #     ___________________
   #   ,'                   `.
@@ -263,7 +265,7 @@ namespace eval ::xosoap::demo {
   # deployment descriptor
   # + actual deployment
 
-  SoapInterop2Impl deploy
+  #SoapInterop2Impl deploy
   
   # # # # # # # # # # # # # # # # # #
   # # # # # # # # # # # # # # # # # #
@@ -335,5 +337,5 @@ namespace eval ::xosoap::demo {
   
   # / / / / / / / / / / / /
   # deploy the 
-  SoapInterop2GroupBImpl deploy
+  #SoapInterop2GroupBImpl deploy
 }

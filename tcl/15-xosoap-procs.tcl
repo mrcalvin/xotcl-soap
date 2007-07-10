@@ -58,7 +58,7 @@ namespace eval ::xosoap {
       ::xo::cc action [string trim [ns_set value $headerSet $idx] \"]
       return filter_ok;
     } elseif {[::xo::cc method] eq "GET"} {
-      my log context=[::xo::cc serialize]
+      my debug context=[::xo::cc serialize]
       return filter_ok;
     } else {
       return filter_return;
@@ -74,19 +74,30 @@ namespace eval ::xosoap {
     # actual processing
     set service_prefix [parameter::get -parameter "service_url" -default \
 			    "services"]
-    set package_key [apm_package_key_from_id [::xo::cc package_id]]
+    #set package_key [apm_package_key_from_id [::xo::cc package_id]]
     set url [string trim [::xo::cc url] /]
     set urlv [split $url /]
     set urlc [llength $urlv]
+    set delimiter [lsearch -exact $urlv $service_prefix]
+    # / / / / / / / / / / / / / /
+    # verifying url
     catch {
-      
-      # / / / / / / / / / / / / / /
-      # verifying url
-      if {$urlc ne "3" || [lindex $urlv 1] ne $service_prefix} {
-	error [MalformedEndpointException new]
+      if {$delimiter == -1} {
+	error [MalformedEndpointException new [subst {
+	  Service prefix '$service_prefix' not given in resource locator 
+	  '$url'.
+	}]]
       }
-      ::xo::cc virtualObject [lindex $urlv 2]
-      my log INSIDE=[::xo::cc serialize]
+      
+      if {$delimiter == [expr {$urlc - 1}]} {
+	error [MalformedEndpointException new [subst {
+	  No object identifier information given 
+	  in resource locator '$url'.
+	}]]
+      }
+      set oidv [lrange $urlv [expr {$delimiter + 1}] end]
+      ::xo::cc virtualObject [join $oidv /]
+      my debug INSIDE=[::xo::cc serialize]
       switch -exact [::xo::cc method] {
 	"GET" {
 	  # meant to be request for wsdl; verify first
@@ -95,9 +106,12 @@ namespace eval ::xosoap {
 	    # TODO: introduce general dispatch mechanism
 	    # later on OR introduce admin service
 	    # which deals with these tasks (wsdl etc.)
+	    ::xorb::Invoker mixin add ::xosoap::Soap::Invoker
+	    set objectId [::xorb::Invoker resolve [::xo::cc virtualObject]]
+	    ::xorb::Invoker mixin delete ::xosoap::Soap::Invoker
 	    ::xorb::Skeleton mixin add ::xosoap::Wsdl1.1
 	    set implObj [::xorb::Skeleton getImplementation \
-			     -name [::xo::cc virtualObject]]
+			     -name $objectId]
 	    set wsdl [::xorb::Skeleton getContract \
 			  -name [$implObj implements]]
 	    ::xorb::Skeleton mixin delete ::xosoap::Wsdl1.1
@@ -112,7 +126,7 @@ namespace eval ::xosoap {
 	  # an actual http request with soap payload
 	  if {[::xo::cc marshalledRequest] ne {}} {
 	    set super [[my info class] info superclass]
-	    my log "---msg=[::xo::cc marshalledRequest],next=[self next],super=$super,m=[my info methods]"
+	    my debug "---msg=[::xo::cc marshalledRequest],next=[self next],super=$super,m=[my info methods]"
 	    next [::xo::cc marshalledRequest];# TransportListener->processRequest
 	  } else {
 	    error [HttpRequestException new {
@@ -131,7 +145,7 @@ namespace eval ::xosoap {
       [UnknownException new $errorInfo] write
       #my terminate;# unplug protocol + abort script
     }
-    my log "---PASSING---"
+    my debug "---PASSING---"
   }
   SoapHttpListener instproc dispatchResponse {payload} { 
     eval ns_return 200 text/xml $payload
@@ -165,7 +179,7 @@ namespace eval ::xosoap {
       error [::xosoap::exceptions::Server::InvocationException new $e]
     } else {
       global errorInfo
-      my log "---e=$e, $errorInfo"
+      my debug "---e=$e, $errorInfo"
       error [::xosoap::exceptions::Server::UnknownInvocationException new \
 		 $e]
     }
@@ -211,6 +225,52 @@ namespace eval ::xosoap {
     next;# Invoker->init
   }
 
+  
+  # / / / / / / / / / / / / / / /
+  # The invoker is assigned the
+  # role of an the main addressing
+  # prinicipal: As the invoker is
+  # responsible to dispatch the actual
+  # call to the skeleton object (or
+  # remote object as called in literature)
+  # it is the place to resolve a
+  # shared object id (object reference)
+  # to the corresponding internal
+  # name of the service implementation.
+  # This resolved name is then used
+  # to generate the actual skeleton.
+  # Currently, we only need a single
+  # resolution strategy, from URL components
+  # to the internal namespace notation.
+
+  Soap::Invoker instproc resolve {objectId} {
+    # / / / / / / / / / / / / /
+    # we assume the following identifier
+    # input: </>internal/pointer/to/service</>
+    # there is one major exception or special
+    # constraint. whenever there is a fragment
+    # acs as the first part of the path fragment
+    # it resolves to the unqualified (not resolvable)
+    # to a concrete tcl namespace / fully qualified
+    # tcl name. this allows, for instance, to integrate
+    # the old service contracts and implementations.
+    set oidv [split $objectId /]
+    set oidc [llength $oidv]
+    if {[lindex $oidv 0] ne "acs"} {
+      set objectId ::[join $oidv ::]
+    } else {
+      if {$oidc > 2} {
+	error {
+	  Object identifiers that resolve to the reserved and 
+	  virtual namespace 'acs' can only contain one suceeding 
+	  path fragment.}
+      }
+      set objectId [lindex $oidv 1]
+    }
+    # translated form: ::internal::pointer::to::service
+    return $objectId
+  }
+
   # # # # # # # # # # # # # # #
   # # # # # # # # # # # # # # #
   # # 3) Protocol interceptors
@@ -241,7 +301,7 @@ namespace eval ::xosoap {
       $requestObj copy $unmarshalled
       ::xo::cc unmarshalledRequest $unmarshalled
       
-      my log "endpoint=[::xo::cc virtualObject],version=[::xo::cc version]"
+      my debug "endpoint=[::xo::cc virtualObject],version=[::xo::cc version]"
     } catch {Exception e} {
       # rethrow
       error $e
@@ -259,9 +319,9 @@ namespace eval ::xosoap {
   DeMarshallingInterceptor instproc handleResponse {responseObj} {
     
     set visitor [::xosoap::visitor::SoapMarshallerVisitor new -volatile]
-    my log RESPONSEOBJ=$responseObj,[$responseObj info class]
+    my debug RESPONSEOBJ=$responseObj,[$responseObj info class]
     $visitor releaseOn $responseObj
-    my log "XML=[[$visitor xmlDoc] asXML]"
+    my debug "XML=[[$visitor xmlDoc] asXML]"
     next [list [[$visitor xmlDoc] asXML]]
     
   }
@@ -410,7 +470,7 @@ namespace eval ::xosoap {
 	    # of messages!
 	    set style [[self class] info parent]
 	    set class [$any info class]
-	    my log MAR=cl=$class,style=$style
+	    my debug MAR=cl=$class,style=$style
 	    set mixins {}
 	    foreach h [concat $class [$class info heritage]] {
 	      set hstripped [namespace tail $h]
@@ -419,7 +479,7 @@ namespace eval ::xosoap {
 		$any mixin add ${style}::${hstripped}
 	      }
 	    }
-	    my log mixins=$mixins
+	    my debug mixins=$mixins
 	    $any marshal $xmlDoc $anyNode $obj
 	    foreach m $mixins {
 	      $any mixin delete $m
@@ -429,7 +489,7 @@ namespace eval ::xosoap {
     Class InboundRequest \
 	-instproc SoapBodyRequest {obj} {
 	my instvar serviceMethod serviceArgs
-	my log CALL=[$obj elementName]
+	my debug CALL=[$obj elementName]
 	::xo::cc virtualCall [$obj elementName]
 	#set tmpArgs ""
 	#foreach keyvalue [$obj set methodArgs]  {	 
@@ -499,7 +559,7 @@ namespace eval ::xosoap {
     Class InboundRequest \
 	-instproc SoapBodyRequest {obj} {
 	my instvar serviceMethod serviceArgs
-	my log CALL=[$obj elementName]
+	my debug CALL=[$obj elementName]
 	::xo::cc virtualCall [$obj elementName]
 	#set tmpArgs ""
 	#foreach keyvalue [$obj set methodArgs]  {	 
@@ -520,7 +580,7 @@ namespace eval ::xosoap {
 	  $obj elementName [$invocationContext virtualCall]
 	  $obj set methodArgs [$invocationContext virtualArgs]
 	  $obj set style [[self class] info parent]
-	  my log METHODARGS=[$obj set methodArgs]
+	  my debug METHODARGS=[$obj set methodArgs]
 	  if {[$invocationContext exists callNamespace]} {
 	    # / / / / / / / / / / / / / / /
 	    # TODO: default namespace support!!!!!
@@ -549,7 +609,7 @@ namespace eval ::xosoap {
     Class InboundRequest \
 	-instproc SoapBodyRequest {obj} {
 	  my instvar serviceMethod serviceArgs
-	  my log CALL=[$obj elementName]
+	  my debug CALL=[$obj elementName]
 	  # / / / / / / / / / / / / / / / / /
 	  # resolve call from SOAPAction
 	  # header (as necessary in D/L style)

@@ -8,18 +8,17 @@
     <singleton-p>f</singleton-p>
     <auto-mount>xosoap</auto-mount>
 
-    <version name="0.3" url="http://media.wu-wien.ac.at/download/xotcl-soap-0.3.apm">
+    <version name="0.4" url="http://media.wu-wien.ac.at/download/xotcl-soap-0.4.apm">
         <owner url="mailto:stefan.sobernig@wu-wien.ac.at">Stefan Sobernig</owner>
-        <release-date>2007-03-19</release-date>
+        <release-date>2007-07-06</release-date>
         <maturity>0</maturity>
 
-        <provides url="xotcl-soap" version="0.3"/>
-        <requires url="xotcl-core" version="0.47"/>
-        <requires url="xotcl-request-broker" version="0.3"/>
+        <provides url="xotcl-soap" version="0.4"/>
+        <requires url="xotcl-request-broker" version="0.4"/>
 
         <callbacks>
-            <callback type="after-mount"  proc="::xosoap::after-mount"/>
             <callback type="before-unmount"  proc="::xosoap::before-unmount"/>
+            <callback type="after-mount"  proc="::xosoap::after-mount"/>
         </callbacks>
         <parameters>
             <parameter datatype="number"  min_n_values="1"  max_n_values="1"  name="debug_mode"  default="0" description="This flag enables a couple of debugging features in this xotcl-soap instance. It defaults to '0'." section_name="advanced"/>

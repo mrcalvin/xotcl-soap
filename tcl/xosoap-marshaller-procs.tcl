@@ -609,7 +609,7 @@ As specified for the RPC mode of operation, a single child of type
     foreach s [[self class] info slots] {
       set a [namespace tail $s]
       set node [$rootNode getElementsByTagName *$a]
-      if {$a ne {}} {
+      if {$node ne {}} {
 	my $a [$node text]
       }
     }

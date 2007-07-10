@@ -314,7 +314,7 @@ namespace eval ::xosoap::visitor {
     
     if {[$invocationContext istype ::xosoap::client::SoapGlueObject]} {
       # visitor is initiated from a consumer/ client
-      set style [$invocationContext invocationStyle]
+      set style [$invocationContext messageStyle]
     } else {
       # visitor is called from within a provider/ server
       set style [parameter::get \

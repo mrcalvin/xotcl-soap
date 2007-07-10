@@ -215,7 +215,9 @@ namespace eval ::prolix::pms {
   } -ad_doc { 
     This contract defines a newer version of the Prolix/PMS interface 
     description
-  }
+  } 
+
+  #PMSService2 deploy
 
   ::prolix::pms::messages::ProlixMessageHeader header \
       -messageId -1 \
@@ -303,5 +305,5 @@ namespace eval ::prolix::pms {
   
   # / / / / / / / / / / / /
   # deploy the 
-  PMSServiceImpl2 deploy
+  #PMSServiceImpl2 deploy
 }

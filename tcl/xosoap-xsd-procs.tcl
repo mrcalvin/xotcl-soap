@@ -118,25 +118,25 @@ namespace eval ::xosoap::xsd {
     }
   }
 
-  MetaAny XsVoid -superclass XsSimple \
+  MetaPrimitive XsVoid -superclass XsSimple \
       -instproc validate args {
 	my instvar __value__
 	return [expr {$__value__ eq {}}]
       }
 
-  MetaAny XsString -superclass XsSimple \
+  MetaPrimitive XsString -superclass XsSimple \
       -instproc validate args {
 	my instvar __value__
 	# TODO: change to a tcl-independent
 	# regexp!
 	return [string is print $__value__]
       }
-  MetaAny XsBoolean -superclass XsSimple \
+  MetaPrimitive XsBoolean -superclass XsSimple \
       -instproc validate args {
 	my instvar __value__
 	return [string is boolean $__value__]
       }
-  MetaAny XsDecimal -superclass XsSimple \
+  MetaPrimitive XsDecimal -superclass XsSimple \
       -instproc validate args {
 	my instvar __value__
 	return [regexp {^[+-]?(\d+(\.\d*)?|(\.\d+))$} $__value__]
@@ -144,7 +144,7 @@ namespace eval ::xosoap::xsd {
 	# return [regexp {^[+-]?((\d+\.[0-9]+)|([0-9]+))$} $value]
 	# return [regexp {^[+-]?((\d+\.\d*)|(\d+))$} $value]
       }  
-  MetaAny XsInteger -superclass XsDecimal \
+  MetaPrimitive XsInteger -superclass XsDecimal \
       -instproc validate args {
 	my instvar __value__
 	set isDecimal [next];# Decimal->validate
@@ -158,7 +158,7 @@ namespace eval ::xosoap::xsd {
 	set isInteger [regexp {^[+-]?\d+$} $__value__]
 	return [expr {$isDecimal && $isInteger}]
       }
-  MetaAny XsLong -superclass XsInteger \
+  MetaPrimitive XsLong -superclass XsInteger \
       -instproc validate args {
 	# Longs are the maximum capacity of Tcl
 	# to represent (by expr wrapping)
@@ -174,13 +174,13 @@ namespace eval ::xosoap::xsd {
 	  return $r
 	}
       }
-  MetaAny XsInt -superclass XsLong \
+  MetaPrimitive XsInt -superclass XsLong \
       -instproc validate args {
 	my instvar __value__
 	set isLong [next];# XsLong->validate
 	return [expr {$isLong && 2147483647 >= abs($__value__)}]
       }
-  MetaAny XsDouble -superclass XsDecimal \
+  MetaPrimitive XsDouble -superclass XsDecimal \
       -instproc validate args {
 	# see http://www.w3.org/TR/xmlschema-2/#double
 	# 1) check for lexical / notational form: decimal / sic
@@ -198,7 +198,7 @@ namespace eval ::xosoap::xsd {
 	  return 0
 	}
       }
-  MetaAny XsFloat -superclass XsDecimal \
+  MetaPrimitive XsFloat -superclass XsDecimal \
       -instproc validate args {
 	# see http://www.w3.org/TR/xmlschema-2/#float
 	# 1) check for lexical / notational form: decimal / sic
@@ -215,32 +215,32 @@ namespace eval ::xosoap::xsd {
 	  return 0
 	}
       }
-  MetaAny XsDate -superclass XsSimple  \
+  MetaPrimitive XsDate -superclass XsSimple  \
       -instproc validate args {
 	my instvar __value__
 	return [regexp {^-?([1-9]\d\d\d+|0\d\d\d)-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])(Z|(\+|-)(0\d|1[0-4]):[0-5]\d)?$} $__value__]
 	#return [regexp {^\d{4}-\d{2}-\d{2}(Z|[+-].+|$)$} $value]
       }
-  MetaAny XsTime -superclass XsSimple  \
+  MetaPrimitive XsTime -superclass XsSimple  \
       -instproc validate args {
 	my instvar __value__
 	return [regexp {^(([01]\d|2[0-3]):[0-5]\d:[0-5]\d(\.\d+)?|24:00:00(\.0+)?)(Z|(\+|-)(0\d|1[0-4]):[0-5]\d)?$} $__value__]
 	#return [regexp {^\d{2}:\d{2}:\d{2}(Z|[+-].+|$)$} $value]
       }
-  MetaAny XsDateTime -superclass XsSimple \
+  MetaPrimitive XsDateTime -superclass XsSimple \
       -instproc validate args {
 	my instvar __value__
 	return [regexp {^-?([1-9]\d\d\d+|0\d\d\d)-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])T(([01]\d|2[0-3]):[0-5]\d:[0-5]\d(\.\d+)?|24:00:00(\.0+)?)(Z|(\+|-)(0\d|1[0-4]):[0-5]\d)?$} $__value__]
 	#return [regexp {^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(Z|[+-].+|$)$} \
 	    # $value]
       }
-  MetaAny XsBase64Binary -superclass XsSimple \
+  MetaPrimitive XsBase64Binary -superclass XsSimple \
       -instproc validate args {
 	my instvar __value__
 	return [regexp {^((([A-Za-z0-9+/] ?){4})*(([A-Za-z0-9+/] ?){3}[A-Za-z0-9+/]|([A-Za-z0-9+/] ?){2}[AEIMQUYcgkosw048] ?=|[A-Za-z0-9+/] ?[AQgw] ?= ?=))?$} $__value__]
       }  
 
-  MetaAny XsHexBinary -superclass XsSimple \
+  MetaPrimitive XsHexBinary -superclass XsSimple \
       -instproc validate args {
 	my instvar __value__
 	return [string is xdigit $__value__]
@@ -349,7 +349,7 @@ namespace eval ::xosoap::xsd {
   # the explicit annotation, the logic
   # is implemented as XsCompound
 
-  MetaAny SoapStruct -superclass XsCompound
+  MetaComposite SoapStruct -superclass XsCompound
   SoapStruct instproc expand=xsType {reader} {
     $reader instvar cast
     return types:[namespace tail [$cast]]
@@ -547,7 +547,7 @@ namespace eval ::xosoap::xsd {
     my slots $cmds
   }
 
-  MetaAny SoapArray -superclass XsCompound -slots {
+  MetaComposite SoapArray -superclass XsCompound -slots {
     Attribute tagName -default "member"
   }
 

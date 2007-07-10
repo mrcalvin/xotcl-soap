@@ -1,3 +1,27 @@
+2007-07-10  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
+
+	* tcl/xosoap-marshaller-procs.tcl: fix for erroneous
+          if-expression in SoapFault->parse which failed on fault
+          messages that did not contain all fault-specific elements.
+
+	* tcl/15-xosoap-procs.tcl: Changed SoapHttpListener to support
+          the new naming/addressing scheme as introduced by xorb 0.4.
+	  Added a new mixin ::xosoap::Soap::Invoker or rather a new
+          method to it, which handles the resolution of the external
+          (URL-based) object ids to the internal, canonical object id.
+
+	* tcl/xosoap-client-procs.tcl: Changed property interface of
+          SoapGlueObject slightly: invocationStyle was renamed to
+          messageStyle, it now hosts Attributes for storing
+          marshalled/unmarshalled requests and responses (formerly
+          ContextObject directly). Added higher-level interface
+          entities SoapObject and SoapClass.
+
+	* tcl/xosoap-xsd-procs.tcl: Changed calls to MetaAny to
+          MetaPrimitive or MetaComposite as required by xorb 0.4.
+
+	* Pitched version to 0.4 and changed dependencies to xorb 0.4. 
+
 2007-06-28  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
 
 	* tcl/xosoap-callback-procs.tcl: Fixed for a missing namespace
