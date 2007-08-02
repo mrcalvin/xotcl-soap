@@ -17,6 +17,20 @@ namespace eval ::xosoap::xsd {
 
   namespace import -force ::xorb::datatypes::*  
   namespace import -force ::xosoap::*
+
+  # / / / / / / / / / / / / /
+  # meta class for soap-related
+  # primitives/composites
+
+  ::xotcl::Class SoapPrimitive -slots {
+    Attribute protocol -default {::xosoap::Soap}
+  } -superclass MetaPrimitive
+  
+  ::xotcl::Class SoapComposite -superclass {
+    SoapPrimitive MetaComposite
+  }
+
+
   # / / / / / / / / / / / / /
   # primitive types/ decorators
   # for anything containers
@@ -118,33 +132,35 @@ namespace eval ::xosoap::xsd {
     }
   }
 
-  MetaPrimitive XsVoid -superclass XsSimple \
+  SoapPrimitive XsVoid -superclass XsSimple \
       -instproc validate args {
 	my instvar __value__
 	return [expr {$__value__ eq {}}]
-      }
+      } -isSponsorFor ::xorb::datatypes::Void
 
-  MetaPrimitive XsString -superclass XsSimple \
+  SoapPrimitive XsString -superclass XsSimple \
       -instproc validate args {
 	my instvar __value__
 	# TODO: change to a tcl-independent
 	# regexp!
-	return [string is print $__value__]
-      }
-  MetaPrimitive XsBoolean -superclass XsSimple \
+	return [regexp {^[\x9\xA\xD\x20-\xD7FF\xE000-\xFFFD\x10000-\x10FFFF]*$} $__value__]
+      } -isSponsorFor ::xorb::datatypes::String
+  
+  SoapPrimitive XsBoolean -superclass XsSimple \
       -instproc validate args {
 	my instvar __value__
 	return [string is boolean $__value__]
-      }
-  MetaPrimitive XsDecimal -superclass XsSimple \
+      } -isSponsorFor ::xorb::datatypes::Boolean
+
+  SoapPrimitive XsDecimal -superclass XsSimple \
       -instproc validate args {
 	my instvar __value__
 	return [regexp {^[+-]?(\d+(\.\d*)?|(\.\d+))$} $__value__]
 	# return [regexp {^[+-]?\d+(\.\d*)?|(\.\d+)$} $value]
 	# return [regexp {^[+-]?((\d+\.[0-9]+)|([0-9]+))$} $value]
 	# return [regexp {^[+-]?((\d+\.\d*)|(\d+))$} $value]
-      }  
-  MetaPrimitive XsInteger -superclass XsDecimal \
+      } -isSponsorFor ::xorb::datatypes::Float
+  SoapPrimitive XsInteger -superclass XsDecimal \
       -instproc validate args {
 	my instvar __value__
 	set isDecimal [next];# Decimal->validate
@@ -158,7 +174,7 @@ namespace eval ::xosoap::xsd {
 	set isInteger [regexp {^[+-]?\d+$} $__value__]
 	return [expr {$isDecimal && $isInteger}]
       }
-  MetaPrimitive XsLong -superclass XsInteger \
+  SoapPrimitive XsLong -superclass XsInteger \
       -instproc validate args {
 	# Longs are the maximum capacity of Tcl
 	# to represent (by expr wrapping)
@@ -173,14 +189,16 @@ namespace eval ::xosoap::xsd {
 	} else {
 	  return $r
 	}
-      }
-  MetaPrimitive XsInt -superclass XsLong \
+      } 
+
+  SoapPrimitive XsInt -superclass XsLong \
       -instproc validate args {
 	my instvar __value__
 	set isLong [next];# XsLong->validate
 	return [expr {$isLong && 2147483647 >= abs($__value__)}]
-      }
-  MetaPrimitive XsDouble -superclass XsDecimal \
+      } -isSponsorFor ::xorb::datatypes::Integer
+
+  SoapPrimitive XsDouble -superclass XsDecimal \
       -instproc validate args {
 	# see http://www.w3.org/TR/xmlschema-2/#double
 	# 1) check for lexical / notational form: decimal / sic
@@ -198,7 +216,7 @@ namespace eval ::xosoap::xsd {
 	  return 0
 	}
       }
-  MetaPrimitive XsFloat -superclass XsDecimal \
+  SoapPrimitive XsFloat -superclass XsDecimal \
       -instproc validate args {
 	# see http://www.w3.org/TR/xmlschema-2/#float
 	# 1) check for lexical / notational form: decimal / sic
@@ -214,33 +232,33 @@ namespace eval ::xosoap::xsd {
 	} else {
 	  return 0
 	}
-      }
-  MetaPrimitive XsDate -superclass XsSimple  \
+      } -isSponsorFor ::xorb::datatypes::Float
+  SoapPrimitive XsDate -superclass XsSimple  \
       -instproc validate args {
 	my instvar __value__
 	return [regexp {^-?([1-9]\d\d\d+|0\d\d\d)-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])(Z|(\+|-)(0\d|1[0-4]):[0-5]\d)?$} $__value__]
 	#return [regexp {^\d{4}-\d{2}-\d{2}(Z|[+-].+|$)$} $value]
       }
-  MetaPrimitive XsTime -superclass XsSimple  \
+  SoapPrimitive XsTime -superclass XsSimple  \
       -instproc validate args {
 	my instvar __value__
 	return [regexp {^(([01]\d|2[0-3]):[0-5]\d:[0-5]\d(\.\d+)?|24:00:00(\.0+)?)(Z|(\+|-)(0\d|1[0-4]):[0-5]\d)?$} $__value__]
 	#return [regexp {^\d{2}:\d{2}:\d{2}(Z|[+-].+|$)$} $value]
       }
-  MetaPrimitive XsDateTime -superclass XsSimple \
+  SoapPrimitive XsDateTime -superclass XsSimple \
       -instproc validate args {
 	my instvar __value__
 	return [regexp {^-?([1-9]\d\d\d+|0\d\d\d)-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])T(([01]\d|2[0-3]):[0-5]\d:[0-5]\d(\.\d+)?|24:00:00(\.0+)?)(Z|(\+|-)(0\d|1[0-4]):[0-5]\d)?$} $__value__]
 	#return [regexp {^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(Z|[+-].+|$)$} \
 	    # $value]
       }
-  MetaPrimitive XsBase64Binary -superclass XsSimple \
+  SoapPrimitive XsBase64Binary -superclass XsSimple \
       -instproc validate args {
 	my instvar __value__
 	return [regexp {^((([A-Za-z0-9+/] ?){4})*(([A-Za-z0-9+/] ?){3}[A-Za-z0-9+/]|([A-Za-z0-9+/] ?){2}[AEIMQUYcgkosw048] ?=|[A-Za-z0-9+/] ?[AQgw] ?= ?=))?$} $__value__]
       }  
 
-  MetaPrimitive XsHexBinary -superclass XsSimple \
+  SoapPrimitive XsHexBinary -superclass XsSimple \
       -instproc validate args {
 	my instvar __value__
 	return [string is xdigit $__value__]
@@ -317,7 +335,7 @@ namespace eval ::xosoap::xsd {
 # 	  }
 # 	}
 	my log any=$any,typeKey=$type
-	set unwrapped [$any as $type]
+	set unwrapped [$any as -protocol ::xosoap::Soap $type]
 	my log unwrapped=$unwrapped
 	$anyObj set $s $unwrapped
       }
@@ -349,7 +367,8 @@ namespace eval ::xosoap::xsd {
   # the explicit annotation, the logic
   # is implemented as XsCompound
 
-  MetaComposite SoapStruct -superclass XsCompound
+  SoapComposite SoapStruct -superclass XsCompound \
+      -isSponsorFor ::xorb::datatypes::Object
   SoapStruct instproc expand=xsType {reader} {
     $reader instvar cast
     return types:[namespace tail [$cast]]
@@ -368,7 +387,8 @@ namespace eval ::xosoap::xsd {
 		    -typecode [$s anyType]\
 		    -style [[self class] info parent] \
 		    -observer $observer \
-		    -inCompound true]
+		    -inCompound true \
+		    -protocol ::xosoap::Soap]
 	append members "[$ar get xsDescription]\n"
       }
       $observer instvar types
@@ -415,7 +435,8 @@ namespace eval ::xosoap::xsd {
 		    -typecode [$s anyType]\
 		    -style [[self class] info parent] \
 		    -observer $observer \
-		    -inCompound true]
+		    -inCompound true \
+		    -protocol ::xosoap::Soap]
 	append members "[$ar get xsDescription]\n"
       }
       $observer instvar types
@@ -448,7 +469,8 @@ namespace eval ::xosoap::xsd {
 		    -typecode [$s anyType] \
 		    -style [[self class] info parent] \
 		    -observer $observer \
-		    -inCompound true]
+		    -inCompound true \
+		    -protocol ::xosoap::Soap] 
 	append members "[$ar get xsDescription]\n"
       }
       $observer instvar types
@@ -547,7 +569,7 @@ namespace eval ::xosoap::xsd {
     my slots $cmds
   }
 
-  MetaComposite SoapArray -superclass XsCompound -slots {
+  SoapComposite SoapArray -superclass XsCompound -slots {
     Attribute tagName -default "member"
   }
 
@@ -565,7 +587,8 @@ namespace eval ::xosoap::xsd {
 		  -observer $observer \
 		  -style [[self class] info parent] \
 		  -observer $observer \
-		  -inCompound true]
+		  -inCompound true \
+		  -protocol ::xosoap::Soap]
       $observer instvar types
       set fulltype [$ar get xsType]
       set t [string map {types: "" xsd: ""} $fulltype]
@@ -586,7 +609,8 @@ namespace eval ::xosoap::xsd {
       $reader instvar suffix cast
       set ar [::xorb::datatypes::AnyReader new \
 		  -style [[self class] info parent]\
-		  -typecode $cast]
+		  -typecode $cast \
+		  -protocol ::xosoap::Soap]
       #set idx [string map {"<" "[" ">" "]"} $suffix]
       set t [string map {types: "" xsd: ""} [$ar get xsType]]
       set t [string toupper $t 0 0]
@@ -605,7 +629,8 @@ namespace eval ::xosoap::xsd {
       $template instvar type size
       set ar [::xorb::datatypes::AnyReader new \
 		  -style [[self class] info parent]\
-		  -typecode $type]
+		  -typecode $type \
+		  -protocol ::xosoap::Soap]
       set xstype [$ar get xsType]
       $node setAttribute xsi:type "SOAP-ENC:Array"
       $node setAttribute SOAP-ENC:arrayType "$xstype\[$size\]"
@@ -630,7 +655,8 @@ namespace eval ::xosoap::xsd {
 		  -observer $observer \
 		  -style [[self class] info parent] \
 		  -observer $observer \
-		  -inCompound true]
+		  -inCompound true \
+		  -protocol ::xosoap::Soap]
       #return [$ar get flag]$idx
       # xsd:element {name $name type ${name}Type} {} is
       # added in document/literal style to types section!
@@ -654,7 +680,8 @@ namespace eval ::xosoap::xsd {
       $reader instvar suffix cast
       set ar [::xorb::datatypes::AnyReader new \
 		  -style [[self class] info parent]\
-		  -typecode $cast]
+		  -typecode $cast \
+		  -protocol ::xosoap::Soap]
       #set idx [string map {"<" "[" ">" "]"} $suffix]
       set t [string map {types: "" xsd: ""} [$ar get xsType]]
       set t [string toupper $t 0 0]

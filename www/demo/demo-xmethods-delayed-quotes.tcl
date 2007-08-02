@@ -2,7 +2,7 @@
 # Demo
 # / / / / / / / / / / / / / / / / / / /
 # StockQuote example in simple
-# GObject notation 
+# ProxyObject notation 
 # / / / / / / / / / / / / / / / / / / /
 # $Id$
 
@@ -28,7 +28,7 @@ set s1 [SoapGlueObject new \
 # stub object and declare the remote object
 # interface
 
-GObject StockQuote -glueobject $s1
+ProxyObject StockQuote -glueobject $s1
 StockQuote ad_proc -returns xsString getQuote {
   -symbol:xsString
 } {Retrieve quote for company symbol} {}

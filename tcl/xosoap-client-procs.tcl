@@ -13,6 +13,7 @@ namespace eval xosoap::client {
   namespace import -force ::xorb::stub::*
   namespace import -force ::xorb::client::*
   namespace import -force ::xoexception::try
+  namespace import -force ::xosoap::exceptions::*
   
 
   # # # # # # # # # # # # # # # # #
@@ -30,8 +31,61 @@ namespace eval xosoap::client {
     Attribute unmarshalledRequest
     Attribute unmarshalledResponse
     Attribute messageStyle -default ::xosoap::RpcLiteral
+  } -ad_doc {
+    <p>
+    The class SoapGlueObject refines <a href="show-object?show%5fmethods=1&show%5fsource=0&object=%3a%3axorb%3a%3astub%3a%3aContextObject">ContextObject</a>
+    to provide necessary configuration parameters for the SOAP
+    protocol plug-in, or rather client proxies defined in its scope.
+    </p>
+
+    <p>
+    The class adds the following properties (attribute slots) 
+    to those of <a href="show-object?show%5fmethods=1&show%5fsource=0&object=%3a%3axorb%3a%3astub%3a%3aContextObject">ContextObject</a>:
+    <ul>
+    <li>
+    endpoint: Simple delegate for ContextObject->virtualObject
+    that takes the transport endpoint of the targeted SOAP service.
+    </li>
+    <li>callNamespace: Allows to add a namespace URI that is 
+    then bound to the namespace prefix of the request element 
+    in the body part of the SOAP message.</li>
+    <li>schemas: By providing a list of prefix/URI pairs to this
+    property, one may register custom namespaces to be streamed
+    into the SOAP request message.</li>
+    <li>
+    action: Explicitly provide a value to the HTTP header field "SOAPAction".
+    It defaults to the endpoint address.
+    </li>
+    <li>
+    messageStyle: Specify the (de-)marshaling style to be used, you may
+    choose between ::xosoap::{RpcEncoded|RpcLiteral|DocumentLiteral}.
+    </li>
+    <li>
+    marshalledRequest: Depending on the execution stage, contains the
+    streamed version of the SOAP request message.
+    </li>
+    marshalledResponse: Depending on the execution stage, contains the
+    streamed version of the SOAP response message.
+    <li>
+    unmarshalledRequest: Depending on the execution stage, contains the
+    objectified version of the SOAP request message. It is a composite 
+    structure of XOTcl objects of type <a href="">SoapElement</a> that
+    can easily be traversed.
+    </li>
+    <li>
+    unmarshalledResponse: Depending on the execution stage, contains the
+    objectified version of the SOAP response message. It is a composite 
+    structure of XOTcl objects of type <a href="">SoapElement</a> that
+    can easily be traversed.
+    </li>
+    </ul>
+    </p>
+
+    @author stefan.sobernig@wu-wien.ac.at
   } -superclass ContextObject \
-      -clientPlugin ::xosoap::client::Soap::Client
+      -clientPlugin ::xosoap::client::Soap::Client \
+      -clientProtocol ::xosoap::Soap
+  
   SoapGlueObject instforward endpoint %self virtualObject
   
   # # # # # # # # # # # # # # # # #
@@ -167,12 +221,40 @@ namespace eval xosoap::client {
   ContextObjectClass SoapObject -superclass {
     SoapGlueObject
     ProxyObject
-  } -clientPlugin ::xosoap::client::Soap::Client 
+  } -ad_doc {
+    <p>The class provides a high-level interface to create
+    SOAP-enabled client proxies in xorb/xosoap. It integrates
+    both capabilities + features of <a href="show-object?show%5fmethods=1&show%5fsource=0&object=::xorb::stub::ProxyObject">ProxyObject</a> and
+    <a href="show-object?show%5fmethods=1&show%5fsource=0&object=::xosoap::client::SoapGlueObject">SoapGlueObject</a>. Instances are pure XOTcl objects
+    and do not inherit from ::xotcl::Class, so can't be instantiated further.
+    If you wish or feel the need to of a a SOAP-enabled client proxy that
+    behaves like a class, watch out for <a href="show-object?show%5fmethods=1&show%5fsource=0&object=::xosoap::client::SoapClass">SoapClass</a>.
+    </p>
+    
+    @author stefan.sobernig@wu-wien.ac.at
+  } -clientPlugin ::xosoap::client::Soap::Client \
+      -clientProtocol ::xosoap::Soap
+
+
+
 
   ContextObjectClass SoapClass -superclass {
     SoapGlueObject
     ProxyClass
+  } -ad_doc {
+    <p>The class provides a high-level interface to create
+    SOAP-enabled client proxies in xorb/xosoap. It integrates
+    both capabilities + features of <a href="show-object?show%5fmethods=1&show%5fsource=0&object=::xorb::stub::ProxyObject">ProxyObject</a> and
+    <a href="show-object?show%5fmethods=1&show%5fsource=0&object=::xosoap::client::SoapGlueObject">SoapGlueObject</a>. Instances are XOTcl classes
+    and can be instantiated further. By using SoapClass, you can create
+    a crowd of instances being actual client proxies, all using the information
+    provided by the SoapClass object. If you wish or feel the need to of a 
+    SOAP-enabled client proxy that behaves like a pure object, watch out for
+    <a href="show-object?show%5fmethods=1&show%5fsource=0&object=::xosoap::client::SoapObject">SoapObject</a>.
+    </p>
+    @author stefan.sobernig@wu-wien.ac.at
   } -clientPlugin ::xosoap::client::Soap::Client \
+      -clientProtocol ::xosoap::Soap \
       -instproc init args {
 	my superclass add ::xosoap::client::SoapObject
       }

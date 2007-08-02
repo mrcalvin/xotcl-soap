@@ -151,7 +151,8 @@ namespace eval ::xosoap {
 		    -typecode $type \
 		    -name $name \
 		    -observer [self] \
-		    -style $style]
+		    -style $style \
+		    -protocol ::xosoap::Soap]
 	append argNodes [subst {
 	  wsdl:part {
 	    name $name type [$ar get xsType]
@@ -187,7 +188,8 @@ namespace eval ::xosoap {
 		    -name $name \
 		    -observer [self] \
 		    -typecode $type \
-		    -style $style] 
+		    -style $style \
+		    -protocol ::xosoap::Soap] 
 	append returnNodes "wsdl:part {name $name type [$ar get xsType]} {}"
 	# / / / / / / / / / / /
 	# retrieve xs type definitions
@@ -263,7 +265,8 @@ namespace eval ::xosoap {
 		    -typecode $type \
 		    -name $name \
 		    -observer [self] \
-		    -style $style]
+		    -style $style \
+		    -protocol ::xosoap::Soap]
 	append argNodes [subst {
 	  wsdl:part {
 	    name $name type [$ar get xsType]
@@ -299,7 +302,8 @@ namespace eval ::xosoap {
 		    -name $name \
 		    -observer [self] \
 		    -typecode $type \
-		    -style $style] 
+		    -style $style \
+		    -protocol ::xosoap::Soap] 
 	append returnNodes "wsdl:part {name $name type [$ar get xsType]} {}"
 	# / / / / / / / / / / /
 	# retrieve xs type definitions
@@ -376,7 +380,8 @@ namespace eval ::xosoap {
 		    -typecode $type \
 		    -name $argName \
 		    -observer [self] \
-		    -style $style]
+		    -style $style \
+		    -protocol ::xosoap::Soap]
 	set upperArgName [string toupper $argName 0 0]
 	append argNodes [subst {
 	  wsdl:part {
@@ -411,7 +416,8 @@ namespace eval ::xosoap {
 		    -name $returnName \
 		    -observer [self] \
 		    -typecode $type \
-		    -style $style]
+		    -style $style \
+		    -protocol ::xosoap::Soap]
 	# / / / / / / / / / / / / / / / /
 	# No type, but element reference!
 	append returnNodes [subst {

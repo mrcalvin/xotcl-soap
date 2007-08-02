@@ -19,6 +19,7 @@
         <callbacks>
             <callback type="before-unmount"  proc="::xosoap::before-unmount"/>
             <callback type="after-mount"  proc="::xosoap::after-mount"/>
+            <callback type="before-uninstall"  proc="::xosoap::before-uninstall"/>
         </callbacks>
         <parameters>
             <parameter datatype="number"  min_n_values="1"  max_n_values="1"  name="debug_mode"  default="0" description="This flag enables a couple of debugging features in this xotcl-soap instance. It defaults to '0'." section_name="advanced"/>

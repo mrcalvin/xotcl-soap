@@ -13,9 +13,10 @@ namespace eval ::xosoap {
     -package_id
     -node_id
   } {} {
-    ::xosoap::XoSoapPackage initialise \
-	-package_id $package_id \
-	-node_id $node_id
+    ::xosoap::Package initialize \
+	-package_id $package_id
+    ::$package_id node $node_id
+    ::$package_id onMount
   }
 
   ad_proc -private before-unmount {
@@ -23,7 +24,19 @@ namespace eval ::xosoap {
     -node_id
   } {} {
     if {[::xotcl::Object isobject ::$package_id]} {
-      ::$package_id remove
+      ::$package_id onUnmount
+    }
+  }
+
+  ad_proc -private before-uninstall {} {
+    # / / / / / / / / / / / / / / / /
+    # Starting with 0.4, clearing
+    # message types
+    foreach sp [::xosoap::xsd::SoapPrimitive info instances ::xosoap::xsd::*] {
+      $s delete
+    }
+    foreach sc [::xosoap::xsd::SoapComposite info instances ::xosoap::xsd::*] {
+      $s delete
     }
   }
 }

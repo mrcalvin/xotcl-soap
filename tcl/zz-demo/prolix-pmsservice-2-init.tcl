@@ -234,7 +234,7 @@ namespace eval ::prolix::pms {
 	# / / / / / / / / / / / / /
 	# createCourseActivity
 	::xorb::Method createCourse {
-	  parameters:required
+	  -parameters:required
 	} {A learning activity is created.} {
 	  my log [self proc]=[$parameters serialize]
 	  set body [CreateCourseResponse new \
@@ -248,7 +248,7 @@ namespace eval ::prolix::pms {
 	# / / / / / / / / / / / / /
 	# updateCourseActivity
 	::xorb::Method updateCourse {
-	  parameters:required
+	  -parameters:required
 	} {A learning activity is updated.} {
 	  my log [self proc]=[$parameters serialize]
 	  set body [UpdatCourseResponse new \
@@ -262,7 +262,7 @@ namespace eval ::prolix::pms {
 	# / / / / / / / / / / / / /
 	# deleteCourseActivity
 	::xorb::Method deleteCourse {
-	  parameters:required
+	  -parameters:required
 	} {A learning activity is deleted.} {
 	  my log [self proc]=[$parameters serialize]
 	  set body [DeleteCourseResponse new \
@@ -276,7 +276,7 @@ namespace eval ::prolix::pms {
 	# / / / / / / / / / / / / /
 	# addParticipant
 	::xorb::Method addParticipant {
-	  parameters:required
+	  -parameters:required
 	} {A participant is added.} {
 	  my log [self proc]=[$parameters serialize]
 	  set body [AddParticipantResponse new \
@@ -290,7 +290,7 @@ namespace eval ::prolix::pms {
 	# / / / / / / / / / / / / /
 	# removeParticipant
 	::xorb::Method removeParticipant {
-	  parameters:required
+	  -parameters:required
 	} {A participant is removed.} {
 	  my log [self proc]=[$parameters serialize]
 	  set body [RemoveParticipantResponse new \

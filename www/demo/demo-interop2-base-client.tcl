@@ -2,7 +2,7 @@
 # Demo
 # / / / / / / / / / / / / / / / / / / /
 # 	- SOAP Interop2 Base test suite
-#	- in simple GObject notation
+#	- in simple ProxyObject notation
 #	- using gSoap interop2 reference
 #	implementation as counterpart
 # 
@@ -20,15 +20,16 @@ set nusoap http://dietrich.ganx4.com/nusoap/testbed/round2_base_server.php
 set soap [SoapGlueObject new \
 	     -endpoint $nusoap\
 	     -callNamespace http://soapinterop.org/ \
-	     -invocationStyle ::xosoap::RpcEncoded]
+	     -messageStyle ::xosoap::RpcEncoded]
 
 set local [SoapGlueObject new \
-	       -endpoint http://localhost:8000/xosoap/services/SoapInterop2Impl]
+	       -endpoint http://localhost:8000/xosoap/services/xosoap/demo/SoapInterop2Impl \
+	      -messageStyle ::xosoap::RpcLiteral]
 # / / / / / / / / / / / / / 
 # see http://www.whitemesa.com/interop/proposal2.html
 # for interface description
 
-GObject SoapInterop2Base -glueobject $local
+ProxyObject SoapInterop2Base -glueobject $local
 
 
 # / / / / / / / / / / / / /

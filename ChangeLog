@@ -1,3 +1,31 @@
+2007-08-02  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
+
+	* www/demo/demo-interop2-base-client.tcl: Tested and fixed for
+          new features/internals.
+
+	* tcl/zz-demo/interop2-base-server-init.tcl: Moved to new,
+          short-cut notation for Abstract/Delegate/Method. Fixed some
+          typos and tested again.
+
+	* tcl/xosoap-xsd-procs.tcl: Introduced new meta class for
+          xs/soap specific anythings: SoapPrimitive and SoapComposite
+
+	* tcl/xosoap-package-procs.tcl: Ported over to support
+	xotcl-core's package facilities, the new state handler
+	are called onMount and onUnmount. 
+
+	* tcl/xosoap-init.tcl: Minor rewrite, migrated to
+          xotcl-core-based package infrastructure.
+
+	* tcl/xosoap-client-procs.tcl: Added inline documentation for
+          SoapGlueObject, SoapObject and SoapClass.
+
+	* tcl/xosoap-callback-procs.tcl: Partial rewrite, following
+          the migration to xotcl-core's package facilities. This
+          follows recent revisions of xorb. Also added an
+          before-uninstall trace that will clear xsd types realised as
+          acs message types.
+
 2007-07-10  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
 
 	* tcl/xosoap-marshaller-procs.tcl: fix for erroneous

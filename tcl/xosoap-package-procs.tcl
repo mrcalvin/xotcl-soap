@@ -1,10 +1,21 @@
-ad_library {}
+ad_library {
+
+  xosoap comes with a package infrastructure, based
+  upon recent xotcl-core package facilities.
+  These facilities help to manage package scope
+  more elegantly by encapsulated acs package contexts
+  in object structures.
+
+  @author stefan.sobernig@wu-wien.ac.at
+  @cvs-id $Id$
+
+}
 
 namespace eval ::xosoap {
   namespace import -force ::xorb::ProtocolPackage
-  
-  PackageManager XoSoapPackage -superclass ProtocolPackage
-  XoSoapPackage instproc setup {} {
+  namespace import -force ::xorb::PackageMgr
+  ::xorb::PackageMgr Package -superclass ProtocolPackage
+  Package instproc onMount {} {
     my instvar node baseUrl
     set package_id [namespace tail [self]]
     # / / / / / / / / / / / / / / / /
@@ -38,9 +49,9 @@ namespace eval ::xosoap {
 	::xosoap::SoapHttpListener; # SoapHttpListener->preauth
     ns_register_proc $method $suffix ::xosoap::SoapHttpListener redirect			
     my log [subst $msg]	
-    next;# ProtocolPackage->setup
+    next;# ProtocolPackage->onMount
   }
-  XoSoapPackage instproc remove {} {
+  Package instproc onUnmount {} {
     my instvar node baseUrl
     set package_id [namespace tail [self]]
     # 1) get url path from node_id
@@ -57,5 +68,5 @@ namespace eval ::xosoap {
     next;# ProtocolPackage->remove
   }
 
-  namespace export XoSoapPackage
+  namespace export Package
 }

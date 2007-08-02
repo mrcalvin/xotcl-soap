@@ -39,60 +39,60 @@ namespace eval ::xosoap::demo {
   #	by plug-ins (xosoap -> xs data types)
  
   ServiceContract SoapInterop2  -defines {
-    ::xorb::Abstract echoString \
+    Abstract echoString \
 	-arguments {
 	  inputString:xsString
 	} -returns "returnValue:xsString" \
 	-description {
 	  see http://www.whitemesa.com/interop/proposal2.html#echoString
 	}
-    ::xorb::Abstract echoInteger \
+    Abstract echoInteger \
 	-arguments {
 	  inputInteger:xsInteger
 	} -returns "returnValue:xsInteger" \
 	-description {
 	  see http://www.whitemesa.com/interop/proposal2.html#echoInteger
 	}
-    ::xorb::Abstract echoFloat \
+    Abstract echoFloat \
 	-arguments {
 	  inputFloat:xsFloat
 	} -returns "returnValue:xsFloat" \
 	-description {
 	  see http://www.whitemesa.com/interop/proposal2.html#echoFloat
 	}
-    ::xorb::Abstract echoVoid \
+    Abstract echoVoid \
 	-description {
 	  see http://www.whitemesa.com/interop/proposal2.html#echoVoid
 	}
-    ::xorb::Abstract echoBase64 \
+    Abstract echoBase64 \
 	-arguments {
 	  inputBase64:xsBase64Binary
 	} -returns "returnValue:xsBase64Binary" \
 	-description {
 	  see http://www.whitemesa.com/interop/proposal2.html#echoBase64
 	}
-    ::xorb::Abstract echoHexBinary \
+    Abstract echoHexBinary \
 	-arguments {
 	  inputHexBinary:xsHexBinary
 	} -returns "returnValue:xsHexBinary" \
 	-description {
 	  see http://www.whitemesa.com/interop/proposal2.html#echoHexBinary
 	}
-    ::xorb::Abstract echoDate \
+    Abstract echoDate \
 	-arguments {
 	  inputDate:xsDateTime
 	} -returns "returnValue:xsDateTime" \
 	-description {
 	  see http://www.whitemesa.com/interop/proposal2.html#echoDate
 	}
-    ::xorb::Abstract echoDecimal \
+    Abstract echoDecimal \
 	-arguments {
 	  inputDecimal:xsDecimal
 	} -returns "returnValue:xsDecimal" \
 	-description {
 	  see http://www.whitemesa.com/interop/proposal2.html#echoDecimal
 	}
-    ::xorb::Abstract echoBoolean \
+    Abstract echoBoolean \
 	-arguments {
 	  inputBoolean:xsString
 	} -returns "returnValue:xsBoolean" \
@@ -100,35 +100,35 @@ namespace eval ::xosoap::demo {
 	  see http://www.whitemesa.com/interop/proposal2.html#echoBoolean
 	}
 
-    ::xorb::Abstract echoStruct \
+    Abstract echoStruct \
 	-arguments {
 	  inputStruct:soapStruct(::xosoap::demo::exampleStruct)
 	} -returns "returnValue:soapStruct(::xosoap::demo::exampleStruct)" \
 	-description {
 	  see http://www.whitemesa.com/interop/proposal2.html#echoStruct
 	}
-    ::xorb::Abstract echoStringArray \
+    Abstract echoStringArray \
 	-arguments {
 	  inputStringArray:soapArray(xsString)<2>
 	} -returns "returnValue:soapArray(xsString)<2>" \
 	-description {
 	  see http://www.whitemesa.com/interop/proposal2.html#echoStringArray
 	}
-    ::xorb::Abstract echoIntegerArray \
+    Abstract echoIntegerArray \
 	-arguments {
 	  inputIntegerArray:soapArray(xsInteger)<2>
 	} -returns "returnValue:soapArray(xsInteger)<2>" \
 	-description {
 	  see http://www.whitemesa.com/interop/proposal2.html#echoIntegerArray
 	}
-    ::xorb::Abstract echoFloatArray \
+    Abstract echoFloatArray \
 	-arguments {
 	  inputFloatArray:soapArray(xsFloat)<2>
 	} -returns "returnValue:soapArray(xsFloat)<2>" \
 	-description {
 	  see http://www.whitemesa.com/interop/proposal2.html#echoFloatArray
 	}
-    ::xorb::Abstract echoStructArray \
+    Abstract echoStructArray \
 	-arguments {
 	  inputStructArray:soapArray(soapStruct(xosoap::demo::exampleStruct))<2>
 	} -returns "returnValue:soapArray(soapStruct(xosoap::demo::exampleStruct))<2>" \
@@ -140,7 +140,7 @@ namespace eval ::xosoap::demo {
     for the Soap Interop2 Base test suite.
   } 
 
-  #SoapInterop2 deploy
+  SoapInterop2 deploy
 
    #     ___________________
   #   ,'                   `.
@@ -163,99 +163,99 @@ namespace eval ::xosoap::demo {
       -using {
 	# / / / / / / / / / / / / /
 	# echoString
-	::xorb::Method echoString {
-	  inputString:required
+	Method echoString {
+	  -inputString:required
 	} {Echoes an incoming string} {
 	  my log "ECHOSTRING called: $inputString"
 	  return $inputString
 	}
 	# / / / / / / / / / / / / /
 	# echoInteger
-	::xorb::Method echoInteger {
-	  inputInteger:required
+	Method echoInteger {
+	  -inputInteger:required
 	} {Echoes an incoming integer} {
 	  return $inputInteger
 	}
 	# / / / / / / / / / / / / /
 	# echoInteger
-	::xorb::Method echoFloat {
-	  inputFloat:required
+	Method echoFloat {
+	  -inputFloat:required
 	} {Echoes an incoming float} {
 	  return $inputFloat
 	}
 	# / / / / / / / / / / / / /
 	# echoVoid
-	::xorb::Method echoVoid {} {non-returning call:void} {
+	Method echoVoid {} {non-returning call:void} {
 	  # do nothing
 	}
 	# / / / / / / / / / / / / /
 	# echoBase64
-	::xorb::Method echoBase64 {
-	  inputBase64:required
+	Method echoBase64 {
+	  -inputBase64:required
 	} {Echoes an incoming base64 string} {
 	  return $inputBase64
 	}
 	# / / / / / / / / / / / / /
 	# echoHexBinary
-	::xorb::Method echoHexBinary {
-	  inputHexBinary:required
+	Method echoHexBinary {
+	  -inputHexBinary:required
 	} {Echoes an incoming hex string} {
 	  return $inputHexBinary
 	}
 	# / / / / / / / / / / / / /
 	# echoDate
-	::xorb::Method echoDate {
-	  inputDate:required
+	Method echoDate {
+	  -inputDate:required
 	} {Echoes an incoming datetime value} {
 	  return $inputDate
 	}
 	# / / / / / / / / / / / / /
 	# echoDecimal
-	::xorb::Method echoDecimal {
-	  inputDecimal:required
+	Method echoDecimal {
+	  -inputDecimal:required
 	} {Echoes an incoming decimal value} {
 	  return $inputDecimal
 	}
 	# / / / / / / / / / / / / /
 	# echoBoolean
-	::xorb::Method echoBoolean {
-	  inputBoolean:required
+	Method echoBoolean {
+	  -inputBoolean:required
 	} {Echoes an incoming boolean value} {
 	  return $inputBoolean
 	}
 	# / / / / / / / / / / / / /
 	# echoStruct
-	::xorb::Method echoStruct {
-	  inputStruct:required
+	Method echoStruct {
+	  -inputStruct:required
 	} {Echoes an incoming struct} {
 	  my log inputStruct(varFloat)=[$inputStruct varFloat]
 	  return $inputStruct
 	}
 	# / / / / / / / / / / / / /
 	# echoStringArray
-	::xorb::Method echoStringArray {
-	  inputStringArray:required
+	Method echoStringArray {
+	  -inputStringArray:required
 	} {Echoes an incoming array of strings} {
 	  return $inputStringArray
 	}
 	# / / / / / / / / / / / / /
 	# echoIntegerArray
-	::xorb::Method echoIntegerArray {
-	  inputIntegerArray:required
+	Method echoIntegerArray {
+	  -inputIntegerArray:required
 	} {Echoes an incoming array of integers} {
 	  return $inputIntegerArray
 	}
 	# / / / / / / / / / / / / /
 	# echoFloatArray
-	::xorb::Method echoFloatArray {
-	  inputFloatArray:required
+	Method echoFloatArray {
+	  -inputFloatArray:required
 	} {Echoes an incoming array of floats} {
 	  return $inputFloatArray
 	}
 	# / / / / / / / / / / / / /
 	# echoStructArray
-	::xorb::Method echoStructArray {
-	  inputStructArray:required
+	Method echoStructArray {
+	  -inputStructArray:required
 	} {Echoes an incoming array of structs} {
 	  return $inputStructArray
 	}
@@ -265,7 +265,7 @@ namespace eval ::xosoap::demo {
   # deployment descriptor
   # + actual deployment
 
-  #SoapInterop2Impl deploy
+  SoapInterop2Impl deploy
   
   # # # # # # # # # # # # # # # # # #
   # # # # # # # # # # # # # # # # # #
@@ -297,17 +297,17 @@ namespace eval ::xosoap::demo {
   }
 
   ServiceContract SoapInterop2GroupB -defines {
-    ::xorb::Abstract echoNestedStruct \
+    Abstract echoNestedStruct \
 	-arguments {
 	  inputStruct:soapStruct(::xosoap::demo::exampleNestingStruct)
 	} -returns "returnValue:soapStruct(::xosoap::demo::exampleNestingStruct)" \
 	-description {
 	  see http://www.whitemesa.com/interop/proposalB.html#echoNestedStruct
 	}
-    ::xorb::Abstract echoNestedArray \
+    Abstract echoNestedArray \
 	-arguments {
 	  inputStruct:soapStruct(::xosoap::demo::nestedArrayStruct)
-	} -returns "returnValue:soapStruct=(xosoap::demo::nestedArrayStruct)" \
+	} -returns "returnValue:soapStruct(xosoap::demo::nestedArrayStruct)" \
 	-description {
 	  see http://www.whitemesa.com/interop/proposalB.html#echoNestedArray
 	}
@@ -316,20 +316,22 @@ namespace eval ::xosoap::demo {
     Whitemesa Soap Interop2 Group 'B' test suite.
   }
 
+  SoapInterop2GroupB deploy
+
   ServiceImplementation SoapInterop2GroupBImpl \
       -implements SoapInterop2GroupB \
       -using {
 	# / / / / / / / / / / / / /
 	# echoNestedStruct
-	::xorb::Method echoNestedStruct {
-	  inputStruct:required
+	Method echoNestedStruct {
+	  -inputStruct:required
 	} {Echoes an incoming nested structure of structs} {
 	  return $inputStruct
 	}
 	# / / / / / / / / / / / / /
 	# echoNestedArray
-	::xorb::Method echoNestedArray {
-	  inputStruct:required
+	Method echoNestedArray {
+	  -inputStruct:required
 	} {Echoes an incoming struct with a nested array} {
 	  return $inputStruct
 	}
@@ -337,5 +339,5 @@ namespace eval ::xosoap::demo {
   
   # / / / / / / / / / / / /
   # deploy the 
-  #SoapInterop2GroupBImpl deploy
+  SoapInterop2GroupBImpl deploy
 }
