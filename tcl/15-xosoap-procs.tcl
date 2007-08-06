@@ -35,53 +35,43 @@ namespace eval ::xosoap {
       -plugin "::xosoap::Soap"
   SoapHttpListener forward preauth %self initialise 
   SoapHttpListener proc initialise {} {
-    # create listener instance
-    my contextClass ::xosoap::SoapInvocationContext 
-    next;#ListenerClass->initialise + require ::xo::cc
-    # populate with remoting specific tags
-    # populate with transport + protocol tag
-    ::xo::cc actual_query [ns_conn query]
-    ::xo::cc transport [my protocol]
-    ::xo::cc protocol [my plugin]
-    ::xo::cc method [ns_conn method]
-    ::xo::cc marshalledRequest [ns_conn content]
-    # we require the SOAPAction header field to
-    # be present in the http post request,
-    # however its value is of no significance
-    # (for endpoint resolution etc.)
-    set headerSet [ns_conn header]
-    set idx [ns_set find $headerSet SOAPAction]
-    if {[::xo::cc method] eq "POST" && $idx != -1} {
-      # keep in context object for later use!
-      # FIXED: apply trimming to header strings for
-      # quotation marks!
-      ::xo::cc action [string trim [ns_set value $headerSet $idx] \"]
-      return filter_ok;
-    } elseif {[::xo::cc method] eq "GET"} {
-      my debug context=[::xo::cc serialize]
-      return filter_ok;
-    } else {
-      return filter_return;
-    }
+    next;#ListenerClass->initialise 
+    return filter_ok;
   }
-  SoapHttpListener proc redirect {} {
-    # TODO: move to ListenerClass->redirect?
-    [my plugin] plug -listener [self]::listener
-    next;#ListenerClass->redirect
-    my terminate; # unplug
-  }
-  SoapHttpListener instproc processRequest {{requestObj {}}} {
-    # actual processing
-    set service_prefix [parameter::get -parameter "service_url" -default \
-			    "services"]
-    #set package_key [apm_package_key_from_id [::xo::cc package_id]]
-    set url [string trim [::xo::cc url] /]
-    set urlv [split $url /]
-    set urlc [llength $urlv]
-    set delimiter [lsearch -exact $urlv $service_prefix]
-    # / / / / / / / / / / / / / /
-    # verifying url
-    catch {
+#   SoapHttpListener proc redirect {} {
+#     # TODO: move to ListenerClass->redirect?
+#     #[my plugin] plug -listener [self]::listener
+#     next;#ListenerClass->redirect
+#     #my terminate; # unplug
+#   }
+  SoapHttpListener instproc processRequest {} {
+
+    # / / / / / / / / / / / / / / / / / / / / / / / / / 
+    # Starting with 0.4, post-filter (or rather post-
+    # query-processor) processing involves the following
+    # stages
+    # 1-) require a package manager instance + 
+    # connextion context (::xo::cc) and set 
+    # 2-) populate the previously acquired invocation
+    # context
+    # xorb specific extensions
+    # 3-) forward to package dispatcher
+    catch {      
+      # -- 1-)
+      # We provide for a slightly different
+      # initialisation semantic depending
+      # on where the requests debarks
+      set service_prefix [parameter::get -parameter "service_url" -default \
+			      "services"]
+      #set package_key [apm_package_key_from_id [::xo::cc package_id]]
+      set url [string trim [ns_conn url] /]
+      set urlv [split $url /]
+      set urlc [llength $urlv]
+      set delimiter [lsearch -exact $urlv $service_prefix]
+
+      # / / / / / / / / / / / / / /
+      # verifying locator
+      
       if {$delimiter == -1} {
 	error [MalformedEndpointException new [subst {
 	  Service prefix '$service_prefix' not given in resource locator 
@@ -89,52 +79,28 @@ namespace eval ::xosoap {
 	}]]
       }
       
-      if {$delimiter == [expr {$urlc - 1}]} {
-	error [MalformedEndpointException new [subst {
-	  No object identifier information given 
-	  in resource locator '$url'.
-	}]]
+      set params [list -s:optional "badge"]
+      if {$delimiter < [expr {$urlc - 1}]} {
+	set params [list -s:optional "invocation"]
+	set oidv [lrange $urlv [expr {$delimiter + 1}] end]
+	my set fragment [join $oidv /]
       }
-      set oidv [lrange $urlv [expr {$delimiter + 1}] end]
-      ::xo::cc virtualObject [join $oidv /]
-      my debug INSIDE=[::xo::cc serialize]
-      switch -exact [::xo::cc method] {
-	"GET" {
-	  # meant to be request for wsdl; verify first
-	  if {[::xo::cc actual_query] eq "wsdl"} {
-	    # / / / / / / / / / / / / /
-	    # TODO: introduce general dispatch mechanism
-	    # later on OR introduce admin service
-	    # which deals with these tasks (wsdl etc.)
-	    ::xorb::Invoker mixin add ::xosoap::Soap::Invoker
-	    set objectId [::xorb::Invoker resolve [::xo::cc virtualObject]]
-	    ::xorb::Invoker mixin delete ::xosoap::Soap::Invoker
-	    ::xorb::Skeleton mixin add ::xosoap::Wsdl1.1
-	    set implObj [::xorb::Skeleton getImplementation \
-			     -name $objectId]
-	    set wsdl [::xorb::Skeleton getContract \
-			  -name [$implObj implements]]
-	    ::xorb::Skeleton mixin delete ::xosoap::Wsdl1.1
-	    #eval [my getWSDL -servicePointer  [::xo::cc virtualObject]]
-	  } else {
-	    error [HttpRequestException new {
-	      'wsdl' only is allowed / required as parameter in GET requests
-	    }]
-	  }
-	} 
-	"POST" {
-	  # an actual http request with soap payload
-	  if {[::xo::cc marshalledRequest] ne {}} {
-	    set super [[my info class] info superclass]
-	    my debug "---msg=[::xo::cc marshalledRequest],next=[self next],super=$super,m=[my info methods]"
-	    next [::xo::cc marshalledRequest];# TransportListener->processRequest
-	  } else {
-	    error [HttpRequestException new {
-	      Payload is missing in POST request
-	    }]
-	  }
-	}
-      }
+
+      ::xosoap::Package initialize \
+	  -user_id [acs_magic_object "unregistered_visitor"] \
+	  -parameter [list $params]
+
+      ::$package_id configure \
+	  -protocol [[my info class] plugin] \
+	  -listener [self]
+      ::xo::cc httpMethod [ns_conn method]
+            
+      # -- 3-)
+
+
+      my debug params=$params,solicit=$s
+      ::$package_id solicit $s
+      # - - - - - - - - - - - - - - - - - - - - - - - -
     } e
 
     if {[::xoexception::Throwable isThrowable $e]} {
@@ -144,11 +110,16 @@ namespace eval ::xosoap {
       global errorInfo
       [UnknownException new $errorInfo] write
       #my terminate;# unplug protocol + abort script
+      my debug "---FINISHED---"
     }
-    my debug "---PASSING---"
+
   }
-  SoapHttpListener instproc dispatchResponse {payload} { 
-    eval ns_return 200 text/xml $payload
+  SoapHttpListener instproc dispatchResponse {
+    statusCode
+    contentType
+    payload
+  } { 
+    ns_return $statusCode $contentType $payload
   }
 
   # # # # # # # # # # # # # #
@@ -163,8 +134,10 @@ namespace eval ::xosoap {
     -2- adding protocol-specific interceptors to the chain
     of interceptors for the protocol-specific call.
  
-  } -superclass RemotingPlugin
-  Soap instproc handleRequest {requestObj} {
+  } -superclass RemotingPlugin \
+      -contextClass "::xosoap::SoapInvocationContext"
+
+  Soap instproc handleRequest {context} {
 
     catch {
       ::xorb::Invoker instmixin add [self class]::Invoker
@@ -184,19 +157,31 @@ namespace eval ::xosoap {
 		 $e]
     }
   }
-  Soap instproc handleResponse {requestObj returnValue} {
+  Soap instproc handleResponse {context returnValue} {
      # / / / / / / / / / / / / / / / / / / / / /
     # 1) SoapResponseVisitor
-    set visitor [::xosoap::visitor::InvocationDataVisitor new -volatile \
-		     -batch $returnValue] 
+    set visitor [::xosoap::visitor::InvocationDataVisitor new \
+		     -volatile \
+		     -batch $returnValue \
+		     -invocationContext $context] 
 
-    # / / / / / / / / / / / / / / / / / / / / 
-    # TODO: default to [::xo::cc unmarshalledRequest] or
-    # most current state of request object as skeleton for the response
-    # object?
-    #set responseObj [::xo::cc unmarshalledRequest];
-    # $requestObj?
-    set responseObj $requestObj
+    # / / / / / / / / / / / / / / / /
+    # Starting with 0.4, we return a 
+    # 'virgin' envelope object to
+    # be further processed. up to this
+    # moment we re-used the demarshalled/
+    # mangled request object, however,
+    # this turned out to be hairy in 
+    # terms of visitor traversals through
+    # OrderedComposite structures. btw.,
+    # this also renders the interceptors
+    # somehow useless, as most of them
+    # would use visitors to access and
+    # mangle the message objects.
+
+    set responseObj [::xosoap::marshaller::SoapEnvelope new \
+			 -response]
+    
     # / / / / / / / / / / / / / / / / / / / / /
     # 2) Transform request into response object
     $visitor releaseOn $responseObj
@@ -204,24 +189,23 @@ namespace eval ::xosoap {
     # / / / / / / / / / / / / / / / / / / / / /
     # 3) preserve original response object before passing it through
     # the response flow of interceptors
-    set unmarshalled [::xotcl::Object autoname soap]
-    $responseObj copy $unmarshalled
-    ::xo::cc unmarshalledResponse $unmarshalled
+    $context unmarshalledResponse $responseObj
     
-    # ::xorb::RequestHandler->handleResponse
-    
-    set r [next $responseObj];
-    [my listener] dispatchResponse $r
+    set r [next $context];
+    [my listener] dispatchResponse 200 text/xml $r
   }
 
-  Class Soap::Invoker -instproc init {requestObj} {
+  Class Soap::Invoker -instproc init args {
+    my instvar context
     # / / / / / / / / / / / / / / / / / / /
     # Call InvocationDataVisitor to
     # extract the invocation data from
     # the SOAP message object into the 
     # context object (::xo::cc)
-    set visitor [::xosoap::visitor::InvocationDataVisitor new -volatile]
-    $visitor releaseOn $requestObj
+    set visitor [::xosoap::visitor::InvocationDataVisitor new \
+		     -volatile \
+		     -invocationContext $context]
+    $visitor releaseOn [$context unmarshalledRequest]
     next;# Invoker->init
   }
 
@@ -282,12 +266,12 @@ namespace eval ::xosoap {
 
   Interceptor DeMarshallingInterceptor
 
-  DeMarshallingInterceptor instproc handleRequest {requestObj} {
+  DeMarshallingInterceptor instproc handleRequest {context} {
     
     try {
       # / / / / / / / / / / / / / / / / / / / / 
       # 1) modify args > parse into soap object tree
-      
+      set requestObj [$context marshalledRequest]
       set doc [dom parse $requestObj]
       set root [$doc documentElement]
       
@@ -296,12 +280,12 @@ namespace eval ::xosoap {
       
       # / / / / / / / / / / / / / / / / / / / / 
       # 2) populate invocation context
-      ::xo::cc version [my getSoapVersion $requestObj]
-      set unmarshalled [::xotcl::Object autoname soap]
-      $requestObj copy $unmarshalled
-      ::xo::cc unmarshalledRequest $unmarshalled
+      $context version [my getSoapVersion $requestObj]
+      #set unmarshalled [::xotcl::Object autoname soap]
+      #$requestObj copy $unmarshalled
+      $context unmarshalledRequest $requestObj
       
-      my debug "endpoint=[::xo::cc virtualObject],version=[::xo::cc version]"
+      my debug "endpoint=[$context virtualObject],version=[$context version]"
     } catch {Exception e} {
       # rethrow
       error $e
@@ -313,17 +297,16 @@ namespace eval ::xosoap {
     
     # / / / / / / / / / / / / / / / / / / / / /
     # 3) pass on unmarshalled request
-    next $requestObj
+    next $context
   }
 
-  DeMarshallingInterceptor instproc handleResponse {responseObj} {
-    
+  DeMarshallingInterceptor instproc handleResponse {context} {
+    set responseObj [$context unmarshalledResponse]
     set visitor [::xosoap::visitor::SoapMarshallerVisitor new -volatile]
     my debug RESPONSEOBJ=$responseObj,[$responseObj info class]
     $visitor releaseOn $responseObj
     my debug "XML=[[$visitor xmlDoc] asXML]"
-    next [list [[$visitor xmlDoc] asXML]]
-    
+    next [[$visitor xmlDoc] asXML]
   }
 
 
@@ -397,7 +380,7 @@ namespace eval ::xosoap {
   # # 4) Protocol-specific
   # # context
 
-  ContextClass SoapInvocationContext -parameter {
+  ::xotcl::Class SoapInvocationContext -parameter {
     {action {}}
     {version "1.1"}
   } -superclass RemotingInvocationContext
@@ -488,22 +471,28 @@ namespace eval ::xosoap {
 	}
     Class InboundRequest \
 	-instproc SoapBodyRequest {obj} {
-	my instvar serviceMethod serviceArgs
-	my debug CALL=[$obj elementName]
-	::xo::cc virtualCall [$obj elementName]
-	#set tmpArgs ""
-	#foreach keyvalue [$obj set methodArgs]  {	 
-	#  append tmpArgs " " "{[lindex $keyvalue 1]}"     
-	#}     
-	::xo::cc virtualArgs [$obj set methodArgs]
-      }
+	  my instvar serviceMethod serviceArgs \
+	      invocactionContext
+	  my debug CALL=[$obj elementName]
+	  $invocationContext virtualCall [$obj elementName]
+	  #set tmpArgs ""
+	  #foreach keyvalue [$obj set methodArgs]  {	 
+	  #  append tmpArgs " " "{[lindex $keyvalue 1]}"     
+	  #}     
+	  $invocationContext virtualArgs [$obj set methodArgs]
+	}
     Class OutboundResponse \
-      -instproc SoapBodyRequest {obj} {
-	$obj class ::xosoap::marshaller::SoapBodyResponse
-	$obj elementName [$obj set targetMethod]Response
-	$obj set style [[self class] info parent]
-	$obj responseValue [my batch]
-      }
+	-instproc SoapBodyResponse {obj} {
+	  # / / / / / / / / / / / /
+	  # Starting with 0.4,
+	  # we assume a pre-existing
+	  # SoapBodyResponse element.
+	  my instvar invocationContext
+	  #$obj class ::xosoap::marshaller::SoapBodyResponse
+	  $obj elementName [$invocationContext virtualCall]Response
+	  $obj set style [[self class] info parent]
+	  $obj responseValue [my batch]
+	}
     Class OutboundRequest \
 	-instproc SoapBodyRequest {obj} {
 	  my instvar invocationContext
@@ -558,19 +547,21 @@ namespace eval ::xosoap {
 	}
     Class InboundRequest \
 	-instproc SoapBodyRequest {obj} {
-	my instvar serviceMethod serviceArgs
-	my debug CALL=[$obj elementName]
-	::xo::cc virtualCall [$obj elementName]
-	#set tmpArgs ""
-	#foreach keyvalue [$obj set methodArgs]  {	 
-	#  append tmpArgs " " "{[lindex $keyvalue 1]}"     
-	#}     
-	::xo::cc virtualArgs [$obj set methodArgs]
-      }
+	  my instvar serviceMethod serviceArgs \
+	      invocationContext
+	  my debug CALL=[$obj elementName]
+	  $invocationContext virtualCall [$obj elementName]
+	  #set tmpArgs ""
+	  #foreach keyvalue [$obj set methodArgs]  {	 
+	  #  append tmpArgs " " "{[lindex $keyvalue 1]}"     
+	  #}     
+	  $invocationContext virtualArgs [$obj set methodArgs]
+	}
     Class OutboundResponse \
-      -instproc SoapBodyRequest {obj} {
-	$obj class ::xosoap::marshaller::SoapBodyResponse
-	$obj elementName [$obj set targetMethod]Response
+      -instproc SoapBodyResponse {obj} {
+	my instvar invocationContext
+	#$obj class ::xosoap::marshaller::SoapBodyResponse
+	$obj elementName [$invocationContext virtualCall]Response
 	$obj set style [[self class] info parent]
 	$obj responseValue [my batch]
       }
@@ -608,12 +599,13 @@ namespace eval ::xosoap {
 	}
     Class InboundRequest \
 	-instproc SoapBodyRequest {obj} {
-	  my instvar serviceMethod serviceArgs
+	  my instvar serviceMethod serviceArgs \
+	      invocationContext
 	  my debug CALL=[$obj elementName]
 	  # / / / / / / / / / / / / / / / / /
 	  # resolve call from SOAPAction
 	  # header (as necessary in D/L style)
-	  set actionUrl [::xo::cc action]
+	  set actionUrl [$invocationContext action]
 	  if {$actionUrl eq {}} {
 	    error "Dispatch impossible."
 	  }
@@ -625,7 +617,7 @@ namespace eval ::xosoap {
 	  # header (as necessary in D/L style)
 	  set url [string trim $actionUrl /]
 	  set urlv [split $url /]
-	  ::xo::cc virtualCall [lindex $urlv end]
+	  $invocationContext virtualCall [lindex $urlv end]
 	  #set tmpArgs ""
 	  #foreach keyvalue [$obj set methodArgs]  {	 
 	  #  append tmpArgs " " "{[lindex $keyvalue 1]}"     
@@ -649,12 +641,13 @@ namespace eval ::xosoap {
 	  foreach a [$obj set methodArgs] {
 	    $any add -parse $a
 	  }
-	  ::xo::cc virtualArgs $any
+	  $invocationContext virtualArgs $any
 	}
 	  
     Class OutboundResponse \
-	-instproc SoapBodyRequest {obj} {
-	  $obj class ::xosoap::marshaller::SoapBodyResponse
+	-instproc SoapBodyResponse {obj} {
+	  #my instvar invocationContext
+	  #$obj class ::xosoap::marshaller::SoapBodyResponse
 	  set any [my batch] 
 	  if {[$any istype ::xosoap::xsd::XsCompound]} {
 	    set n [namespace tail [$any set template]]

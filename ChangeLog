@@ -1,3 +1,36 @@
+2007-08-06  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
+
+	* Added three new wui files, needed for the aforementioned
+          badges: badge.adp, xosoap-master.adp, badge.xsl. The xsl
+          stylesheet is a nifty one, as it produces the per-service
+          badges out of the wsdl description. Needs to be further
+          extended, but it is a start.
+
+	* tcl/xosoap-package-procs.tcl: The upgrade of
+          ::xosoap::Package is the main change/achievement in this
+          revision. The package is now created for each invocation and
+	  simple http interaction, it serves as basic dispatcher
+          (solicit=* methods). It provides some basic wui managing
+          support, that will constantly increase. We provide two first
+          wui features, so called 'badges'. One, the all-service
+          badge, lists all available/deployed services (see
+          /xosoap/services/), the other per-service information
+          (service badge, see
+          e.g. /xosoap/service/xosoap/demo/SoapInterop2Impl?s=badge).
+	  Major changes are: The dispatcher can easily allow for
+          get-base invocations (in the future), to get wsdl files for
+          a service, one has to provide the parameter pair s=wsdl (and
+          not ?wsdl as in previous revisions).
+
+	* tcl/15-xosoap-procs.tcl: Major rewrite due to separation
+	of connection and invocation context. We, now, use proper
+	'brand new' soap envelope objects for responses, and do not
+	re-use request objects for this purpose. this yields a proper
+	use by interceptors and no error-prone visitor traversal (due
+	to the specifics of composites as realised by
+	OrderedComposite). Major dispatching responsibiliy has be
+	shifted to ::xosoap::Package.
+
 2007-08-02  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
 
 	* www/demo/demo-interop2-base-client.tcl: Tested and fixed for

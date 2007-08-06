@@ -94,12 +94,12 @@ namespace eval ::xosoap::visitor {
 
   SoapMarshallerVisitor instproc SoapElement {obj} {
     
-    my log "+++[$obj info class] ($obj),[$obj serialize]"
+    #my log "+++[$obj info class] ($obj),[$obj serialize]"
     # / / / / / / / / / / / / / / /
     # staging
     my instvar xmlDoc parentNode
     $obj instvar elementNamespace elementName
-    
+    my log "+++[$obj info class] ($obj),[$obj serialize]"
     # / / / / / / / / / / / / / / /
     # generic marshalling for soap
     # elements
@@ -114,7 +114,11 @@ namespace eval ::xosoap::visitor {
       set node [$parentNode appendChild \
 		    [$xmlDoc createElement [my getQName \
 						$elementNamespace $elementName]]]
+      my debug XMLDOC=[$xmlDoc asXML]
     }
+
+    
+    my debug node=$node,xml=[$node asXML]
 
     # / / / / / / / / / / / / / / / / / / / / /
     # 2) namespace declarations for element's scope
@@ -319,7 +323,7 @@ namespace eval ::xosoap::visitor {
       # visitor is called from within a provider/ server
       set style [parameter::get \
 		     -parameter "default_invocation_style" \
-		     -package_id [$invocationContext set package_id]]
+		     -package_id [::xo::cc set package_id]]
     }
 
     my log style=$style

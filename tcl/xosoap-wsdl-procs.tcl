@@ -19,7 +19,7 @@ namespace eval ::xosoap {
 
   ::xotcl::Class Wsdl1.1Builder -slots {
     Attribute contract
-    Attribute xml
+    Attribute xmlDoc
     Attribute style
   } -set ns(soap) 	"http://schemas.xmlsoap.org/wsdl/soap/" \
       -set ns(soap-enc) "http://schemas.xmlsoap.org/soap/encoding/" \
@@ -28,7 +28,7 @@ namespace eval ::xosoap {
       -set ns(types) 	{$url/types/} \
       -set ns(tns)	{$url/}
   Wsdl1.1Builder instproc init {} {
-    my instvar contract xml url doc style
+    my instvar contract xmlDoc url doc style
     if {[$contract istype ServiceContract]} {
       set url [ns_conn location][::xo::cc url]
       # / / / / / / / / / / / / / / / / /
@@ -114,7 +114,7 @@ namespace eval ::xosoap {
 	    }
 	}] [$current firstChild]
       }
-      set xml [$current asXML]
+      set xmlDoc $doc
     }        
   }
 
@@ -493,9 +493,11 @@ namespace eval ::xosoap {
       [WsdlGenerationException new "Reason: '$errorInfo'"] write
     }
     if {$b ne {}} {
-      ns_return 200 text/xml [$b xml]
+      #ns_return 200 text/xml 
+      return [$b xmlDoc]
     }
   }
+
   
   namespace export Wsdl1.1 Wsdl1.1Builder
   
