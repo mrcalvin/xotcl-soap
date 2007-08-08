@@ -1,3 +1,14 @@
+2007-08-08  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
+
+	* tcl/xosoap-package-procs.tcl: Made all-service badge aware
+          of the binding state. Deployed therefore means registered
+          with the invoker.
+
+	* tcl/xosoap-client-procs.tcl: Added a new exception type (at
+          the level of http transport provider) to capture failures on
+          connection handling. Is basically thrown if no response data
+          is received at (regardless of http state codes).
+
 2007-08-06  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
 
 	* Added three new wui files, needed for the aforementioned

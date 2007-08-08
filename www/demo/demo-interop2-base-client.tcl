@@ -29,7 +29,7 @@ set local [SoapGlueObject new \
 # see http://www.whitemesa.com/interop/proposal2.html
 # for interface description
 
-ProxyObject SoapInterop2Base -glueobject $local
+ProxyObject SoapInterop2Base -glueobject $soap
 
 
 # / / / / / / / / / / / / /

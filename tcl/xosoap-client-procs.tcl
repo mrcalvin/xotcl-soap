@@ -203,9 +203,17 @@ namespace eval xosoap::client {
 	Http request transport did not suceed with 
 	status code [$rObj set statusCode] and message '[$rObj set data]'
       }]]
+    } elseif {[$rObj set data] eq {}} {
+      # encapsulate arbitrary http error messages
+      error [HttpTransportProviderException new [subst {
+	No response data was received, this might be due
+	to errorneous connections or failure of establishing
+	a connection as such.
+      }]]
     } else {
-      my log data=[$rObj set data]
+      my debug data=[$rObj set data]
       return [$rObj set data]
+
     }
   }
 

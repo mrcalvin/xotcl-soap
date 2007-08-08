@@ -265,13 +265,17 @@ namespace eval ::xosoap {
 	(select 1 from acs_objects 
 	 where acs_objects.object_type in ('::xorb::ServiceImplementation') 
 	 and acs_objects.object_id = [$type table_name].[$type id_column]) 
-	as is_xorb_object}]
+	as is_xorb_object, acs_objects.object_id}]
+      lappend froms {acs_sc_bindings binds}
+      lappend wheres {binds.impl_id = acs_objects.object_id}
       set items {}
       set counter 0
       db_foreach [my qn all_service_badge] \
 	  [$type query \
 	       -subtypes \
-	       -selectClauses $innerSelect "allInstances"] {
+	       -selectClauses $innerSelect \
+	       -whereClauses $wheres \
+	       -from $froms "allInstances"] {
 		 if {$is_xorb_object == 1} {
 		   append items [subst {
 		     ::html::li {
