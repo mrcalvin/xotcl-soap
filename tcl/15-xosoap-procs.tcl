@@ -104,11 +104,11 @@ namespace eval ::xosoap {
     } e
 
     if {[::xoexception::Throwable isThrowable $e]} {
-      $e write
+      $e write [::$package_id self]
       #my terminate;# unplug protocol + abort script
     } else {
-      global errorInfo
-      [UnknownException new $errorInfo] write
+      #global errorInfo
+      [UnknownException new $e] write [::$package_id self]
       #my terminate;# unplug protocol + abort script
       my debug "---FINISHED---"
     }
@@ -151,8 +151,8 @@ namespace eval ::xosoap {
       # proper SOAP faults
       error [::xosoap::exceptions::Server::InvocationException new $e]
     } else {
-      global errorInfo
-      my debug "---e=$e, $errorInfo"
+      #global errorInfo
+      #my debug "---e=$e, $errorInfo"
       error [::xosoap::exceptions::Server::UnknownInvocationException new \
 		 $e]
     }
@@ -180,8 +180,8 @@ namespace eval ::xosoap {
     # mangle the message objects.
 
     set responseObj [::xosoap::marshaller::SoapEnvelope new \
-			 -response]
-    
+			 -response true]
+    my debug "NEWRESPONSE=[$responseObj serialize]"
     # / / / / / / / / / / / / / / / / / / / / /
     # 2) Transform request into response object
     $visitor releaseOn $responseObj
@@ -492,6 +492,12 @@ namespace eval ::xosoap {
 	  $obj elementName [$invocationContext virtualCall]Response
 	  $obj set style [[self class] info parent]
 	  $obj responseValue [my batch]
+	} \
+	-instproc SoapEnvelope {obj} {
+	  $obj registerNS [list "xsd" "http://www.w3.org/2001/XMLSchema"]
+	  $obj registerNS [list "xsi" \
+			       "http://www.w3.org/2001/XMLSchema-instance"]
+
 	}
     Class OutboundRequest \
 	-instproc SoapBodyRequest {obj} {
@@ -499,11 +505,24 @@ namespace eval ::xosoap {
 	  $obj elementName [$invocationContext virtualCall]
 	  $obj set methodArgs [$invocationContext virtualArgs]
 	  $obj set style [[self class] info parent]
-	  if {[$invocationContext exists callNamespace]} {
+	  set ns [$invocationContext getCallNamespace]
+	  if {$ns ne {}} {
+	    array set tmp $ns
 	    # / / / / / / / / / / / / / / /
 	    # TODO: default namespace support!!!!!
-	    $obj registerNS [list "m" [$invocationContext callNamespace]]
+	    $obj elementNamespace $tmp(prefix)
+	    $obj registerNS [list $tmp(prefix) $tmp(uri)]
+	    if {$tmp(prefix) eq {}} {
+	      # -- is default namespace
+	      $obj unregisterNS "m"
+	    } 
 	  } 
+	}\
+	-instproc SoapEnvelope {obj} {
+	  $obj registerNS [list "xsd" "http://www.w3.org/2001/XMLSchema"]
+	  $obj registerNS [list "xsi" \
+			       "http://www.w3.org/2001/XMLSchema-instance"]
+	  
 	}
     Class InboundResponse \
 	-instproc SoapBodyResponse {obj} {
@@ -572,11 +591,22 @@ namespace eval ::xosoap {
 	  $obj set methodArgs [$invocationContext virtualArgs]
 	  $obj set style [[self class] info parent]
 	  my debug METHODARGS=[$obj set methodArgs]
-	  if {[$invocationContext exists callNamespace]} {
-	    # / / / / / / / / / / / / / / /
-	    # TODO: default namespace support!!!!!
-	    $obj registerNS [list "m" [$invocationContext callNamespace]]
-	  } 
+	  set ns [$invocationContext getCallNamespace]
+	  if {$ns ne {}} {
+	    array set tmp $ns
+	    $obj elementNamespace $tmp(prefix)
+	    $obj registerNS [list $tmp(prefix) $tmp(uri)]
+	    if {$tmp(prefix) eq {}} {
+	      # -- is default namespace
+	      # -- clear for prefixed namespaces
+	      $obj unregisterNS "m"
+	    } 
+	  }
+	  # if {[$invocationContext exists callNamespace]} {
+	  # 	    # / / / / / / / / / / / / / / /
+	  # 	    # TODO: default namespace support!!!!!
+	  # 	    $obj registerNS [list "m" [$invocationContext callNamespace]]
+	  # 	  } 
 	}
     Class InboundResponse \
 	-instproc SoapBodyResponse {obj} {

@@ -125,7 +125,10 @@ namespace eval ::xosoap::visitor {
     set nsHandler [$obj resolveNSHandler]
     if {[string first $obj $nsHandler] != "-1"} {
       foreach prefix [$nsHandler getPrefixes] {
-	$node setAttribute "xmlns:$prefix" "[$nsHandler get $prefix]"
+	my debug "prefix=$prefix"
+	$node setAttribute \
+	    [expr {$prefix eq {}?"xmlns":"xmlns:$prefix"}] \
+	    "[$nsHandler get $prefix]"
       }
     }
     

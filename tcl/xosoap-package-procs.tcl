@@ -16,7 +16,13 @@ namespace eval ::xosoap {
   namespace import -force ::xorb::PackageMgr
   namespace import -force ::xoexception::try
   
-  ::xorb::PackageMgr Package -superclass ProtocolPackage
+  ::xorb::PackageMgr Package -array set pageAttributes {
+    title 	"xosoap"
+    head 	""
+    header_stuff ""
+    context 	""
+    content 	""
+  } -superclass ProtocolPackage
   Package instproc onMount {} {
     my instvar node baseUrl
     set package_id [namespace tail [self]]
@@ -77,6 +83,7 @@ namespace eval ::xosoap {
 		     -destroy_on_cleanup]
     $context transport $listener
     $context protocol [my protocol]
+    $context package [self]
     $context marshalledRequest [ns_conn content]
     if {[$listener exists fragment]} {
       $context virtualObject [$listener set fragment]
@@ -134,27 +141,50 @@ namespace eval ::xosoap {
     lappend __css__ [$link asHTML]
   }
 
+  Package instproc returnException {
+    statusCode
+    contentType 
+    payload
+  } {
+    #my debug RETURN(statusCode)=$statusCode
+    switch -- $statusCode {
+      "500" {
+	my instvar listener
+	$listener dispatchResponse $statusCode $contentType $payload
+      }
+      default {
+	my returnPage \
+	    -adpTemplate /packages/xotcl-soap/www/xosoap-master \
+	    -adpVariables [list content $payload title "xosoap exception"]
+      }
+    }
+  }
+
   Package instproc returnPage {
     -adpTemplate:required
     {-adpVariables {[list]}}
   } {
-    my instvar listener __css__
+    my instvar listener __css__ 
+    [self class] instvar pageAttributes
     # / / / / / / / / / / / / / / / /
     # We pop header-related information
     # to the return template, assuming
     # that is uses the xosoap master.
-    if {[llength $__css__] > 0} {
-      lappend adpVariables header_stuff [join $__css__ \n]
+    
+    array set pageAttributes $adpVariables
+    if {[info exists __css__] && [llength $__css__] > 0} {
+      append pageAttributes(head) [join $__css__ \n]
     }
     set payload [template::adp_include \
 		     $adpTemplate \
-		     $adpVariables]
+		     [array get pageAttributes]]
     #my debug PAYLOAD=$payload
     # / / / / / / / / / / / / / / / / /
     # clear state:
-    my unset __css__
+    if {[info exists __css__]} {
+      my unset __css__
+    }
     $listener dispatchResponse 200 text/html $payload
-    
   }
 
   # / / / / / / / / / / / / / / / / / /
@@ -223,9 +253,9 @@ namespace eval ::xosoap {
 		  -name [$implObj implements]]
       ::xorb::Skeleton mixin delete ::xosoap::Wsdl1.1
     } else {
-      error [HttpRequestException new [subst {
-	Requesting a WSDL document through '[::xo::cc url]' ([::xo::cc httpMethod])
-	failed.
+      error [UIRequestException new [subst {
+	Requesting a WSDL document through \
+	    '[::xo::cc url]' ([::xo::cc httpMethod]) failed.
       }]]
     }
   }
@@ -239,84 +269,90 @@ namespace eval ::xosoap {
   Package instproc solicit=badge {} {
     my instvar listener
     # single service badge
-    set context [my acquireInvocationContext]
-    my debug CONTEXT=[$context serialize]
-    if {[$context exists virtualObject]} {
-      # single service badge
-      set xsltFile [open [my getPackagePath]/www/badge.xsl r]
-      set xslt [read $xsltFile]
-      close $xsltFile
-      my debug xslt=$xslt
-      set xsltDoc [dom parse $xslt]
-      set wsdlDoc [dom parse [[my wsdlDocument $context] asXML]]
-      set badgeDoc [$wsdlDoc xslt $xsltDoc]
-      set adpVariables [list \
-			    content [$badgeDoc asHTML] \
-			    title "xosoap: service badge"]
-      my debug content=[$badgeDoc asHTML]
-    } else {
-      # all-services
-      # currently, restricted to
-      # xorb-based service
-      # implementations
-      #set inItems [::xorb::ServiceImplementation query allSubTypes]
-      set type ::xorb::AcsScImplementation
-      lappend innerSelect [subst {
-	(select 1 from acs_objects 
-	 where acs_objects.object_type in ('::xorb::ServiceImplementation') 
-	 and acs_objects.object_id = [$type table_name].[$type id_column]) 
-	as is_xorb_object, acs_objects.object_id}]
-      lappend froms {acs_sc_bindings binds}
-      lappend wheres {binds.impl_id = acs_objects.object_id}
-      set items {}
-      set counter 0
-      db_foreach [my qn all_service_badge] \
-	  [$type query \
-	       -subtypes \
-	       -selectClauses $innerSelect \
-	       -whereClauses $wheres \
-	       -from $froms "allInstances"] {
-		 if {$is_xorb_object == 1} {
-		   append items [subst {
-		     ::html::li {
-		       ::html::a -href \
-			   "[my getExternalObjectId $impl_name]?s=badge" {
-			     ::html::t $impl_name
-			   }
-		       ::html::t " | "
-		       ::html::a -href \
-			   "[my getExternalObjectId $impl_name]?s=wsdl" {
-			     ::html::t wsdl
-			   }
-		     }
-		   }]
-		   incr counter
+    ::xoexception::try {
+      set context [my acquireInvocationContext]
+      my debug CONTEXT=[$context serialize]
+      if {[$context exists virtualObject]} {
+	# single service badge
+	set xsltFile [open [my getPackagePath]/www/badge.xsl r]
+	set xslt [read $xsltFile]
+	close $xsltFile
+	my debug xslt=$xslt
+	set xsltDoc [dom parse $xslt]
+	set wsdlDoc [dom parse [[my wsdlDocument $context] asXML]]
+	set badgeDoc [$wsdlDoc xslt $xsltDoc]
+	set adpVariables [list \
+			      content [$badgeDoc asHTML] \
+			      title "xosoap service badge"]
+	my debug content=[$badgeDoc asHTML]
+      } else {
+	# all-services
+	# currently, restricted to
+	# xorb-based service
+	# implementations
+	#set inItems [::xorb::ServiceImplementation query allSubTypes]
+	set type ::xorb::AcsScImplementation
+	lappend innerSelect [subst {
+	  (select 1 from acs_objects 
+	   where acs_objects.object_type in ('::xorb::ServiceImplementation') 
+	   and acs_objects.object_id = [$type table_name].[$type id_column]) 
+	  as is_xorb_object, acs_objects.object_id}]
+	lappend froms {acs_sc_bindings binds}
+	lappend wheres {binds.impl_id = acs_objects.object_id}
+	set items {}
+	set counter 0
+	db_foreach [my qn all_service_badge] \
+	    [$type query \
+		 -subtypes \
+		 -selectClauses $innerSelect \
+		 -whereClauses $wheres \
+		 -from $froms "allInstances"] {
+		   if {$is_xorb_object == 1} {
+		     append items [subst {
+		       ::html::li {
+			 ::html::a -href \
+			     "[my getExternalObjectId $impl_name]?s=badge" {
+			       ::html::t $impl_name
+			     }
+			 ::html::t " | "
+			 ::html::a -href \
+			     "[my getExternalObjectId $impl_name]?s=wsdl" {
+			       ::html::t wsdl
+			     }
+		       }
+		     }]
+		     incr counter
+		   }
 		 }
-	       }
-      ::require_html_procs
-      if {$counter > 0} {set counter "$counter services deployed"}
-      dom createDocument div doc1
-      set r [$doc1 documentElement]
-      $r setAttribute class head
-      $r appendFromScript [subst {
-	::html::strong {
-	  ::html::t xo
-	}
-	::html::t "[join [list soap $counter] { | }]"
-      }]
-      dom createDocument ul doc
-      set root [$doc documentElement]
-      $root appendFromScript $items
-      $root setAttribute class badge
-		     
-      set adpVariables [list \
-			    content "[$r asHTML][$root asHTML]" \
-			    title "xosoap: service overview"]
+	::require_html_procs
+	if {$counter > 0} {set counter "$counter services deployed"}
+	dom createDocument div doc1
+	set r [$doc1 documentElement]
+	$r setAttribute class head
+	$r appendFromScript [subst {
+	  ::html::span -class xo {
+	    ::html::t xo
+	  }
+	  ::html::t "[join [list soap $counter] { | }]"
+	}]
+	dom createDocument ul doc
+	set root [$doc documentElement]
+	$root appendFromScript $items
+	$root setAttribute class badge
+	
+	set adpVariables [list \
+			      content "[$r asHTML][$root asHTML]" \
+			      title "xosoap: service overview"]
+      }
+      my popCss /resources/xotcl-soap/xosoap.css
+      my returnPage \
+	  -adpTemplate /packages/xotcl-soap/www/xosoap-master \
+	  -adpVariables $adpVariables
+    } catch {Exception e} {
+      error [UIRequestException new $e]
+    } catch {error e} {
+      error [UnknownUIRequestException new $e]
     }
-    my popCss /resources/xotcl-soap/xosoap.css
-    my returnPage \
-	-adpTemplate /packages/xotcl-soap/www/badge \
-	-adpVariables $adpVariables
   }
 
   namespace export Package

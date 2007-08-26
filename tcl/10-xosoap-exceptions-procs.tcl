@@ -19,7 +19,7 @@ namespace eval ::xosoap::exceptions {
 	statusCode
         contentType
    }
-  Returnable instproc write {} {
+  Returnable instproc write {packageObj} {
     next;#log first
     #my log "---ser=[my serialize]"
     my instvar __message__
@@ -30,14 +30,14 @@ namespace eval ::xosoap::exceptions {
 	[my info class] instvar $p
       }
     }
-    #my log "---vars=[info vars]"
+    my debug "---vars=[info vars],packageObj=$packageObj"
     set msg "$__message__($contentType)"
-    $returnCmd $statusCode $contentType $msg
+    $packageObj $returnCmd $statusCode $contentType $msg
   }
   
   ::xotcl::Class ReturnableException -superclass LoggableException  \
       -parameter {
-	{returnCmd "ns_return"}
+	{returnCmd returnException}
 	{statusCode "200"}
 	{contentType "text/plain"}
       }
@@ -100,6 +100,14 @@ namespace eval ::xosoap::exceptions {
   ReturnableException HttpRequestException -ad_doc {
     Non-acceptable request
   } -statusCode 406 
+
+  ReturnableException UIRequestException -ad_doc {
+    An user interface request failed.
+  }
+
+  ReturnableException UnknownUIRequestException -ad_doc {
+    An user interface request failed due to an unknown reason.
+  }
 
   ReturnableException UnknownException -ad_doc {
     An unspecified exception was caught
@@ -181,5 +189,5 @@ namespace eval ::xosoap::exceptions {
   namespace export MalformedEndpointException HttpRequestException \
       ReturnableException UnknownException Server Client \
       HttpTransportProviderException WsdlGenerationException \
-      CaughtFaultException
+      CaughtFaultException UIRequestException UnknownUIRequestException
 }

@@ -73,7 +73,7 @@ namespace eval ::xosoap::xsd {
 		       -childof [self] \
 		       -name__ [$c nodeName] \
 		       -parse $c]
-	  my add -parse $any
+	  my add -parse true $any
 	}
       }
     }

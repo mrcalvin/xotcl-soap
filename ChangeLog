@@ -1,3 +1,22 @@
+2007-08-26  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
+
+	* tcl/xosoap-marshaller-procs.tcl: Support for streaming xml
+          per-element 'default' namespaces (unprefixed, element-scoped
+          namespaces).
+
+	* tcl/xosoap-package-procs.tcl: Added a return handler for
+          exception pages (returnException). In general, we know use
+          openacs default masters for badge and exception pages.
+
+	* tcl/15-xosoap-procs.tcl: Exceptions are know rendered through
+          a package-aware renderer (returnException).
+	  Fixed RpcEncoded marshaling style: Specific namespaces (xsi,
+          xsd) are only rendered in this mode.
+	  Added support for two modes of marshaling the call
+          namespace: either as per-element, prefixed or per-element,
+          default namespace. Simply provide a single- (default) or
+          two-element (prefixed) list to the callNamespace attribute.
+
 2007-08-08  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
 
 	* tcl/xosoap-package-procs.tcl: Made all-service badge aware

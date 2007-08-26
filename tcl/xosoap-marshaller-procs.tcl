@@ -101,6 +101,7 @@ namespace eval ::xosoap::marshaller {
 	SoapElement+instproc+registerNS'>::xosoap::marshaller::\
 	SoapElement registerNS</a>
   } {
+    my debug ADD=$prefix
     my set nsArray($prefix) $uri
   }
 
@@ -293,7 +294,7 @@ namespace eval ::xosoap::marshaller {
 		     into a list of 2 elements
 		   }]]
       }
-      $ns add [lindex $l 0] [lindex $l 1]
+      eval $ns add [lindex $l 0] [lindex $l 1]
     }
   }
   SoapElement instproc unregisterNS {prefix} {
@@ -422,14 +423,13 @@ namespace eval ::xosoap::marshaller {
     my elementNamespace "SOAP-ENV"
     my registerNS [list "SOAP-ENV" "http://schemas.xmlsoap.org/soap/envelope/"]
     my registerNS [list "SOAP-ENC" "http://schemas.xmlsoap.org/soap/encoding/"]
-    my registerNS [list "xsi" "http://www.w3.org/2001/XMLSchema-instance"]
     my registerEnc "http://schemas.xmlsoap.org/soap/encoding/"
   }
 
   SoapEnvelope proc new {
 			 {-registerNS {}}
 			 {-registerEnc {}}
-			 -response:switch 
+			 {-response false}
 			 -header:switch 
 			 {-nest {}}
 			 args
@@ -441,6 +441,7 @@ namespace eval ::xosoap::marshaller {
     if {$nest ne {}} {
       set injection $nest
     } else {
+      my debug SWITCHRESPONSE=$response
       if {$response} {
 	set injection [list ::xosoap::marshaller::SoapBodyResponse new]
       } else {

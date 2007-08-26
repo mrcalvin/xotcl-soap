@@ -85,6 +85,28 @@ namespace eval xosoap::client {
   } -superclass ContextObject \
       -clientPlugin ::xosoap::client::Soap::Client \
       -clientProtocol ::xosoap::Soap
+
+  SoapGlueObject instproc getCallNamespace {} {
+    my instvar callNamespace
+    if {![info exists callNamespace]} return;
+    array set tmp {
+      prefix 	""
+      uri	""
+    }
+    switch [llength $callNamespace] {
+      1 {
+	# -- default per-element namespace
+	set tmp(uri) $callNamespace
+      }
+      2 {
+	# -- prefixed per-element namespace
+	set tmp(prefix) [lindex $callNamespace 0]
+	set tmp(uri) [lindex $callNamespace 1]
+      }
+      default return;
+    }
+    return [array get tmp]
+  }
   
   SoapGlueObject instforward endpoint %self virtualObject
   
@@ -127,7 +149,7 @@ namespace eval xosoap::client {
     # / / / / / / / / / / / /
     # 1) initiate demarshalling
 
-    set responseEnvelope [::xosoap::marshaller::SoapEnvelope new -response]
+    set responseEnvelope [::xosoap::marshaller::SoapEnvelope new -response true]
     set doc [dom parse [$invocationContext marshalledResponse]]
     set root [$doc documentElement]
     $responseEnvelope parse $root
@@ -160,7 +182,8 @@ namespace eval xosoap::client {
     set postData [$invocationObject marshalledRequest]
     set url http://[$invocationObject virtualObject]
     set actionHeaderValue [expr {[$invocationObject exists action]?\
-				     [$invocationObject action]:$url}]
+				     [$invocationObject getSubstified action]:\
+				     $url}]
     my log postData=$postData
     set rObj [::xo::HttpRequest new \
 		  -url $url \
@@ -188,10 +211,10 @@ namespace eval xosoap::client {
 	$envelope accept $fv
 	set exception [CaughtFaultException new [$fv data]]
       } catch {error e} {
-	global errorInfo
+	#global errorInfo
 	error [HttpTransportProviderException new [subst {
 	  Recasting a SOAP fault message into a local
-	  exception failed due to '$errorInfo'
+	  exception failed due to '$e'
 	}]]
       }
       if {[info exists exception]} {

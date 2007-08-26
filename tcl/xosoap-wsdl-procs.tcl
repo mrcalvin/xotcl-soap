@@ -489,8 +489,8 @@ namespace eval ::xosoap {
 		 -style $style \
 		 -volatile]
     } catch {error e} {
-      global errorInfo
-      [WsdlGenerationException new "Reason: '$errorInfo'"] write
+      #global errorInfo
+      [WsdlGenerationException new "Reason: '$e'"] write
     }
     if {$b ne {}} {
       #ns_return 200 text/xml 

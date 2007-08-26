@@ -5,7 +5,7 @@
 		xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/">
   <xsl:template match="/">
     <xsl:variable name="endpoint" select="wsdl:definitions/wsdl:service/wsdl:port/soap:address/@location"/>
-    <div class="head"><strong>xo</strong>soap | <a href="{concat($endpoint,'?s=badge')}"><xsl:value-of select="wsdl:definitions/@name"/></a> | <a href="{concat($endpoint,'?s=wsdl')}">wsdl</a></div>
+    <div class="head"><span class="xo">xo</span>soap | <a href="{concat($endpoint,'?s=badge')}"><xsl:value-of select="wsdl:definitions/@name"/></a> | <a href="{concat($endpoint,'?s=wsdl')}">wsdl</a></div>
     <xsl:apply-templates/>
   </xsl:template>
   <xsl:key name='binding' match="wsdl:definitions/wsdl:binding" use='@name'/>
