@@ -26,10 +26,6 @@ namespace eval xosoap::client {
     Attribute callNamespace
     Attribute schemas
     Attribute action
-    Attribute marshalledRequest
-    Attribute marshalledResponse
-    Attribute unmarshalledRequest
-    Attribute unmarshalledResponse
     Attribute messageStyle -default ::xosoap::RpcLiteral
   } -ad_doc {
     <p>
@@ -83,7 +79,7 @@ namespace eval xosoap::client {
 
     @author stefan.sobernig@wu-wien.ac.at
   } -superclass ContextObject \
-      -clientPlugin ::xosoap::client::Soap::Client \
+      -clientPlugin ::xosoap::Soap::Client \
       -clientProtocol ::xosoap::Soap
 
   SoapGlueObject instproc getCallNamespace {} {
@@ -116,8 +112,8 @@ namespace eval xosoap::client {
   # # # # # # # # # # # # # # # # #
   # # # # # # # # # # # # # # # # #
 
-  ::xotcl::Class Soap::Client 
-  Soap::Client instproc handleRequest {invocationContext} {
+  ::xotcl::Class ::xosoap::Soap::Client 
+  ::xosoap::Soap::Client instproc handleRequest {invocationContext} {
     
     namespace import ::xosoap::visitor::*
     namespace import ::xosoap::marshaller::*
@@ -143,7 +139,7 @@ namespace eval xosoap::client {
     # 2) forward to request handler
     next $invocationContext
   }
-  Soap::Client instproc handleResponse {invocationContext} {
+  ::xosoap::Soap::Client instproc handleResponse {invocationContext} {
     namespace import ::xosoap::visitor::*
     namespace import ::xosoap::marshaller::*
     # / / / / / / / / / / / /

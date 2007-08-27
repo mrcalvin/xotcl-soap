@@ -79,8 +79,7 @@ namespace eval ::xosoap {
   Package instproc acquireInvocationContext {} {
     my instvar listener protocol
     set ctxClass [$protocol contextClass]
-    set context [$ctxClass new \
-		     -destroy_on_cleanup]
+    set context [next];# ProtocolPackage->acquireInvocationContext
     $context transport $listener
     $context protocol [my protocol]
     $context package [self]
@@ -170,19 +169,19 @@ namespace eval ::xosoap {
     # We pop header-related information
     # to the return template, assuming
     # that is uses the xosoap master.
-    
-    array set pageAttributes $adpVariables
+    array set tmp [array get pageAttributes]
+    array set tmp $adpVariables
     if {[info exists __css__] && [llength $__css__] > 0} {
-      append pageAttributes(head) [join $__css__ \n]
+      append tmp(head) [join $__css__ \n]
     }
     set payload [template::adp_include \
 		     $adpTemplate \
-		     [array get pageAttributes]]
+		     [array get tmp]]
     #my debug PAYLOAD=$payload
     # / / / / / / / / / / / / / / / / /
     # clear state:
     if {[info exists __css__]} {
-      my unset __css__
+      unset __css__
     }
     $listener dispatchResponse 200 text/html $payload
   }
@@ -301,6 +300,7 @@ namespace eval ::xosoap {
 	lappend wheres {binds.impl_id = acs_objects.object_id}
 	set items {}
 	set counter 0
+	set baseUrl [my package_url]services/
 	db_foreach [my qn all_service_badge] \
 	    [$type query \
 		 -subtypes \
@@ -308,15 +308,17 @@ namespace eval ::xosoap {
 		 -whereClauses $wheres \
 		 -from $froms "allInstances"] {
 		   if {$is_xorb_object == 1} {
+		     set path $baseUrl[my getExternalObjectId $impl_name]
+
 		     append items [subst {
 		       ::html::li {
 			 ::html::a -href \
-			     "[my getExternalObjectId $impl_name]?s=badge" {
+			     "[export_vars -base $path {{s badge}}]" {
 			       ::html::t $impl_name
 			     }
 			 ::html::t " | "
 			 ::html::a -href \
-			     "[my getExternalObjectId $impl_name]?s=wsdl" {
+			     "[export_vars -base $path {{s wsdl}}]" {
 			       ::html::t wsdl
 			     }
 		       }

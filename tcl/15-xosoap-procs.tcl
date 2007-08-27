@@ -56,7 +56,7 @@ namespace eval ::xosoap {
     # context
     # xorb specific extensions
     # 3-) forward to package dispatcher
-    catch {      
+    if {[catch {      
       # -- 1-)
       # We provide for a slightly different
       # initialisation semantic depending
@@ -101,18 +101,13 @@ namespace eval ::xosoap {
       my debug params=$params,solicit=$s
       ::$package_id solicit $s
       # - - - - - - - - - - - - - - - - - - - - - - - -
-    } e
-
-    if {[::xoexception::Throwable isThrowable $e]} {
-      $e write [::$package_id self]
-      #my terminate;# unplug protocol + abort script
-    } else {
-      #global errorInfo
-      [UnknownException new $e] write [::$package_id self]
-      #my terminate;# unplug protocol + abort script
-      my debug "---FINISHED---"
+    } e]} {
+      if {[::xoexception::Throwable isThrowable $e]} {
+	$e write [::$package_id self]
+      } else {
+	[UnknownException new $e] write [::$package_id self]
+      }
     }
-
   }
   SoapHttpListener instproc dispatchResponse {
     statusCode
