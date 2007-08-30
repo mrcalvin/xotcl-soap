@@ -43,6 +43,12 @@ namespace eval ::xosoap {
       set current [$doc getElementsByTagName "wsdl:definitions"]
       
       # add attrs to definitions el (doc, name attrs)
+      # / / / / / / / / / / / / / / / / /
+      # NOTE: Most name attributes require
+      # to be valid 'name tokens' as defined
+      # by the the XML 1.0 specification.
+      # Qualified (XO)Tcl names are therefore
+      # allowed.
       $current setAttribute "name" [$contract name]
       $current setAttribute "targetNamespace" [subst $ns(tns)]
 
@@ -101,7 +107,7 @@ namespace eval ::xosoap {
 	dom createNodeCmd elementNode attribute
 
 	set tlist {} 
-	my log TYPES=[array get types]
+	my debug TYPES=[array get types]
 	foreach {key desc} [array get types] {
 	  append tlist $desc
 	}
@@ -481,7 +487,7 @@ namespace eval ::xosoap {
       # - package
       # ...
       set style [parameter::get \
-		     -parameter "default_invocation_style" \
+		     -parameter "marshaling_style" \
 		     -package_id [::xo::cc set package_id]]
       #set style ::xosoap::DocumentLiteral
       set b [Wsdl1.1Builder new \
@@ -490,7 +496,7 @@ namespace eval ::xosoap {
 		 -volatile]
     } catch {error e} {
       #global errorInfo
-      [WsdlGenerationException new "Reason: '$e'"] write
+      error [WsdlGenerationException new "Reason: '$e'"]
     }
     if {$b ne {}} {
       #ns_return 200 text/xml 

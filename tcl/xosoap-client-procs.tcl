@@ -180,7 +180,7 @@ namespace eval xosoap::client {
     set actionHeaderValue [expr {[$invocationObject exists action]?\
 				     [$invocationObject getSubstified action]:\
 				     $url}]
-    my log postData=$postData
+    my debug postData=$postData
     set rObj [::xo::HttpRequest new \
 		  -url $url \
 		  -post_data $postData \
@@ -199,7 +199,7 @@ namespace eval xosoap::client {
 	set doc [dom parse $faultMsg]
 	set root [$doc documentElement]
 	$envelope parse $root
-	my log FAULT=[$envelope serialize]
+	my debug FAULT=[$envelope serialize]
 	# / / / / / / / / / / / / / / / /
 	# cast into local error message
 	# or rather exception type!

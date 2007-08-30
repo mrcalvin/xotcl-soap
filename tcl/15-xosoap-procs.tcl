@@ -61,8 +61,8 @@ namespace eval ::xosoap {
       # We provide for a slightly different
       # initialisation semantic depending
       # on where the requests debarks
-      set service_prefix [parameter::get -parameter "service_url" -default \
-			      "services"]
+      set service_prefix [parameter::get -parameter "service_segment" \
+			      -default "services"]
       #set package_key [apm_package_key_from_id [::xo::cc package_id]]
       set url [string trim [ns_conn url] /]
       set urlv [split $url /]
@@ -80,23 +80,23 @@ namespace eval ::xosoap {
       }
       
       set params [list -s:optional "badge"]
-      if {$delimiter < [expr {$urlc - 1}]} {
+      if {[ns_conn method] eq "POST"} {
 	set params [list -s:optional "invocation"]
-	set oidv [lrange $urlv [expr {$delimiter + 1}] end]
-	my set fragment [join $oidv /]
       }
-
+      set oidv [lrange $urlv [expr {$delimiter + 1}] end]
+      my set fragment [join $oidv /]
+      
       ::xosoap::Package initialize \
 	  -user_id [acs_magic_object "unregistered_visitor"] \
 	  -parameter [list $params]
-
+      
       ::$package_id configure \
 	  -protocol [[my info class] plugin] \
 	  -listener [self]
       ::xo::cc httpMethod [ns_conn method]
-            
+      
       # -- 3-)
-
+      
 
       my debug params=$params,solicit=$s
       ::$package_id solicit $s
@@ -134,22 +134,23 @@ namespace eval ::xosoap {
 
   Soap instproc handleRequest {context} {
 
-    catch {
+    if {[catch {
       ::xorb::Invoker instmixin add [self class]::Invoker
       next;#::xorb::RequestHandler->handleRequest
       ::xorb::Invoker instmixin delete [self class]::Invoker
-    } e
-    
-    if {[::xoexception::Throwable isThrowable e]} {
-      # / / / / / / / / / / / / / / /
-      # re-cast xorb exceptions into
-      # proper SOAP faults
-      error [::xosoap::exceptions::Server::InvocationException new $e]
-    } else {
-      #global errorInfo
-      #my debug "---e=$e, $errorInfo"
-      error [::xosoap::exceptions::Server::UnknownInvocationException new \
-		 $e]
+    } e]} {
+      
+      if {[::xoexception::Throwable isThrowable e]} {
+	# / / / / / / / / / / / / / / /
+	# re-cast xorb exceptions into
+	# proper SOAP faults
+	error [::xosoap::exceptions::Server::InvocationException new $e]
+      } else {
+	#global errorInfo
+	#my debug "---e=$e, $errorInfo"
+	error [::xosoap::exceptions::Server::UnknownInvocationException new \
+		   $e]
+      }
     }
   }
   Soap instproc handleResponse {context returnValue} {

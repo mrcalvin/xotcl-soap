@@ -38,7 +38,7 @@ namespace eval ::xosoap::xsd {
   ::xotcl::Class XsAnything -superclass Anything
   XsAnything instproc parse {node} {
     my instvar __value__ isRoot__ isVoid__
-    my log n=$node,type=[$node nodeType],xml=[$node asXML]
+    my debug n=$node,type=[$node nodeType],xml=[$node asXML]
     # / / / / / / / / / / / / / / / / / /
     # TODO: handles cases of empty/'nilled' incoming
     # elements!!!!!!!! >> checkNode eq {}
@@ -295,8 +295,8 @@ namespace eval ::xosoap::xsd {
     if {$template eq {}} {
       error "type key specification '$typeKey' invalid."
     } else {
-      my log TEMPLATE=[$template serialize]
-      my log ANYOBJ=[$anyObj serialize]
+      my debug TEMPLATE=[$template serialize]
+      my debug ANYOBJ=[$anyObj serialize]
       foreach s [$template info slots] {
 	set type [$s anyType]
 	set s [namespace tail $s]
@@ -334,9 +334,9 @@ namespace eval ::xosoap::xsd {
 # 	    set type  soapArray=$type
 # 	  }
 # 	}
-	my log any=$any,typeKey=$type
+	my debug any=$any,typeKey=$type
 	set unwrapped [$any as -protocol ::xosoap::Soap $type]
-	my log unwrapped=$unwrapped
+	my debug unwrapped=$unwrapped
 	$anyObj set $s $unwrapped
       }
       #$anyObj mixin add $template
@@ -380,7 +380,7 @@ namespace eval ::xosoap::xsd {
       set lname [namespace tail [$cast]]
       set members {}
       foreach s [$cast info slots] {
-	my log member=$s,anyType=[$s anyType]
+	my debug member=$s,anyType=[$s anyType]
 	set n [namespace tail $s]
 	set ar [::xorb::datatypes::AnyReader new \
 		    -name $n \
@@ -428,7 +428,7 @@ namespace eval ::xosoap::xsd {
       set lname [namespace tail [$cast]]
       set members {}
       foreach s [$cast info slots] {
-	my log member=$s,anyType=[$s anyType]
+	my debug member=$s,anyType=[$s anyType]
 	set n [namespace tail $s]
 	set ar [::xorb::datatypes::AnyReader new \
 		    -name $n \
@@ -476,7 +476,7 @@ namespace eval ::xosoap::xsd {
       $observer instvar types
       # xsd:element {name $name type ${name}Type} {} is
       # added in document/literal style to types section!
-      my log NAME($castName)=MEMBERS=$members
+      my debug NAME($castName)=MEMBERS=$members
       if {![info exists types($castName)]} {
 	# -1- if element referred from message part,
 	# serialise into nested/ embedded complex type
@@ -821,7 +821,7 @@ namespace eval ::xosoap::xsd {
     set last [lindex [string map {"<" "" ">" " "} [$reader suffix]] end]
     set template [ArrayBuilder new -type [$reader unbrace [$reader cast]] \
 		      -size $last]
-    my log CLASS=[$reader any],cast=[$template serialize],size=$last
+    my debug CLASS=[$reader any],cast=[$template serialize],size=$last
     $reader cast $template
     next $reader $object;# Anything->parseObject
 

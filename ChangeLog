@@ -1,3 +1,22 @@
+2007-08-30  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
+
+	* tcl/15-xosoap-procs.tcl: Changed request handling and
+          package init logic to more differntiate better between post
+          vs. get, invocations in either case or simple ui
+          requests. Some former http-level exceptions became proper
+          soap faults. 
+
+	* Renamed the package parameter.
+
+2007-08-27  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
+
+	* tcl/xosoap-package-procs.tcl: We now take care of rendering
+          solid relative hrefs for the service badges. This avoids
+          confusion when there is no trailing slash provided.
+
+	* tcl/15-xosoap-procs.tcl: Applied some cosmetics to exception
+          catching, to avoid unwanted verbosity in the logs. 
+
 2007-08-26  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
 
 	* tcl/xosoap-marshaller-procs.tcl: Support for streaming xml

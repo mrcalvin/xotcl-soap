@@ -456,7 +456,7 @@ namespace eval ::xosoap::marshaller {
 	    [list $injection]
       }
     }]
-    my log cmd=$cmd
+    my debug cmd=$cmd
     #my log ns=$registerNS
     return [eval next $cmd \
 		[list -registerNS $registerNS] \
@@ -947,7 +947,7 @@ As specified for the RPC mode of operation, a single child of type
     [1.1 new -volatile] instvar namespaces
     # struct, array?
     
-    my log "attr=[$domNode hasAttributeNS $namespaces(soap-enc) "arrayType"]"
+    my debug "attr=[$domNode hasAttributeNS $namespaces(soap-enc) "arrayType"]"
     
     if {([$domNode namespaceURI] eq $namespaces(soap-enc) && [string equal -nocase [$domNode localName] "Array"]) || [$domNode hasAttributeNS $namespaces(soap-enc) "arrayType"] || ([$domNode hasAttributeNS $namespaces(xsi) "type"] && [string equal -nocase [$domNode getAttributeNS $namespaces(xsi) "type"] "SOAP-ENC:Array"])} {
       set typeIdentifier "array"
@@ -973,7 +973,7 @@ As specified for the RPC mode of operation, a single child of type
       set current [$container new -childof $current -name [$domNode localName] -domNode $domNode]
     }
     
-    my log "typeIdentifier: $typeIdentifier, class: [$current info class]"
+    my debug "typeIdentifier: $typeIdentifier, class: [$current info class]"
     
     foreach itemNode [$domNode childNodes] {
       my domNode $itemNode
@@ -984,11 +984,11 @@ As specified for the RPC mode of operation, a single child of type
 
   Argument ad_instproc rollOut {} {} {
     
-    #my log "argument container: [lindex [my info children] 0], type: [[lindex [my info children] 0] info class]"
+    #my debug "argument container: [lindex [my info children] 0], type: [[lindex [my info children] 0] info class]"
     
     if {[my info children] != ""} {
       
-      my log "childs: [my info children]"
+      my debug "childs: [my info children]"
       return [[lindex [my info children] 0] getValue]
     } 
   }

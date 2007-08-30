@@ -184,7 +184,14 @@ namespace eval ::xosoap::exceptions {
 	  encoding scheme are supported. This includes failures due to violated 
 	  compound typing rules (i.e. 'by-precedence typing' in case of Arrays).
 	}
+
+    ::xosoap::exceptions::FaultableException SoapHttpRequestException \
+	-ad_doc {
+	  Your HTTP request did not conform to the requirements
+	}
   }
+
+
   
   namespace export MalformedEndpointException HttpRequestException \
       ReturnableException UnknownException Server Client \

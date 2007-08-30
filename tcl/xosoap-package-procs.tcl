@@ -15,6 +15,7 @@ namespace eval ::xosoap {
   namespace import -force ::xorb::ProtocolPackage
   namespace import -force ::xorb::PackageMgr
   namespace import -force ::xoexception::try
+  #namespace import -force ::xosoap::exceptions::*
   
   ::xorb::PackageMgr Package -array set pageAttributes {
     title 	"xosoap"
@@ -37,7 +38,8 @@ namespace eval ::xosoap {
     set url $nodeInfo(url)
     # 2) get virtual service node from package parameter (or default)
     #set suffix [parameter::get -parameter service_url]
-    set suffix [parameter::get -parameter service_url -package_id $package_id]
+    set suffix [parameter::get -parameter service_segment \
+		    -package_id $package_id]
     # 3) register for POST and GET interception
     set suffix $url$suffix
     set filter_url $suffix*
@@ -66,7 +68,8 @@ namespace eval ::xosoap {
     array set nodeInfo [site_node::get -node_id $node]
     set url $nodeInfo(url)
     # 2) get virtual service node from package parameter (or default)
-    set suffix [parameter::get -parameter service_url -package_id $package_id]
+    set suffix [parameter::get -parameter service_segment \
+		    -package_id $package_id]
     # 3) unregister
     set suffix $url$suffix
     ns_unregister_proc POST $suffix
@@ -84,7 +87,8 @@ namespace eval ::xosoap {
     $context protocol [my protocol]
     $context package [self]
     $context marshalledRequest [ns_conn content]
-    if {[$listener exists fragment]} {
+    if {[$listener exists fragment] && [$listener set fragment] ne {}} {
+      my debug FRAG=[$listener set fragment]
       $context virtualObject [$listener set fragment]
       $listener unset fragment
     }
@@ -204,19 +208,25 @@ namespace eval ::xosoap {
     # - if get, object present query param present (?)
     if {[::xo::cc isPost]} {
       if {![$context exists action]} {
-	error [MalformedEndpointException new [subst {
-	  No header field 'SOAPAction' present in 
-	  HTTP post request.
-	}]]
+	error [::xosoap::exceptions::Client::SoapHttpRequestException new \
+		   [subst {
+		     No header field 'SOAPAction' present in 
+		     HTTP post request.
+		   }]]
+	# error [MalformedEndpointException new [subst {
+	# 	  No header field 'SOAPAction' present in 
+	# 	  HTTP post request.
+	# 	}]]
       }
       if {![$context exists virtualObject]} {
-	error [MalformedEndpointException new [subst {
-	  No object identifier information given 
-	  in resource locator '[::xo::cc url]'.
-	}]]
+	error [::xosoap::exceptions::Client::SoapHttpRequestException new \
+		   [subst {
+		     No object identifier information given 
+		     in resource locator '[::xo::cc url]'.
+		   }]]
       }
       if {[$context marshalledRequest] eq {}} {
-	error [HttpRequestException new {
+	error [::xosoap::exceptions::Client::SoapHttpRequestException new {
 	  Payload is missing in POST request
 	}]
       }
@@ -236,7 +246,17 @@ namespace eval ::xosoap {
 	not supported.
       }]
     }
-    next $context;#ProtocolPackage->solicit=invocation
+    # intercept exceptions and re-cast into SOAP-Fault
+    #if {[catch {
+      next $context;#ProtocolPackage->solicit=invocation
+   #  } e]} {
+#       if {![[$e info class] istype ::xosoap::exceptions::FaultableException]} {
+# 	# re-cast
+# 	set e [::xosoap::exceptions::Server::UnknownInvocationException new $e]
+#       }
+#       # re-throw
+#       error $e
+#     }
   }
 
   Package instproc wsdlDocument {context} {
@@ -300,7 +320,8 @@ namespace eval ::xosoap {
 	lappend wheres {binds.impl_id = acs_objects.object_id}
 	set items {}
 	set counter 0
-	set baseUrl [my package_url]services/
+	set baseUrl [my package_url][my get_parameter \
+					 service_segment "services"]/
 	db_foreach [my qn all_service_badge] \
 	    [$type query \
 		 -subtypes \

@@ -99,7 +99,7 @@ namespace eval ::xosoap::visitor {
     # staging
     my instvar xmlDoc parentNode
     $obj instvar elementNamespace elementName
-    my log "+++[$obj info class] ($obj),[$obj serialize]"
+    my debug "+++[$obj info class] ($obj),[$obj serialize]"
     # / / / / / / / / / / / / / / /
     # generic marshalling for soap
     # elements
@@ -209,7 +209,7 @@ namespace eval ::xosoap::visitor {
     # / / / / / / / / / / / / / / / / /
     # Introducing anythings!
     foreach any $methodArgs {
-      my log REQUEST-ANY=[$any serialize]
+      my debug REQUEST-ANY=[$any serialize]
       set anyNode [$__node__ appendChild \
 		       [$xmlDoc createElement [$any name__]]]
       $any marshal $xmlDoc $anyNode $obj
@@ -325,11 +325,11 @@ namespace eval ::xosoap::visitor {
     } else {
       # visitor is called from within a provider/ server
       set style [parameter::get \
-		     -parameter "default_invocation_style" \
+		     -parameter "marshaling_style" \
 		     -package_id [::xo::cc set package_id]]
     }
 
-    my log style=$style
+    my debug style=$style
     if {![my exists scenario] || [my scenario] eq {}} {
       foreach scenario [[self class] info children] {
 	if {$scenario ne "[self class]::slot"} {
