@@ -1,3 +1,9 @@
+2007-09-05  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
+
+	* tcl/zz-demo/manual-init.tcl: Added this little helper to
+          load provider examples that comes with xorb's
+          manual. Currently just one, but this will be extended.
+
 2007-08-30  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
 
 	* tcl/15-xosoap-procs.tcl: Changed request handling and
