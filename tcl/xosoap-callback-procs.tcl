@@ -27,6 +27,4 @@ namespace eval ::xosoap {
       ::$package_id onUnmount
     }
   }
-
-  ad_proc -private before-uninstall {} {}
 }

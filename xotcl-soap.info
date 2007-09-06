@@ -19,7 +19,6 @@
         <callbacks>
             <callback type="before-unmount"  proc="::xosoap::before-unmount"/>
             <callback type="after-mount"  proc="::xosoap::after-mount"/>
-            <callback type="before-uninstall"  proc="::xosoap::before-uninstall"/>
         </callbacks>
         <parameters>
             <parameter datatype="string"  min_n_values="1"  max_n_values="1"  name="interceptor_config"  default="standard" description="xosoap allows for injecting specific handlers that are capable of intercepting and mangling requests and responses.  Currently, xosoap comes with two configuration of interceptors chains, i.e. &quot;standard&quot; and &quot;extended&quot;. " section_name="main"/>
