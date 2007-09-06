@@ -1,6 +1,6 @@
 2007-09-06  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
 
-	* Tagged 0.4 preview release 
+	* Tagged 0.4 preview release
 
 	* tcl/xosoap-callback-procs.tcl: Fixed a typo in the
           before-uninstall callback and cleaned for unused once!
