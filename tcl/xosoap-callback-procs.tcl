@@ -28,15 +28,5 @@ namespace eval ::xosoap {
     }
   }
 
-  ad_proc -private before-uninstall {} {
-    # / / / / / / / / / / / / / / / /
-    # Starting with 0.4, clearing
-    # message types
-    foreach sp [::xosoap::xsd::SoapPrimitive info instances ::xosoap::xsd::*] {
-      $s delete
-    }
-    foreach sc [::xosoap::xsd::SoapComposite info instances ::xosoap::xsd::*] {
-      $s delete
-    }
-  }
+  ad_proc -private before-uninstall {} {}
 }

@@ -1,3 +1,11 @@
+2007-09-06  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
+
+	* tcl/xosoap-callback-procs.tcl: Fixed a typo in the
+          before-uninstall callback! SOAP-specific anythings are not
+          removed during installation of the protocol plug-in, but of
+          xorb. this does not break the contracts/ impls and shifts
+          responsibility to the type sponsorships.
+
 2007-09-05  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
 
 	* tcl/zz-demo/manual-init.tcl: Added this little helper to
