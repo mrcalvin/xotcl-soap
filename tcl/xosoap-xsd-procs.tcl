@@ -11,8 +11,6 @@ ad_library {
   
 }
 
-
-
 namespace eval ::xosoap::xsd {
 
   namespace import -force ::xorb::datatypes::*  

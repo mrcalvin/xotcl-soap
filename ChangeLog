@@ -1,3 +1,32 @@
+2007-09-09  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
+
+	* tcl/xosoap-wsdl-procs.tcl (Wsdl1.1Builder): Continued
+          improvement of WS-I compat:
+	  - Introduced a package parameter 'wsi_bp_compliant' for
+          discriminating a WSDL 1.1 and WS-I BP 1.0/1.1 compat mode
+          and leave the decision to the developer.
+	  - WS-I BP 1.0/1.1 R2705: Does not allow for mixed styled
+          bindings; compliance requires: 
+	  a-) to have a style attribute for the entire soap:binding
+          scope 
+	  b-) no per-operation style settings that would overrule
+          accordins to WSDL 1.1
+	  - WS-I BP 1.0/1.1 R2717: We need to make sure, that within
+          soap:operation blocks, we explicitly set the namespace
+          attribute to elements such as soap:body if we use the
+          literal style.
+
+2007-09-07  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
+
+	* tcl/xosoap-wsdl-procs.tcl: WSDL generation, improved WS-I
+          Basic Profile 1.1 compat.
+	  - Values of name attributes (e.g. wsdl:definitions name):
+          According to WSDL 1.1, NMTokens (i.e. allowing for qualified
+          Tcl names with ":") are sufficient, according to BP
+          1.1. (#2703), however, we need NCNames which do not allow
+          for ":". We, therefore, switch to the canonical, underscored
+          notation of contract names.  
+
 2007-09-06  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
 
 	* Tagged 0.4 preview release

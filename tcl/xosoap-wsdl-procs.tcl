@@ -26,15 +26,27 @@ namespace eval ::xosoap {
       -set ns(xsd) 	"http://www.w3.org/2001/XMLSchema" \
       -set ns(wsdl) 	"http://schemas.xmlsoap.org/wsdl/" \
       -set ns(types) 	{$url/types/} \
-      -set ns(tns)	{$url/}
+      -set ns(tns)	{$url/} \
+      -array set styles {
+	::xosoap::RpcEncoded {
+	  rpc encoded
+	}
+	::xosoap::RpcLiteral {
+	  rpc literal
+	}
+	::xosoap::DocumentLiteral {
+	  rpc literal
+	}
+      }
   Wsdl1.1Builder instproc init {} {
-    my instvar contract xmlDoc url doc style
+    my instvar contract xmlDoc url doc style bpCompliant
+    [self class] instvar styles
     if {[$contract istype ServiceContract]} {
       set url [ns_conn location][::xo::cc url]
       # / / / / / / / / / / / / / / / / /
       # 1) write out the general contract
       # information to the wsdl document
-      [my info class] instvar ns
+      [self class] instvar ns
       my instvar doc elPortType
       set doc [dom createDocumentNS $ns(wsdl) "wsdl:definitions"]
       foreach k [array names ns] {
@@ -48,8 +60,21 @@ namespace eval ::xosoap {
       # to be valid 'name tokens' as defined
       # by the the XML 1.0 specification.
       # Qualified (XO)Tcl names are therefore
-      # allowed.
-      $current setAttribute "name" [$contract name]
+      # allowed (this is according to WSDL 1.1)
+      # However, WS-I basic profile 1.1 is stricter,
+      # it requires (according to profile item BP2703)
+      # name attributes etc. to be of type NCName,
+      # which is all XML chars without ":"
+      # We, therefore, change to the canonicalName
+      # as input for wsdl marshaling, given that
+      # we are in WS-I BP compat mode.
+      set packageId [::xo::cc package_id]
+      set bpCompliant [::$packageId get_parameter wsi_bp_compliant 1]
+      set cName [$contract contract_name]
+      if {$bpCompliant} {
+	set cName [$contract canonicalName]
+      }
+      $current setAttribute "name" $cName
       $current setAttribute "targetNamespace" [subst $ns(tns)]
 
       # # # # # # # # # # # # # # # # # #
@@ -64,20 +89,34 @@ namespace eval ::xosoap {
       dom createNodeCmd elementNode soap:address
       dom createNodeCmd textNode t
 
+      # / / / / / / / / / / / / / / / / /
+      # WS-I BP 1.0/1.1
+      # R2705: Does not allow for
+      # mixed styled bindings; compliance 
+      # requires:
+      # a-) to have a style attribute
+      # for the entire soap:binding
+      # scope
+      # b-) no per-operation style settings
+      # that would overrule according
+      # to WSDL 1.1
+      set soapBindingAttr(transport) http://schemas.xmlsoap.org/soap/http
+      if {$bpCompliant} {
+	foreach {mStyle encStyle} $styles($style) break;
+	set soapBindingAttr(style) $mStyle
+      }
+
       $current appendFromScript {
-	wsdl:portType [list name [$contract name]PortType] {}
-	wsdl:binding [list name [$contract name]SoapBinding \
-			  type tns:[$contract name]PortType] {
-			    soap:binding {
-			      transport http://schemas.xmlsoap.org/soap/http
-			    } {}
+	wsdl:portType [list name ${cName}PortType] {}
+	wsdl:binding [list name ${cName}SoapBinding \
+			  type tns:${cName}PortType] {
+			    soap:binding [array get soapBindingAttr] {}
 			  }
-	wsdl:service [list name [$contract name]] {
+	wsdl:service [list name $cName] {
 	  wsdl:documentation [list t [$contract description]]
-	  wsdl:port [list name [$contract name]Port \
-			 binding tns:[$contract name]SoapBinding] {
+	  wsdl:port [list name ${cName}Port \
+			 binding tns:${cName}SoapBinding] {
 			   soap:address [list location $url] {}
-			   
 			 }
 	}
       }
@@ -126,8 +165,8 @@ namespace eval ::xosoap {
 
   RpcEncoded contains {
     Class Wsdl1.1Builder -instproc Abstract {obj} {
-      [my info class] instvar ns
-      my instvar url doc types style
+      [my info class] instvar ns styles
+      my instvar url doc types style bpCompliant
       set current [$doc documentElement]
       # / / / / / / / / / / / / / / / / /
       # 1) register elements
@@ -181,8 +220,6 @@ namespace eval ::xosoap {
       # / / / / / / / / / / / / / / / / /
       # 3) stream output
       
-
-
       set returnNodes {}
       foreach r $returns {
 	set idx [string first : $r]
@@ -220,11 +257,28 @@ namespace eval ::xosoap {
 	  wsdl:output [list message "tns:[$obj name]Output"] {}
 	}
       }
-      
+
+      # / / / / / / / / / / / / / / / / /
+      # WS-I BP 1.0/1.1
+      # R2705: Does not allow for
+      # mixed styled bindings; compliance 
+      # requires:
+      # a-) to have a style attribute
+      # for the entire soap:binding
+      # scope
+      # b-) no per-operation style settings
+      # that would overrule according
+      # to WSDL 1.1
+      set soapOperationAttr(soapAction) ${url}/[$obj name]
+      if {!$bpCompliant} {
+	foreach {mStyle encStyle} $styles($style) break;
+	set soapOperationAttr(style) $mStyle
+      }
+
       set binding [$doc getElementsByTagName "wsdl:binding"]
       $binding appendFromScript {
 	wsdl:operation [list name [$obj name]] {
-	  soap:operation [list style rpc soapAction ${url}/[$obj name]] {}
+	  soap:operation [array get soapOperationAttr] {}
 	  wsdl:input {} {
 	    soap:body \
 		[list use encoded namespace $url encodingStyle $ns(soap-enc)] {}
@@ -240,8 +294,8 @@ namespace eval ::xosoap {
   
   RpcLiteral contains {
     Class Wsdl1.1Builder -instproc Abstract {obj} {
-      [my info class] instvar ns
-      my instvar url doc types style
+      [my info class] instvar ns styles
+      my instvar url doc types style bpCompliant
       set current [$doc documentElement]
       # / / / / / / / / / / / / / / / / /
       # 1) register elements
@@ -334,18 +388,42 @@ namespace eval ::xosoap {
 	  wsdl:output [list message "tns:[$obj name]Output"] {}
 	}
       }
+
+      # / / / / / / / / / / / / / / / / /
+      # WS-I BP 1.0/1.1
+      # R2705: Does not allow for
+      # mixed styled bindings; compliance 
+      # requires:
+      # a-) to have a style attribute
+      # for the entire soap:binding
+      # scope
+      # b-) no per-operation style settings
+      # that would overrule according
+      # to WSDL 1.1
+      set soapOperationAttr(soapAction) ${url}/[$obj name]
+      if {!$bpCompliant} {
+	foreach {mStyle encStyle} $styles($style) break;
+	set soapOperationAttr(style) $mStyle
+      }
       
+      set soapBodyAttr(use) literal
+      # / / / / / / / / / / / / / / /
+      # WS-I BP 1.0/1.1 R2717
+      if {$bpCompliant} {
+	set soapBodyAttr(namespace) $url
+      }
+
       set binding [$doc getElementsByTagName "wsdl:binding"]
       $binding appendFromScript {
 	wsdl:operation [list name [$obj name]] {
-	  soap:operation [list style rpc soapAction ${url}/[$obj name]] {}
+	  soap:operation [array get soapOperationAttr] {}
 	  wsdl:input {} {
 	    soap:body \
-		[list use literal] {}
+		[array get soapBodyAttr] {}
 	  }
 	  wsdl:output {} {
 	    soap:body \
-		[list use literal] {}
+		[array get soapBodyAttr] {}
 	  }
 	}
       }
@@ -354,8 +432,8 @@ namespace eval ::xosoap {
   
   DocumentLiteral contains {
     Class Wsdl1.1Builder -instproc Abstract {obj} {
-      [my info class] instvar ns
-      my instvar url doc types style
+      [my info class] instvar ns styles
+      my instvar url doc types style bpCompliant
       set current [$doc documentElement]
       # / / / / / / / / / / / / / / / / /
       # 1) register elements
@@ -442,10 +520,6 @@ namespace eval ::xosoap {
 	  $returnNodes
 	} 
       }] $portType
-      
-
-
-
 
       # / / / / / / / / / / / / / / / / /
       # 4) portType + binding: input + output
@@ -457,17 +531,41 @@ namespace eval ::xosoap {
 	}
       }
       
+      # / / / / / / / / / / / / / / / / /
+      # WS-I BP 1.0/1.1
+      # R2705: Does not allow for
+      # mixed styled bindings; compliance 
+      # requires:
+      # a-) to have a style attribute
+      # for the entire soap:binding
+      # scope
+      # b-) no per-operation style settings
+      # that would overrule according
+      # to WSDL 1.1
+      set soapOperationAttr(soapAction) ${url}/[$obj name]
+      if {!$bpCompliant} {
+	foreach {mStyle encStyle} $styles($style) break;
+	set soapOperationAttr(style) $mStyle
+      }
+      
+      set soapBodyAttr(use) literal
+      # / / / / / / / / / / / / / / /
+      # WS-I BP 1.0/1.1 R2717
+      if {$bpCompliant} {
+	set soapBodyAttr(namespace) $url
+      }
+
       set binding [$doc getElementsByTagName "wsdl:binding"]
       $binding appendFromScript {
 	wsdl:operation [list name [$obj name]] {
-	  soap:operation [list style document soapAction ${url}/[$obj name]] {}
+	  soap:operation [array get soapOperationAttr] {}
 	  wsdl:input {} {
 	    soap:body \
-		[list use literal] {}
+		[array get soapBodyAttr] {}
 	  }
 	  wsdl:output {} {
 	    soap:body \
-		[list use literal] {}
+		[array get soapBodyAttr] {}
 	  }
 	}
       }
