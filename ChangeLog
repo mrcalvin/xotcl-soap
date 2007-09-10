@@ -1,3 +1,11 @@
+2007-09-10  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
+
+	* tcl/15-xosoap-procs.tcl (OutboundResponse/OutboundRequest):
+          Following, somewhat, the WS-I BP 1.1 requirement 1005+, we
+          do not marshal a default encodingStyle attribute (and
+          SOAP-ENC namespace declaration) anymore but in the
+          ::xosoap::RcpEncoded mode. 
+
 2007-09-09  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
 
 	* tcl/xosoap-wsdl-procs.tcl (Wsdl1.1Builder): Continued

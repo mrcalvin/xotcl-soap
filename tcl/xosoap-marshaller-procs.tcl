@@ -422,18 +422,16 @@ namespace eval ::xosoap::marshaller {
     my elementName "Envelope"
     my elementNamespace "SOAP-ENV"
     my registerNS [list "SOAP-ENV" "http://schemas.xmlsoap.org/soap/envelope/"]
-    my registerNS [list "SOAP-ENC" "http://schemas.xmlsoap.org/soap/encoding/"]
-    my registerEnc "http://schemas.xmlsoap.org/soap/encoding/"
   }
 
   SoapEnvelope proc new {
-			 {-registerNS {}}
-			 {-registerEnc {}}
-			 {-response false}
-			 -header:switch 
-			 {-nest {}}
-			 args
-		       } {
+    {-registerNS {}}
+    {-registerEnc {}}
+    {-response false}
+    -header:switch 
+    {-nest {}}
+    args
+  } {
     set head [list]
     if {$header} {
       set head [list ::xosoap::marshaller::SoapHeader new]

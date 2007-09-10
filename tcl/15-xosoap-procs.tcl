@@ -493,7 +493,17 @@ namespace eval ::xosoap {
 	  $obj registerNS [list "xsd" "http://www.w3.org/2001/XMLSchema"]
 	  $obj registerNS [list "xsi" \
 			       "http://www.w3.org/2001/XMLSchema-instance"]
-
+	  # / / / / / / / / / / / / / /
+	  # only in encoded style, 
+	  # add an encodingStyle attribute
+	  # for the per-envelope level,
+	  # and the required namespace
+	  # declaration.
+	  # This is somehow related to
+	  # WS-I BP 1.1 requirement 1005
+	  $obj registerNS \
+	      [list "SOAP-ENC" "http://schemas.xmlsoap.org/soap/encoding/"]
+	  $obj registerEnc "http://schemas.xmlsoap.org/soap/encoding/"
 	}
     Class OutboundRequest \
 	-instproc SoapBodyRequest {obj} {
@@ -518,7 +528,17 @@ namespace eval ::xosoap {
 	  $obj registerNS [list "xsd" "http://www.w3.org/2001/XMLSchema"]
 	  $obj registerNS [list "xsi" \
 			       "http://www.w3.org/2001/XMLSchema-instance"]
-	  
+	  # / / / / / / / / / / / / / /
+	  # only in encoded style, 
+	  # add an encodingStyle attribute
+	  # for the per-envelope level,
+	  # and the required namespace
+	  # declaration.
+	  # This is somehow related to
+	  # WS-I BP 1.1 requirement 1005
+	  $obj registerNS \
+	      [list "SOAP-ENC" "http://schemas.xmlsoap.org/soap/encoding/"]
+	  $obj registerEnc "http://schemas.xmlsoap.org/soap/encoding/"
 	}
     Class InboundResponse \
 	-instproc SoapBodyResponse {obj} {
