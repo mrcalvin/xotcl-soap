@@ -113,7 +113,7 @@ namespace eval ::xosoap {
   # - - - - - - - - - - - - - - - - - - 
   
   Package instproc getExternalObjectId {internal} {
-    set internal [string trim $internal "::"]
+    #set internal [string trim $internal "::"]
     set oidv [split [string map {:: /} $internal] /]
     set oidc [llength $oidv]
     my debug oidv=$oidv,oidc=$oidc
@@ -125,7 +125,7 @@ namespace eval ::xosoap {
 	return [join [list acs $oidv ] /]
       }
       default {
-	return [join $oidv /]
+	return [string trimleft [join $oidv /] /]
       }
     }
   }

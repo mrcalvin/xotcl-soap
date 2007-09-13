@@ -237,6 +237,12 @@ namespace eval ::xosoap::visitor {
     }
   }
 
+  SoapMarshallerVisitor instproc SoapHeaderField {obj} {
+    my instvar xmlDoc 
+    $obj instvar __node__ value
+    $__node__ appendChild [$xmlDoc createTextNode $value]
+  }
+
   SoapMarshallerVisitor ad_instproc releaseOn {node} {
     <p>A small helper method to initiate a visitor's 
     crawl over an object tree.</p> 
@@ -291,6 +297,21 @@ namespace eval ::xosoap::visitor {
       }
     }
     return $r
+  }
+
+  # / / / / / / / / / / / / / /
+  # Class ContextDataVisitor
+  # - - - - - - - - - - - - - - 
+  
+  ::xotcl::Class ContextDataVisitor -slots {
+    Attribute context
+  }
+  
+  ContextDataVisitor instproc visit {obj} {
+    if {[$obj istype ::xosoap::marshaller::SoapHeaderField]} {
+      my instvar context
+      $context setData [$obj elementName] [$obj value]
+    }
   }
   
   # # # # # # # # # # # # # # # 

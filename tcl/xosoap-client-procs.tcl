@@ -121,7 +121,13 @@ namespace eval xosoap::client {
     # 1) initiate marshalling
     
     # 1.1) construe SOAP request object structure
-    set requestEnvelope [SoapEnvelope new]
+    # / / / / / / / / / / / / / /
+    # Introducing header?
+    if {[$invocationContext exists data]} {
+      set requestEnvelope [SoapEnvelope new -header]
+    } else {
+      set requestEnvelope [SoapEnvelope new]
+    }
     
     # 1.2) populate SOAP request object 
     set requestVisitor [InvocationDataVisitor new \
@@ -259,7 +265,7 @@ namespace eval xosoap::client {
     </p>
     
     @author stefan.sobernig@wu-wien.ac.at
-  } -clientPlugin ::xosoap::client::Soap::Client \
+  } -clientPlugin ::xosoap::Soap::Client \
       -clientProtocol ::xosoap::Soap
 
 
@@ -280,7 +286,7 @@ namespace eval xosoap::client {
     <a href="show-object?show%5fmethods=1&show%5fsource=0&object=::xosoap::client::SoapObject">SoapObject</a>.
     </p>
     @author stefan.sobernig@wu-wien.ac.at
-  } -clientPlugin ::xosoap::client::Soap::Client \
+  } -clientPlugin ::xosoap::Soap::Client \
       -clientProtocol ::xosoap::Soap \
       -instproc init args {
 	my superclass add ::xosoap::client::SoapObject

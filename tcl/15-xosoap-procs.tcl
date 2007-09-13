@@ -271,24 +271,29 @@ namespace eval ::xosoap {
       set doc [dom parse $requestObj]
       set root [$doc documentElement]
       
-      set requestObj [::xosoap::marshaller::SoapEnvelope new]
+      set requestObj [::xosoap::marshaller::SoapEnvelope new -header]
       $requestObj parse $root
       
       # / / / / / / / / / / / / / / / / / / / / 
       # 2) populate invocation context
       $context version [my getSoapVersion $requestObj]
-      #set unmarshalled [::xotcl::Object autoname soap]
-      #$requestObj copy $unmarshalled
       $context unmarshalledRequest $requestObj
-      
+
+      # / / / / / / / / / / / / / / / / / / / /
+      # 2.1)
+      # get context data
+      set contextVisitor [::xosoap::visitor::ContextDataVisitor new \
+			      -volatile \
+			      -context $context]
+      $requestObj accept $contextVisitor
+      my debug context=[$context array get data]
       my debug "endpoint=[$context virtualObject],version=[$context version]"
     } catch {Exception e} {
       # rethrow
       error $e
     } catch {error e} {
-      global errorInfo
-      error [::xosoap::exceptions::Server::DemarshallingException new \
-		 $errorInfo]
+      #global errorInfo
+      error [::xosoap::exceptions::Server::DemarshallingException new $e]
     }
     
     # / / / / / / / / / / / / / / / / / / / / /
@@ -377,7 +382,7 @@ namespace eval ::xosoap {
   # # context
 
   ::xotcl::Class SoapInvocationContext -parameter {
-    {action {}}
+    action
     {version "1.1"}
   } -superclass RemotingInvocationContext
 
@@ -539,6 +544,22 @@ namespace eval ::xosoap {
 	  $obj registerNS \
 	      [list "SOAP-ENC" "http://schemas.xmlsoap.org/soap/encoding/"]
 	  $obj registerEnc "http://schemas.xmlsoap.org/soap/encoding/"
+	}\
+	-instproc SoapHeader {obj} {
+	  my instvar invocationContext
+	  $invocationContext instvar data
+	  my debug HEADER=[array get data]
+	  set fields [list]
+	  foreach {key value} [array get data] {
+	    append fields [subst {
+	      ::xosoap::marshaller::SoapHeaderField new \
+		  -elementName $key \
+		  -value $value
+	    }]
+	  }
+	  if {$fields ne {}} {
+	    $obj contains $fields
+	  }
 	}
     Class InboundResponse \
 	-instproc SoapBodyResponse {obj} {
@@ -623,6 +644,22 @@ namespace eval ::xosoap {
 	  # 	    # TODO: default namespace support!!!!!
 	  # 	    $obj registerNS [list "m" [$invocationContext callNamespace]]
 	  # 	  } 
+	}\
+	-instproc SoapHeader {obj} {
+	  my instvar invocationContext
+	  $invocationContext instvar data
+	  my debug HEADER=[array get data]
+	  set fields [list]
+	  foreach {key value} [array get data] {
+	    append fields [subst {
+	      ::xosoap::marshaller::SoapHeaderField new \
+		  -elementName $key \
+		  -value $value
+	    }]
+	  }
+	  if {$fields ne {}} {
+	    $obj contains $fields
+	  }
 	}
     Class InboundResponse \
 	-instproc SoapBodyResponse {obj} {

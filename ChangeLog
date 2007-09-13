@@ -1,3 +1,30 @@
+2007-09-13  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
+
+	* tcl/15-xosoap-procs.tcl (OutboundRequest): Added SOAP header
+          support to invocation data visitor styles. Remains to be
+          completed, but is operative. 
+
+	* tcl/xosoap-client-procs.tcl: Fixed a bug with errorenous
+          clientPlugin settings for soap glue types. Was changed from
+          ::xosoap::client::Soap::Client to
+          ::xosoap::Soap::Client. Some adjustments for SOAP header support.
+
+	* tcl/xosoap-visitor-procs.tcl: Enabling SOAP header support
+          by adding a ContextDataVisitor that re-packs context info
+          into context object upon de-marshaling. Adapted
+          SoapMarshallerVisitor for header marshaling support.
+
+	* tcl/xosoap-marshaller-procs.tcl: Introduced support for
+          SOAP header blocks by adding SoapHeader and
+          SoapHeaderField. Parsing logic included.
+
+	* tcl/xosoap-package-procs.tcl: Fixed a minor bug in
+          generating the external object identifier (uri segment) in
+          the special case of qualified, top-level (::*) named
+          contracts/ implementations, and unqualified, old-style OACS
+          named contracts/ implementations (without any namespace
+          delimiters). Thanks to Michael Totschnig for reporting.
+
 2007-09-10  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
 
 	* tcl/15-xosoap-procs.tcl (OutboundResponse/OutboundRequest):

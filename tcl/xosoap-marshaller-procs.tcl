@@ -210,7 +210,7 @@ namespace eval ::xosoap::marshaller {
       }
 
   SoapElement addOperations [list parse accept]
-  SoapElement abstract instproc parse {rootNode}
+  SoapElement instproc parse {rootNode} {;}
   SoapElement ad_instproc accept {visitor} {
     
     @author stefan.sobernig@wu-wien.ac.at
@@ -522,9 +522,36 @@ namespace eval ::xosoap::marshaller {
 
     @param rootNode The top most or root element of the \
 	SOAP/XML request as tDOM domNode object.
-  } {} 
+  } {
+    my instvar methodArgs
+    set headerNode [$rootNode getElementsByTagName *Header]
+    my elementNamespace [$headerNode prefix]
+    my elementName [$headerNode localName]
+    my parseAttributes $headerNode
+    
+    set fields [list]
+    foreach fieldNode [$headerNode childNodes] {
+      append fields [subst {
+	::xosoap::marshaller::SoapHeaderField new\
+	    -elementName [$fieldNode nodeName] \
+	    -value [$fieldNode text]
+      }]
+    }
+    if {$fields ne {}} {
+      my contains $fields
+    }
+  } 
 
-  ::xotcl::Class SoapHeaderEntry -superclass SoapElement
+  # / / / / / / / / / / / / /
+  # Class SoapHeaderField
+  # - - - - - - - - - - - - - 
+
+  ::xotcl::Class SoapHeaderField -slots {
+    Attribute value
+  } -superclass SoapElement
+  SoapHeaderField instproc init args {
+    my elementNamespace ""
+  }
 
   ::xotcl::Class SoapBody -superclass SoapElement -ad_doc {
 
@@ -853,7 +880,7 @@ As specified for the RPC mode of operation, a single child of type
   
   namespace export SoapElement SoapEnvelope SoapHeader SoapBody \
       SoapBodyEntry SoapBodyResponse SoapBodyRequest SoapFault \
-      SoapParameter
+      SoapParameter SoapHeaderField
 
   ::xotcl::Class Argument -parameter {domNode} 
   Argument set mapping(default) ::xorb::aux::String
