@@ -140,7 +140,7 @@ namespace eval ::xosoap {
       ::xorb::Invoker instmixin delete [self class]::Invoker
     } e]} {
       
-      if {[::xoexception::Throwable isThrowable e]} {
+      if {[::xoexception::Throwable isThrowable $e]} {
 	# / / / / / / / / / / / / / / /
 	# re-cast xorb exceptions into
 	# proper SOAP faults
@@ -271,7 +271,7 @@ namespace eval ::xosoap {
       set doc [dom parse $requestObj]
       set root [$doc documentElement]
       
-      set requestObj [::xosoap::marshaller::SoapEnvelope new -header]
+      set requestObj [::xosoap::marshaller::SoapEnvelope new]
       $requestObj parse $root
       
       # / / / / / / / / / / / / / / / / / / / / 

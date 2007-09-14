@@ -22,7 +22,8 @@ namespace eval ::xosoap::exceptions {
   Returnable instproc write {packageObj} {
     next;#log first
     #my log "---ser=[my serialize]"
-    my instvar __message__
+    my instvar __message__ node
+    set __message__(text/plain) [$node asXML]
     foreach p [[self class] info parameter] {
       if {[my exists $p]} {
 	my instvar $p
@@ -55,9 +56,11 @@ namespace eval ::xosoap::exceptions {
   ::xotcl::Class Faultable
   Faultable instproc init args {
     next; # call Loggable-> init first!
+  }
+  Faultable instproc write args {
     namespace import -force ::xosoap::marshaller::*
     namespace import -force ::xosoap::visitor::*
-    
+    my instvar node
     set class [namespace tail [my info class]]
     set fcode [expr {[my category] ne {} ? \
 			 "[my category].$class":$class}]
@@ -67,13 +70,14 @@ namespace eval ::xosoap::exceptions {
       ::xosoap::marshaller::SoapFault new \
 	  -faultcode xosoap:$fcode \
 	  -faultstring {[[my info class] set __classDoc__]} \
-	  -detail {[my message]}
+	  -detail {[$node asXML]}
     }]]
     # / / / / / / / / / / / / / / /
     # 2) marshalling
     set visitor [SoapMarshallerVisitor new -volatile]
     $visitor releaseOn $env
     my set __message__(text/xml) [[$visitor xmlDoc] asXML]
+    next
   }
 
   # # # # # # # # # # # # # # # # #

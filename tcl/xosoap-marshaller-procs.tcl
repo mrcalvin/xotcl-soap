@@ -495,6 +495,18 @@ namespace eval ::xosoap::marshaller {
     # get value of namespace SOAP-ENC
     
     my encodingStyle [[my resolveNSHandler] get "SOAP-ENC"]
+
+   # / / / / / / / / / / / / / /
+   # Verify whether a Soap Header
+   # is present and, in case, 
+   # add an object representative
+   # to take over the parsing
+   set headerNode [$rootNode getElementsByTagName *Header]
+   my debug headerNode=$headerNode,firstChild=[$rootNode firstChild]
+   if {$headerNode ne {} && $headerNode eq [$rootNode firstChild]} {
+     my add [SoapHeader new]
+   }
+   
  }
 
   ::xotcl::Class SoapHeader -superclass SoapElement -ad_doc {

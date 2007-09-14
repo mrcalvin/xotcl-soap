@@ -1,3 +1,16 @@
+2007-09-14  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
+
+	* tcl/10-xosoap-exceptions-procs.tcl: Partial rewrite of
+          exception handling: Exception information is now streamed
+          into an xml structure which is more versatile to be used and
+          rendered in various surroundings.
+
+	* tcl/xosoap-marshaller-procs.tcl: Fixed SOAP Header parsing
+          and made the parser sensible whether soap header blocks are
+          present or not. Thanks to Michael Totschning for reporting
+          and even providing an initial patch, the final solution is a
+          bit more generic than this patch proposed.
+
 2007-09-13  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
 
 	* tcl/15-xosoap-procs.tcl (OutboundRequest): Added SOAP header
