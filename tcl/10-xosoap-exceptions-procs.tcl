@@ -168,6 +168,13 @@ namespace eval ::xosoap::exceptions {
 	  SOAP payload.
 	}
 
+    ::xosoap::exceptions::FaultableException MarshallingException \
+	-ad_doc {
+	  An exception occurred when attempting to marshal the 
+	  SOAP response.
+	}
+
+
     ::xosoap::exceptions::FaultableException ContextInitException \
 	-ad_doc {
 	  The initialisation of an invocation context object failed.

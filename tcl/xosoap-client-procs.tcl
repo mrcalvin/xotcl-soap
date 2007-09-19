@@ -25,7 +25,6 @@ namespace eval xosoap::client {
   ContextObjectClass SoapGlueObject -slots {
     Attribute callNamespace
     Attribute schemas
-    Attribute action
     Attribute messageStyle -default ::xosoap::RpcLiteral
   } -ad_doc {
     <p>
@@ -103,7 +102,17 @@ namespace eval xosoap::client {
     }
     return [array get tmp]
   }
-  
+  SoapGlueObject instproc setHttpHeader {field value} {
+    my instvar httpHeader
+    set httpHeader($field) $value
+  }
+  SoapGlueObject instproc getHttpHeader {field} {
+    my instvar httpHeader
+    if {[info exists httpHeader($field)]} {
+      return $httpHeader($field)
+    }
+  }
+  SoapGlueObject instforward action -default {getHttpHeader setHttpHeader} %self %1 SOAPAction 
   SoapGlueObject instforward endpoint %self virtualObject
   
   # # # # # # # # # # # # # # # # #
@@ -183,15 +192,21 @@ namespace eval xosoap::client {
     namespace import -force ::xosoap::exceptions::*
     set postData [$invocationObject marshalledRequest]
     set url http://[$invocationObject virtualObject]
-    set actionHeaderValue [expr {[$invocationObject exists action]?\
-				     [$invocationObject getSubstified action]:\
-				     $url}]
+    array set headers [list]
+    # -- process headers
+    foreach field [$invocationObject array names httpHeader] {
+      set headers($field) [$invocationObject getSubstified httpHeader($field)]
+    }
+    # -- some defaults
+    if {![info exists headers(SOAPAction)]} {
+      set headers(SOAPAction) $url
+    }
     my debug postData=$postData
     set rObj [::xo::HttpRequest new \
 		  -url $url \
 		  -post_data $postData \
 		  -content_type "text/xml" \
-		  -request_header_fields [list SOAPAction $actionHeaderValue]]
+		  -request_header_fields [array get headers]]
     # handling of exception situations
     # http status code 500
     if {[$rObj exists statusCode] && [$rObj set statusCode] eq 500} {

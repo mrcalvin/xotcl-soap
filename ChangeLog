@@ -1,3 +1,34 @@
+2007-09-20  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
+
+	* tcl/xosoap-client-procs.tcl: Introduced a general mean of
+          adding http header information to glue objects and have it
+          unfolded into the actual request. This was needed to allow
+          for adding HTTP Auth information, for instance.
+
+2007-09-19  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
+
+	* tcl/15-xosoap-procs.tcl (InboundRequest): Fixed a nasty typo
+          in RpcEncoded style.
+
+	* Added a new package param: "authentication_support" 
+
+	* tcl/15-xosoap-procs.tcl: Added a
+          SoapAuthenticationInterceptor that is automatically
+          registered with the default interceptor chain ::xorb::coi
+          and requires a new package param ("authentication_support")  
+	  to be set to 1 to be active. The interceptor allows for  1-)
+          HTTP basic authentication (see RFC 2617 at
+          http://www.ietf.org/rfc/rfc2617.txt) 2-) SOAP Header (header
+          fields: 'username' + 'password'). Cookie support might come in but
+          it is not quite clear how usage scenarios are meant to be
+          for cookies. Shifted identifier resolution to an earlier
+          stage, to have the resolved ("internal") identifier
+          available to interceptors.
+
+2007-09-18  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
+
+	* Pitched trunk to 0.4.1 
+
 2007-09-14  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
 
 	* tcl/10-xosoap-exceptions-procs.tcl: Partial rewrite of

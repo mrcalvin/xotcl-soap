@@ -132,10 +132,148 @@ namespace eval ::xosoap {
   } -superclass RemotingPlugin \
       -contextClass "::xosoap::SoapInvocationContext"
 
-  Soap instproc handleRequest {context} {
+  Soap instproc resolve {objectId} {
+    # / / / / / / / / / / / / /
+    # we assume the following identifier
+    # input: </>internal/pointer/to/service</>
+    # there is one major exception or special
+    # constraint. whenever there is a fragment
+    # acs as the first part of the path fragment
+    # it resolves to the unqualified (not resolvable)
+    # to a concrete tcl namespace / fully qualified
+    # tcl name. this allows, for instance, to integrate
+    # the old service contracts and implementations.
+    # - - - - - - - - - - - - - -
+    # UPDATE: Starting with 0.4.1, protocol-specific
+    # resolution is called at an earlier stage, before the request
+    # is passed through the interceptor chain!
+    # To allow a more coherent way of addressing service
+    # implementation by aspect interceptors, for instance.
+    # Indirections should also be more easily realisable.
+    set oidv [split $objectId /]
+    set oidc [llength $oidv]
+    if {[lindex $oidv 0] ne "acs"} {
+      set objectId ::[join $oidv ::]
+    } else {
+      if {$oidc > 2} {
+	error {
+	  Object identifiers that resolve to the reserved and 
+	  virtual namespace 'acs' can only contain one suceeding 
+	  path fragment.}
+      }
+      set objectId [lindex $oidv 1]
+    }
+    # translated form: ::internal::pointer::to::service
+    return $objectId
+  }
 
+  Soap ad_instproc -private getVersion {soapEnvelope} {
+    
+    <p>Helps identify the SOAP standard's version the incoming and parse 
+    SOAP request adheres to. Therefore, it verifies both the encoding and 
+    envelope namespaces attached to the SOAP request. If there is a version 
+    mismatch between the two, a general fallback to the envelope's version 
+    is provided. Reference values for the version namespaces are taken from 
+    the <a href='http://www.w3.org/TR/2000/NOTE-SOAP-20000508/\#_Toc478383495'\
+	>SOAP 1.1</a> and <a href='http://www.w3.org/TR/2003/REC-soap12-part1-\
+	20030624/\#soapenv'>SOAP 1.2</a> specs.</p>
+    
+    @author stefan.sobernig@wu-wien.ac.at
+    @creation-date August, 19 2005
+    
+    @param soapEnvelope The SOAP tree of objects which also stores encoding 
+    and envelope version information, i.e. the namespace URIs extracted from 
+    the SOAP request.
+    @return A Tcl string representing the SOAP version on hand. Return value 
+    is either "1.1" or "1.2".
+    
+    @see <a href='/xotcl/proc-view?proc=::xosoap::marhsaller::Marshaller+\
+	instproc+demarshal'>::xosoap::marhsaller::Marshaller demarshal</a>
+    
+  } {
+    set soapEncVersion {}
+    switch [$soapEnvelope encodingStyle] {
+      "http://schemas.xmlsoap.org/soap/encoding/" {
+	set soapEncVersion 1.1 
+      }
+      "http://www.w3.org/2003/05/soap-encoding" {
+	set soapEncVersion 1.2
+      }
+      "http://www.w3.org/2003/05/soap-envelope/encoding/none" {
+	set soapEncVersion 1.2
+      }
+    }
+    set soapEnvVersion {}
+    switch [$soapEnvelope nsEnvelopeVersion] {
+      "http://schemas.xmlsoap.org/soap/envelope/" {
+	set soapEnvVersion 1.1
+      }
+      "http://www.w3.org/2003/05/soap-envelope" {
+	set soapEnvVersion 1.2
+      }
+    }
+    if {[expr { $soapEncVersion eq $soapEnvVersion }]} {
+      return $soapEncVersion
+    } else {
+      # fallback to version of envelope namespace
+      my debug "Version mismatch between envelope/ encoding-style namespaces."
+      return $soapEnvVersion
+    }
+  }
+
+
+  Soap instproc demarshal {context} {
+    try {
+      # / / / / / / / / / / / / / / / / / / / / 
+      # Starting with 0.4.1 and the revised
+      # interceptor mechanism, (de)marshaling
+      # specific to a protocol is better handled
+      # outside of the interceptor chain, 
+      # to make it more versatile in use and provide
+      # a demarshaled request/response structure
+      # to all interceptors.
+      # / / / / / / / / / / / / / / / / / / / / 
+      # 1) modify args > parse into soap object tree
+      set requestObj [$context marshalledRequest]
+      set doc [dom parse $requestObj]
+      set root [$doc documentElement]
+      
+      set requestObj [::xosoap::marshaller::SoapEnvelope new]
+      $requestObj parse $root
+      
+      # / / / / / / / / / / / / / / / / / / / / 
+      # 2) populate invocation context
+      $context version [my getVersion $requestObj]
+      $context unmarshalledRequest $requestObj
+      
+      # / / / / / / / / / / / / / / / / / / / /
+      # 2.1)
+      # get context data
+      set contextVisitor [::xosoap::visitor::ContextDataVisitor new \
+			      -volatile \
+			      -context $context]
+      $requestObj accept $contextVisitor
+      my debug context=[$context array get data]
+      my debug "endpoint=[$context virtualObject],version=[$context version]"
+    } catch {Exception e} {
+      # rethrow
+      error $e
+    } catch {error e} {
+      #global errorInfo
+      error [::xosoap::exceptions::Server::DemarshallingException new $e]
+    }
+  }
+
+  Soap instproc handleRequest {context} {
     if {[catch {
       ::xorb::Invoker instmixin add [self class]::Invoker
+      # / / / / / / / / / / / / / /
+      # 1-) provide for demarshaling
+      my demarshal $context
+      # / / / / / / / / / / / / / /
+      # 2-) provide for identifier
+      # resolution
+      $context virtualObject [my resolve [$context virtualObject]]
       next;#::xorb::RequestHandler->handleRequest
       ::xorb::Invoker instmixin delete [self class]::Invoker
     } e]} {
@@ -153,6 +291,23 @@ namespace eval ::xosoap {
       }
     }
   }
+
+  Soap instproc marshal {context} {
+    try {
+      set responseObj [$context unmarshalledResponse]
+      set visitor [::xosoap::visitor::SoapMarshallerVisitor new -volatile]
+      my debug RESPONSEOBJ=$responseObj,[$responseObj info class]
+      $visitor releaseOn $responseObj
+      my debug "XML=[[$visitor xmlDoc] asXML]"
+    } catch {Exception e} {
+      # re-throw
+      error $e
+    } catch {error e} {
+      error [::xosoap::exceptions::MarshallingException new "Unexpected: $e"]
+    }
+    return [[$visitor xmlDoc] asXML]
+  }
+  
   Soap instproc handleResponse {context returnValue} {
      # / / / / / / / / / / / / / / / / / / / / /
     # 1) SoapResponseVisitor
@@ -186,9 +341,8 @@ namespace eval ::xosoap {
     # 3) preserve original response object before passing it through
     # the response flow of interceptors
     $context unmarshalledResponse $responseObj
-    
     set r [next $context];
-    [my listener] dispatchResponse 200 text/xml $r
+    [my listener] dispatchResponse 200 text/xml [my marshal $context]
   }
 
   Class Soap::Invoker -instproc init args {
@@ -255,141 +409,105 @@ namespace eval ::xosoap {
   # # # # # # # # # # # # # # #
   # # 3) Protocol interceptors
 
+  # / / / / / / / / / / / / / / / / / / / / /
+  # Class SoapAuthenticationInterceptor
+  # - - - - - - - - - - - - - - - - - - - - - 
+  # We provide for a sample authentication
+  # that can be used directly or specialised/adapted
+  # further. We provide of a kind-of chain-of-responsibility,
+  # following an order of precedence for resolving
+  # authentication data:
+  # 1-) HTTP basic authentication (see RFC 2617 at 
+  # http://www.ietf.org/rfc/rfc2617.txt)
+  # 2-) SOAP Header (header fields: 'username' + 'password')
+  # 3-) HTTP cookies (see RFC 2965 at 
+  # http://tools.ietf.org/html/rfc2965)
+  # ?-) some SSO example?
+  # - - - - - - - - - - - - - - - - - - - - - 
+  # Note the use of the checkPointcuts method,
+  # which restricts the application of the 
+  # the interceptor to requests that
+  # 1-) are passed-in from the soap plug-in, and
+  # 2-) and we require the plug-in instance
+  # to have authentication enabled (package
+  # parameter)
 
-  ####################################################
-  # 	DeMarshallingInterceptor	
-  ####################################################
-
-  Interceptor DeMarshallingInterceptor
-
-  DeMarshallingInterceptor instproc handleRequest {context} {
-    
-    try {
-      # / / / / / / / / / / / / / / / / / / / / 
-      # 1) modify args > parse into soap object tree
-      set requestObj [$context marshalledRequest]
-      set doc [dom parse $requestObj]
-      set root [$doc documentElement]
-      
-      set requestObj [::xosoap::marshaller::SoapEnvelope new]
-      $requestObj parse $root
-      
-      # / / / / / / / / / / / / / / / / / / / / 
-      # 2) populate invocation context
-      $context version [my getSoapVersion $requestObj]
-      $context unmarshalledRequest $requestObj
-
-      # / / / / / / / / / / / / / / / / / / / /
-      # 2.1)
-      # get context data
-      set contextVisitor [::xosoap::visitor::ContextDataVisitor new \
-			      -volatile \
-			      -context $context]
-      $requestObj accept $contextVisitor
-      my debug context=[$context array get data]
-      my debug "endpoint=[$context virtualObject],version=[$context version]"
-    } catch {Exception e} {
-      # rethrow
-      error $e
-    } catch {error e} {
-      #global errorInfo
-      error [::xosoap::exceptions::Server::DemarshallingException new $e]
-    }
-    
-    # / / / / / / / / / / / / / / / / / / / / /
-    # 3) pass on unmarshalled request
-    next $context
-  }
-
-  DeMarshallingInterceptor instproc handleResponse {context} {
-    set responseObj [$context unmarshalledResponse]
-    set visitor [::xosoap::visitor::SoapMarshallerVisitor new -volatile]
-    my debug RESPONSEOBJ=$responseObj,[$responseObj info class]
-    $visitor releaseOn $responseObj
-    my debug "XML=[[$visitor xmlDoc] asXML]"
-    next [[$visitor xmlDoc] asXML]
-  }
-
-
-  DeMarshallingInterceptor ad_instproc -private getSoapVersion {soapEnvelope} {
-    
-    <p>Helps identify the SOAP standard's version the incoming and parse 
-    SOAP request adheres to. Therefore, it verifies both the encoding and 
-    envelope namespaces attached to the SOAP request. If there is a version 
-    mismatch between the two, a general fallback to the envelope's version 
-    is provided. Reference values for the version namespaces are taken from 
-    the <a href='http://www.w3.org/TR/2000/NOTE-SOAP-20000508/\#_Toc478383495'\
-	>SOAP 1.1</a> and <a href='http://www.w3.org/TR/2003/REC-soap12-part1-\
-	20030624/\#soapenv'>SOAP 1.2</a> specs.</p>
-    
-    @author stefan.sobernig@wu-wien.ac.at
-    @creation-date August, 19 2005
-    
-    @param soapEnvelope The SOAP tree of objects which also stores encoding 
-    and envelope version information, i.e. the namespace URIs extracted from 
-    the SOAP request.
-    @return A Tcl string representing the SOAP version on hand. Return value 
-    is either "1.1" or "1.2".
-    
-    @see <a href='/xotcl/proc-view?proc=::xosoap::marhsaller::Marshaller+\
-	instproc+demarshal'>::xosoap::marhsaller::Marshaller demarshal</a>
-    
-  } {
-    set soapEncVersion {}
-    switch [$soapEnvelope encodingStyle] {
-      "http://schemas.xmlsoap.org/soap/encoding/" {
-	set soapEncVersion 1.1 
-      }
-      "http://www.w3.org/2003/05/soap-encoding" {
-	set soapEncVersion 1.2
-      }
-      "http://www.w3.org/2003/05/soap-envelope/encoding/none" {
-	set soapEncVersion 1.2
-      }
-    }
-    set soapEnvVersion {}
-    switch [$soapEnvelope nsEnvelopeVersion] {
-      "http://schemas.xmlsoap.org/soap/envelope/" {
-	set soapEnvVersion 1.1
-      }
-      "http://www.w3.org/2003/05/soap-envelope" {
-	set soapEnvVersion 1.2
-      }
-    }
-    if {[expr { $soapEncVersion eq $soapEnvVersion }]} {
-      return $soapEncVersion
+  Class SoapAuthenticationInterceptor -superclass AspectInterceptor
+  SoapAuthenticationInterceptor instproc checkPointcuts {context} {
+    $context instvar package
+    my debug name=[$context virtualObject]
+    if {[$context protocol] eq "::xosoap::Soap" && \
+	  [$package get_parameter authentication_support 0]} {
+      return 1
     } else {
-      # fallback to version of envelope namespace
-      my debug "Version mismatch between envelope/ encoding-style namespaces."
-      return $soapEnvVersion
+      return 0
     }
   }
-
-  # # # # # # # # # # # # # #
-  # # # # # # # # # # # # # #
-  # # register interceptors
-  # # with ::xorb::Base
-  # # configuration
-
-  Soap registerInterceptors {
-    ::xosoap::DeMarshallingInterceptor
-    ::xosoap::LoggingInterceptor
+  SoapAuthenticationInterceptor instproc handleRequest {context} {
+    set challenge [ns_set get [ns_conn headers] Authorization]
+    set cookie [ns_set get [ns_conn headers] Cookie]
+    if {$challenge ne {}} {
+      # -1- http basic auth
+      # -- get credentials
+      set decoded [ns_uudecode [lindex $challenge 1]]
+      my debug challenge=$challenge,decoded=$decoded
+      set username [lindex [split $decoded ":"] 0]
+      set password [lindex [split $decoded ":"] 1]
+    } elseif {[$context dataExists username] && [$context dataExists username]} {
+      # -2- soap header
+      set username [$context getData username]
+      set password [$context getData password]
+    } elseif {$cookie ne {}} {
+      # -3- http cookie
+      # TODO: somewhat mimic sec_login_handler
+    } else {
+      # / / / / / / / / / / / / / / /
+      # One would have many options
+      # here, but, in fact, it should
+      # be left to a policy to decide
+      # on that. we just do nothing,
+      # which leaves the request in
+      # an anonymous/ untrusted state.
+      # - - - - - - - - - - - - - - - 
+    }
+    # / / / / / / / / / / / / / / / /
+    # Initially written against
+    # Dave's webdav auth code
+    if {[info exists username] && [info exists password]} {
+      foreach authority [auth::authority::get_authority_options] {
+	set authorityId [lindex $authority 1]
+	if {[util_email_valid_p $username]} {
+	  array set auth [auth::authenticate \
+			      -email $username \
+			      -password $password \
+			      -authority_id $authorityId \
+			      -no_cookie]
+	} else {
+	  array set auth [auth::authenticate \
+			      -username $username \
+			      -password $password \
+			      -authority_id $authorityId \
+			      -no_cookie]
+	}
+	if {$auth(auth_status) eq "ok"} {
+	  ::xo::cc user_id $auth(user_id)
+	  break;# done
+	}
+      }
+    }
   }
-
-  # # # # # # # # # # # # # # #
-  # # # # # # # # # # # # # # #
-  # # 4) Protocol-specific
-  # # context
-
-  ::xotcl::Class SoapInvocationContext -parameter {
-    action
-    {version "1.1"}
-  } -superclass RemotingInvocationContext
+  # -- register
+  ::xorb::coi add [SoapAuthenticationInterceptor self]
 
   # # # # # # # # # # # # # # #
   # # # # # # # # # # # # # # #
   # # 5) Invocation Data and Dispatch
   # # Styles
+
+  ::xotcl::Class SoapInvocationContext -parameter {
+    action
+    {version "1.1"}
+  } -superclass RemotingInvocationContext
 
   AggregationClass RpcEncoded -contains {
     Class SoapMarshallerVisitor \
@@ -473,7 +591,7 @@ namespace eval ::xosoap {
     Class InboundRequest \
 	-instproc SoapBodyRequest {obj} {
 	  my instvar serviceMethod serviceArgs \
-	      invocactionContext
+	      invocationContext
 	  my debug CALL=[$obj elementName]
 	  $invocationContext virtualCall [$obj elementName]
 	  #set tmpArgs ""
