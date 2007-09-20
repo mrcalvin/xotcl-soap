@@ -1,3 +1,13 @@
+2007-09-21  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
+
+	* tcl/15-xosoap-procs.tcl (DocumentLiteral::InboundRequest):
+          Fixed a presumably old bug back from 1.5.4beta times when
+          switches where defect and I changed all switches ("Anything
+          add -parse" etc.) to ordinary nonpos args.
+
+	* tcl/xosoap-wsdl-procs.tcl: Fixed a typo, with
+          DocumentLiteral being rendered as rpc in a concrete wsdl.
+
 2007-09-20  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
 
 	* tcl/xosoap-client-procs.tcl: Introduced a general mean of

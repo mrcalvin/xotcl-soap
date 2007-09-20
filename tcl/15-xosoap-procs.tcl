@@ -840,7 +840,7 @@ namespace eval ::xosoap {
 	  # service contracts)?
 	  set any [::xorb::datatypes::Anything new -name__ "parameters"]
 	  foreach a [$obj set methodArgs] {
-	    $any add -parse $a
+	    $any add -parse true $a
 	  }
 	  $invocationContext virtualArgs $any
 	}

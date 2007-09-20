@@ -35,7 +35,7 @@ namespace eval ::xosoap {
 	  rpc literal
 	}
 	::xosoap::DocumentLiteral {
-	  rpc literal
+	  document literal
 	}
       }
   Wsdl1.1Builder instproc init {} {
