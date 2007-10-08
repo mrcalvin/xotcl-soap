@@ -1,3 +1,28 @@
+2007-10-08  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
+
+	* tcl/xosoap-marshaller-procs.tcl: Minor amendment; anythings
+          are now nested into the soap element composite (to allow for
+          simple persistence through nested serialisation).
+
+	* tcl/xosoap-client-procs.tcl: Fixed a buggy behaviour in the
+          interceptors' response flow: Till now, the protocol client
+          mixin class send the extracted response value (Anything)
+          through the response flow while interceptors need/expected
+          the unmarshaled soap response structure.
+
+	* tcl/15-xosoap-procs.tcl: Sample authentication interceptor,
+          re-usable interceptor type SoapInterceptor.
+
+	* tcl/10-xosoap-exceptions-procs.tcl: Fixed another crappy
+          exception handling bit: InvocationScenarioException should not
+          necessarily be a fault type.
+
+2007-10-03  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
+
+	* tcl/15-xosoap-procs.tcl: Fixed a bug with errorneous
+          Exception reference (MarshallingException =>
+          Server::MarshallingException).
+
 2007-09-21  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
 
 	* tcl/15-xosoap-procs.tcl (DocumentLiteral::InboundRequest):

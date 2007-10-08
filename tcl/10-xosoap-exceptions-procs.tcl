@@ -134,6 +134,13 @@ namespace eval ::xosoap::exceptions {
     provider
   }
 
+  LoggableException InvocationScenarioException \
+      -ad_doc {
+	Current scenario of invocation could not be derived from
+	invocation context.
+      }
+  
+  
   # / / / / / / / / / / / / / / / / / / / / / / / / /
   # SoapFaults (categories) + documentation
   
@@ -154,12 +161,6 @@ namespace eval ::xosoap::exceptions {
     ::xosoap::exceptions::FaultableException MalformedNamespaceDeclaration \
 	-ad_doc {
 	  The call to register a new namespace was passed malformed arguments.
-	}
-
-    ::xosoap::exceptions::FaultableException InvocationScenarioException \
-	-ad_doc {
-	  Current scenario of invocation could not be derived from
-	  invocation context.
 	}
 
     ::xosoap::exceptions::FaultableException DemarshallingException \

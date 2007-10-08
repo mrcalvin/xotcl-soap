@@ -361,7 +361,7 @@ namespace eval ::xosoap::visitor {
       }
       set key [array names evaluation 1,*]
       if {[llength $key] ne "1"} {
-	error [::xosoap::exceptions::Server::InvocationScenarioException new \
+	error [::xosoap::exceptions::InvocationScenarioException new \
 		   "key: $key"]
      }
       set direction [namespace tail $evaluation($key)]
@@ -438,7 +438,7 @@ namespace eval ::xosoap::visitor {
 
   ::xotcl::Class InvocationDataVisitor::InboundResponse \
       -set conditions {
-	{[$invocationContext exists unmarshalledRequest]}
+	{[$invocationContext exists unmarshalledResponse]}
 	{[$invocationContext exists marshalledRequest]}
 	{[$invocationContext exists marshalledResponse]}
 	{[$invocationContext exists virtualCall]}

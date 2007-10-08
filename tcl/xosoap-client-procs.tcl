@@ -26,6 +26,9 @@ namespace eval xosoap::client {
     Attribute callNamespace
     Attribute schemas
     Attribute messageStyle -default ::xosoap::RpcLiteral
+  } -instproc init args {
+    my protocol ::xosoap::Soap
+    next
   } -ad_doc {
     <p>
     The class SoapGlueObject refines <a href="show-object?show%5fmethods=1&show%5fsource=0&object=%3a%3axorb%3a%3astub%3a%3aContextObject">ContextObject</a>
@@ -78,8 +81,7 @@ namespace eval xosoap::client {
 
     @author stefan.sobernig@wu-wien.ac.at
   } -superclass ContextObject \
-      -clientPlugin ::xosoap::Soap::Client \
-      -clientProtocol ::xosoap::Soap
+      -clientPlugin ::xosoap::Soap::Client
 
   SoapGlueObject instproc getCallNamespace {} {
     my instvar callNamespace
@@ -157,24 +159,39 @@ namespace eval xosoap::client {
   ::xosoap::Soap::Client instproc handleResponse {invocationContext} {
     namespace import ::xosoap::visitor::*
     namespace import ::xosoap::marshaller::*
-    # / / / / / / / / / / / /
-    # 1) initiate demarshalling
-
-    set responseEnvelope [::xosoap::marshaller::SoapEnvelope new -response true]
-    set doc [dom parse [$invocationContext marshalledResponse]]
-    set root [$doc documentElement]
-    $responseEnvelope parse $root
+    
+    # / / / / / / / / / / / / / / /
+    # Demarshaling was handled
+    # before, no need to do it now!
+    if {![$invocationContext exists unmarshalledResponse]} {
+      # / / / / / / / / / / / /
+      # 1) initiate demarshalling
+      
+      set responseEnvelope [::xosoap::marshaller::SoapEnvelope new -response true]
+      set doc [dom parse [$invocationContext marshalledResponse]]
+      set root [$doc documentElement]
+      $responseEnvelope parse $root
+      $invocationContext unmarshalledResponse $responseEnvelope
+    }
+    # / / / / / / / / /
+    # ctx represents the
+    # possibly mangled
+    # invocation context
+    # from the client request 
+    # handler
+    set ctx [next]
     # (6) return invocation results
+    my debug CTX=[$ctx serialize]
     set responseVisitor [InvocationDataVisitor new \
 			     -volatile \
-			     -invocationContext $invocationContext]
+			     -invocationContext $ctx]
     # / / / / / / / / / / / / /
     # populates context object
     # with unmarshalled response
-    $responseVisitor releaseOn $responseEnvelope
+    $responseVisitor releaseOn [$ctx unmarshalledResponse]
+    return $ctx
     # / / / / / / / / / / / /
     # 2) forward to request handler
-    next $invocationContext
   }
   
   # # # # # # # # # # # # # # # # #
@@ -280,8 +297,7 @@ namespace eval xosoap::client {
     </p>
     
     @author stefan.sobernig@wu-wien.ac.at
-  } -clientPlugin ::xosoap::Soap::Client \
-      -clientProtocol ::xosoap::Soap
+  } -clientPlugin ::xosoap::Soap::Client
 
 
 
@@ -302,13 +318,95 @@ namespace eval xosoap::client {
     </p>
     @author stefan.sobernig@wu-wien.ac.at
   } -clientPlugin ::xosoap::Soap::Client \
-      -clientProtocol ::xosoap::Soap \
       -instproc init args {
 	my superclass add ::xosoap::client::SoapObject
       }
   
+  # / / / / / / / / / / / / / / / /
+  # Mixin class CachingInterceptor
+  # - - - - - - - - - - - - - - - -
+  SoapInterceptor CachingInterceptor
+  
+  CachingInterceptor instproc handleRequest {context} {
+    my instvar requestHandler
+    # / / / / / / / / / / / / / / / / /
+    # 1-) Fetch object identifier:
+    # We preserve the object identifier (uri)
+    # in the pre-roundtrip scope (request
+    # handler) as it might be modified
+    # by other interceptors or the dispatcher.
+    my instvar id
+    set id [$context virtualObject]
+    # / / / / / / / / / / / / / / / / 
+    # 2-) In a second step, verify 
+    # that there is no cache entry for
+    # the given object identifier.
+    set exists [expr {[ns_cache names xotcl_object_cache $id] eq ""?0:1}]
+    if {$exists} {
+      # / / / / / / / / / / / / / / /
+      # 2.1-) If the request matches a
+      # cached entry, provide for 
+      # initialisation of cached object 
+      # and indirect request handler flow
+      set code [ns_cache get xotcl_object_cache $id]
+      set uncache ::[::xotcl::Object autoname cachedMessage]
+      eval [lindex $code 1]
+      # / / / / / / / / / / / / / / /
+      # 2.1.1-) Both, the serialised and
+      # deserialised states are cached.
+      # We populate the context object
+      # accordingly.
+      $context unmarshalledResponse $uncache
+      $context marshalledResponse [lindex $code 0]
+      # / / / / / / / / / / / / / / /
+      # 2.1.2-) We tag this roundtrip as
+      # 'sourced-from-cache'. As the
+      # following indirection will also
+      # invoke this interceptor on the
+      # response flow, we want to easily
+      # distinguish the need to intercept.
+      my set cached_and_indirected 1
+      # / / / / / / / / / / / / / / /
+      # 2.1.3-) indirect call to response
+      # flow
+      $requestHandler handleResponse $context
+    } else {
+      # / / / / / / / / / / / / / / /
+      # 2.2-) No matching cache entry
+      # exists, proceed in request 
+      # flow
+      next;# next interceptor
+    }
+  }
+  CachingInterceptor instproc handleResponse {context} {
+    # / / / / / / / / / / / / / / /
+    # 1-) Is the interceptor (on the
+    # response flow) called from an 
+    # indirected request or from a
+    # remotely served one?
+    my instvar cached_and_indirected id
+    if {![info exists cached_and_indirected]} {
+      # / / / / / / / / / / / / / / /
+      # 1.1-) If the request in the roundtrip
+      # was not intercepted, make sure that
+      # the response (which actually comes
+      # from a remote end) is cached.
+      ns_cache eval xotcl_object_cache $id {
+	set mapping [subst {[$context unmarshalledResponse] \${uncache}}]
+	set stream [::Serializer deepSerialize [$context unmarshalledResponse]\
+			-map $mapping]
+	return [list [$context marshalledResponse] ]
+      }
+    }
+    next;# next interceptor
+  }
+  # - register caching interceptor
+  ::xorb::client::consumer_chain add [CachingInterceptor self]
+
+
+
   namespace export SoapGlueObject HttpTransportProvider \
-      SoapObject SoapClass
+      SoapObject SoapClass CachingInterceptor
 
 }	
 

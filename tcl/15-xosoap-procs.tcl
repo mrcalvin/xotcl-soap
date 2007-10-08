@@ -303,7 +303,8 @@ namespace eval ::xosoap {
       # re-throw
       error $e
     } catch {error e} {
-      error [::xosoap::exceptions::MarshallingException new "Unexpected: $e"]
+      error [::xosoap::exceptions::Server::MarshallingException new \
+		 "Unexpected: $e"]
     }
     return [[$visitor xmlDoc] asXML]
   }
@@ -409,8 +410,14 @@ namespace eval ::xosoap {
   # # # # # # # # # # # # # # #
   # # 3) Protocol interceptors
 
+
+  Class SoapInterceptor -superclass Class
+  SoapInterceptor instproc checkPointcuts {context} {
+    return [expr {[$context protocol] eq "::xosoap::Soap"}]
+  }
+
   # / / / / / / / / / / / / / / / / / / / / /
-  # Class SoapAuthenticationInterceptor
+  # Class AuthenticationInterceptor
   # - - - - - - - - - - - - - - - - - - - - - 
   # We provide for a sample authentication
   # that can be used directly or specialised/adapted
@@ -432,18 +439,14 @@ namespace eval ::xosoap {
   # to have authentication enabled (package
   # parameter)
 
-  Class SoapAuthenticationInterceptor -superclass AspectInterceptor
-  SoapAuthenticationInterceptor instproc checkPointcuts {context} {
+  #< lst:authenticationinterceptor >#
+  SoapInterceptor AuthenticationInterceptor
+  AuthenticationInterceptor proc checkPointcuts {context} {
     $context instvar package
-    my debug name=[$context virtualObject]
-    if {[$context protocol] eq "::xosoap::Soap" && \
-	  [$package get_parameter authentication_support 0]} {
-      return 1
-    } else {
-      return 0
-    }
+    return [expr {[next] && [$package get_parameter authentication_support 0]}]
   }
-  SoapAuthenticationInterceptor instproc handleRequest {context} {
+  #< end >#
+  AuthenticationInterceptor instproc handleRequest {context} {
     set challenge [ns_set get [ns_conn headers] Authorization]
     set cookie [ns_set get [ns_conn headers] Cookie]
     if {$challenge ne {}} {
@@ -495,9 +498,15 @@ namespace eval ::xosoap {
 	}
       }
     }
+    next;# next interceptor
+  }
+  AuthenticationInterceptor instproc handleResponse {context} {
+    # explicitly clear identity
+    ::xo::cc user_id -1
+    next;# next interceptor
   }
   # -- register
-  ::xorb::coi add [SoapAuthenticationInterceptor self]
+  ::xorb::provider_chain add [AuthenticationInterceptor self]
 
   # # # # # # # # # # # # # # #
   # # # # # # # # # # # # # # #
@@ -868,7 +877,7 @@ namespace eval ::xosoap {
 
   namespace export SoapHttpListener Soap DeMarshallingInterceptor \
       LoggingInterceptor SoapInvocationContext RpcLiteral DocumentLiteral \
-      RpcEncoded
+      RpcEncoded SoapInterceptor AuthenticationInterceptor
 }
 
 

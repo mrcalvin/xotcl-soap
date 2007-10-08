@@ -692,7 +692,10 @@ As specified for the RPC mode of operation, a single child of type
 
     # / / / / / / / / / / / /
     # introducing anythings!
-    set any [::xosoap::xsd::XsAnything new -isRoot__ true -parse $responseNode]
+    set any [::xosoap::xsd::XsAnything new \
+		 -childof [self] \
+		 -isRoot__ true \
+		 -parse $responseNode]
     my log ANYTHING=[$any serialize]
     set responseValue $any
   }
