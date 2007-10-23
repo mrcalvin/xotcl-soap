@@ -1,3 +1,15 @@
+2007-10-23  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
+
+	* tcl/xosoap-client-procs.tcl: Re-write of
+          HttpTransportProvider to support core's improved http client
+          facilities (e.g. statusCode -> status_code) and non-blocking
+          transport (as one part of the asynchrony support in xorb et
+          al. 0.4.2+).
+
+	* Pitched to version 0.4.2; requires xorb in version 0.4.2 to
+          support the new features. Provided for xotcl-core 0.74
+          compat (::xosoap::Package etc.)
+
 2007-10-08  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
 
 	* tcl/xosoap-marshaller-procs.tcl: Minor amendment; anythings

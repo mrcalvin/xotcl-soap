@@ -205,28 +205,11 @@ namespace eval xosoap::client {
       -superclass TransportProvider \
       -set key "http"
 
-  HttpTransportProvider instproc handle {invocationObject} {
-    namespace import -force ::xosoap::exceptions::*
-    set postData [$invocationObject marshalledRequest]
-    set url http://[$invocationObject virtualObject]
-    array set headers [list]
-    # -- process headers
-    foreach field [$invocationObject array names httpHeader] {
-      set headers($field) [$invocationObject getSubstified httpHeader($field)]
-    }
-    # -- some defaults
-    if {![info exists headers(SOAPAction)]} {
-      set headers(SOAPAction) $url
-    }
-    my debug postData=$postData
-    set rObj [::xo::HttpRequest new \
-		  -url $url \
-		  -post_data $postData \
-		  -content_type "text/xml" \
-		  -request_header_fields [array get headers]]
+  HttpTransportProvider instproc process {rObj} {
     # handling of exception situations
     # http status code 500
-    if {[$rObj exists statusCode] && [$rObj set statusCode] eq 500} {
+    my debug rObj=[$rObj serialize]
+    if {[$rObj exists status_code] && [$rObj set status_code] eq 500} {
       # handle as fault
       try {
 	set faultMsg [$rObj set data] 
@@ -254,11 +237,11 @@ namespace eval xosoap::client {
       if {[info exists exception]} {
 	error $exception
       }
-    } elseif {[$rObj exists statusCode] && [$rObj set statusCode] ne 200} {
+    } elseif {[$rObj exists status_code] && [$rObj set status_code] ne 200} {
       # encapsulate arbitrary http error messages
       error [HttpTransportProviderException new [subst {
 	Http request transport did not suceed with 
-	status code [$rObj set statusCode] and message '[$rObj set data]'
+	status code [$rObj set status_code] and message '[$rObj set data]'
       }]]
     } elseif {[$rObj set data] eq {}} {
       # encapsulate arbitrary http error messages
@@ -270,10 +253,78 @@ namespace eval xosoap::client {
     } else {
       my debug data=[$rObj set data]
       return [$rObj set data]
-
+    }
+  }
+  
+  HttpTransportProvider instproc handle {invocationObject} {
+    namespace import -force ::xosoap::exceptions::*
+    my set invocationObject $invocationObject
+    set postData [$invocationObject marshalledRequest]
+    set url http://[$invocationObject virtualObject]
+    array set headers [list]
+    # -- process headers
+    foreach field [$invocationObject array names httpHeader] {
+      set headers($field) [$invocationObject getSubstified httpHeader($field)]
+    }
+    # -- some defaults
+    if {![info exists headers(SOAPAction)]} {
+      set headers(SOAPAction) $url
+    }
+    $invocationObject instvar asynchronous
+    my debug postData=$postData,asynchronous=$asynchronous
+    if {$asynchronous} {
+      ::xo::AsyncHttpRequest new \
+	  -url $url \
+	  -post_data $postData \
+	  -content_type "text/xml" \
+	  -request_header_fields [array get headers] \
+	  -request_manager [self]
+      # - process prospective response later (upon response dispatch)!
+      # -> see HttpTransportProvider->deliver!
+    } else {
+      set rObj [::xo::HttpRequest new \
+		    -url $url \
+		    -post_data $postData \
+		    -content_type "text/xml" \
+		    -request_header_fields [array get headers]]
+      # - process prospective response right away!
+      return [my process $rObj]
     }
   }
 
+  HttpTransportProvider instproc deliver {payload requestObject} {
+    my instvar invocationObject
+    $invocationObject instvar requestor
+    if {[catch {
+      set r [my process $requestObject]
+      my debug r=$r
+      $invocationObject marshalledResponse $r
+    } msg]} {
+      # - cleanup - - - - - - 
+      $requestObject destroy
+      # - - - - - - - - - - -
+      my debug AsyncHttpError1
+      $requestor onFailure \
+	  [::xosoap::exceptions::HttpTransportProviderException new $msg] [self]
+    } else {
+      # - cleanup - - - - - - 
+      $requestObject destroy
+      # - - - - - - - - - - -
+      my debug AsyncHttpError2
+      $requestor onSuccess $invocationObject [self]
+    }
+  }
+
+  HttpTransportProvider instproc done {reason requestObject} {
+    my instvar invocationObject
+    $invocationObject instvar requestor
+    # - cleanup - - - - - - 
+    $requestObject destroy
+    # - - - - - - - - - - -
+    $requestor onFailure \
+	[::xosoap::exceptions::HttpTransportProviderException new $msg] [self]
+  }
+    
   # / / / / / / / / / / / / / / / / /
   # / / / / / / / / / / / / / / / / /
   # Experimental: A third layer of
@@ -369,6 +420,7 @@ namespace eval xosoap::client {
       # / / / / / / / / / / / / / / /
       # 2.1.3-) indirect call to response
       # flow
+      my debug "requestHandler handleResponse"
       $requestHandler handleResponse $context
     } else {
       # / / / / / / / / / / / / / / /
@@ -395,9 +447,10 @@ namespace eval xosoap::client {
 	set mapping [subst {[$context unmarshalledResponse] \${uncache}}]
 	set stream [::Serializer deepSerialize [$context unmarshalledResponse]\
 			-map $mapping]
-	return [list [$context marshalledResponse] ]
+	return [list [$context marshalledResponse] $stream]
       }
     }
+    #my debug CACHINGonRESPONSE=[$context serialize]
     next;# next interceptor
   }
   # - register caching interceptor

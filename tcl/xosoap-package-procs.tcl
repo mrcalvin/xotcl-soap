@@ -23,7 +23,9 @@ namespace eval ::xosoap {
     header_stuff ""
     context 	""
     content 	""
-  } -superclass ProtocolPackage
+  } -superclass ProtocolPackage \
+      -pretty_name "XOSOAP Package" \
+      -package_key "xotcl-soap"
   Package instproc onMount {} {
     my instvar node baseUrl
     set package_id [namespace tail [self]]
