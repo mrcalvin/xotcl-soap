@@ -1,3 +1,13 @@
+2007-10-24  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
+
+	* tcl/xosoap-client-procs.tcl: In line with xorb r113, we
+          fixed a general issue with the overall flow of request
+          handler and interceptors. We enforced a "passification"
+          along the basic steps, as invocation data setting,
+          marshaling, dispatch, delivery, to ensure that interceptors
+          can influence the state of the unmarshalledRequest and have
+          it rendered or even inject their own marshaller etc.
+
 2007-10-23  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
 
 	* tcl/xosoap-client-procs.tcl: Re-write of

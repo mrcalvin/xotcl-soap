@@ -129,8 +129,7 @@ namespace eval ::xosoap {
     -2- adding protocol-specific interceptors to the chain
     of interceptors for the protocol-specific call.
  
-  } -superclass RemotingPlugin \
-      -contextClass "::xosoap::SoapInvocationContext"
+  } -contextClass "::xosoap::SoapInvocationContext"
 
   Soap instproc resolve {objectId} {
     # / / / / / / / / / / / / /
@@ -266,7 +265,6 @@ namespace eval ::xosoap {
 
   Soap instproc handleRequest {context} {
     if {[catch {
-      ::xorb::Invoker instmixin add [self class]::Invoker
       # / / / / / / / / / / / / / /
       # 1-) provide for demarshaling
       my demarshal $context
@@ -275,7 +273,6 @@ namespace eval ::xosoap {
       # resolution
       $context virtualObject [my resolve [$context virtualObject]]
       next;#::xorb::RequestHandler->handleRequest
-      ::xorb::Invoker instmixin delete [self class]::Invoker
     } e]} {
       
       if {[::xoexception::Throwable isThrowable $e]} {
@@ -309,17 +306,17 @@ namespace eval ::xosoap {
     return [[$visitor xmlDoc] asXML]
   }
   
-  Soap instproc handleResponse {context returnValue} {
+  Soap instproc handleResponse {context} {
      # / / / / / / / / / / / / / / / / / / / / /
     # 1) SoapResponseVisitor
     set visitor [::xosoap::visitor::InvocationDataVisitor new \
 		     -volatile \
-		     -batch $returnValue \
+		     -batch [$context result] \
 		     -invocationContext $context] 
 
     # / / / / / / / / / / / / / / / /
     # Starting with 0.4, we return a 
-    # 'virgin' envelope object to
+    # newly created envelope object to
     # be further processed. up to this
     # moment we re-used the demarshalled/
     # mangled request object, however,
@@ -342,24 +339,43 @@ namespace eval ::xosoap {
     # 3) preserve original response object before passing it through
     # the response flow of interceptors
     $context unmarshalledResponse $responseObj
-    set r [next $context];
-    [my listener] dispatchResponse 200 text/xml [my marshal $context]
+    next $context;
+
   }
 
-  Class Soap::Invoker -instproc init args {
-    my instvar context
+  Soap instproc deliver {context} {
+    next;# ::xorb::ServerRequestHandler->deliver
+    my debug DISPATCH-RESPONSE=[my transport]
+    [my transport] dispatchResponse 200 text/xml [my marshal $context]
+  }
+
+
+ #  Class Soap::Invoker -instproc init args {
+#     my instvar context
+#     # / / / / / / / / / / / / / / / / / / /
+#     # Call InvocationDataVisitor to
+#     # extract the invocation data from
+#     # the SOAP message object into the 
+#     # context object (::xo::cc)
+#     set visitor [::xosoap::visitor::InvocationDataVisitor new \
+# 		     -volatile \
+# 		     -invocationContext $context]
+#     $visitor releaseOn [$context unmarshalledRequest]
+#     next;# Invoker->init
+#   }
+
+  Soap instproc dispatch {context} {
     # / / / / / / / / / / / / / / / / / / /
     # Call InvocationDataVisitor to
     # extract the invocation data from
     # the SOAP message object into the 
-    # context object (::xo::cc)
+    # context object.
     set visitor [::xosoap::visitor::InvocationDataVisitor new \
 		     -volatile \
 		     -invocationContext $context]
     $visitor releaseOn [$context unmarshalledRequest]
-    next;# Invoker->init
+    next;# ::xorb::ServerRequestHandler->dispatch
   }
-
   
   # / / / / / / / / / / / / / / /
   # The invoker is assigned the
@@ -378,33 +394,33 @@ namespace eval ::xosoap {
   # resolution strategy, from URL components
   # to the internal namespace notation.
 
-  Soap::Invoker instproc resolve {objectId} {
-    # / / / / / / / / / / / / /
-    # we assume the following identifier
-    # input: </>internal/pointer/to/service</>
-    # there is one major exception or special
-    # constraint. whenever there is a fragment
-    # acs as the first part of the path fragment
-    # it resolves to the unqualified (not resolvable)
-    # to a concrete tcl namespace / fully qualified
-    # tcl name. this allows, for instance, to integrate
-    # the old service contracts and implementations.
-    set oidv [split $objectId /]
-    set oidc [llength $oidv]
-    if {[lindex $oidv 0] ne "acs"} {
-      set objectId ::[join $oidv ::]
-    } else {
-      if {$oidc > 2} {
-	error {
-	  Object identifiers that resolve to the reserved and 
-	  virtual namespace 'acs' can only contain one suceeding 
-	  path fragment.}
-      }
-      set objectId [lindex $oidv 1]
-    }
-    # translated form: ::internal::pointer::to::service
-    return $objectId
-  }
+  # Soap::Invoker instproc resolve {objectId} {
+#     # / / / / / / / / / / / / /
+#     # we assume the following identifier
+#     # input: </>internal/pointer/to/service</>
+#     # there is one major exception or special
+#     # constraint. whenever there is a fragment
+#     # acs as the first part of the path fragment
+#     # it resolves to the unqualified (not resolvable)
+#     # to a concrete tcl namespace / fully qualified
+#     # tcl name. this allows, for instance, to integrate
+#     # the old service contracts and implementations.
+#     set oidv [split $objectId /]
+#     set oidc [llength $oidv]
+#     if {[lindex $oidv 0] ne "acs"} {
+#       set objectId ::[join $oidv ::]
+#     } else {
+#       if {$oidc > 2} {
+# 	error {
+# 	  Object identifiers that resolve to the reserved and 
+# 	  virtual namespace 'acs' can only contain one suceeding 
+# 	  path fragment.}
+#       }
+#       set objectId [lindex $oidv 1]
+#     }
+#     # translated form: ::internal::pointer::to::service
+#     return $objectId
+#   }
 
   # # # # # # # # # # # # # # #
   # # # # # # # # # # # # # # #
@@ -691,7 +707,8 @@ namespace eval ::xosoap {
     Class InboundResponse \
 	-instproc SoapBodyResponse {obj} {
 	  my instvar invocationContext
-	  $invocationContext unmarshalledResponse [$obj responseValue]
+	  #$invocationContext unmarshalledResponse [$obj responseValue]
+	  $invocationContext result [$obj responseValue]
 	}
   }
 
@@ -791,7 +808,8 @@ namespace eval ::xosoap {
     Class InboundResponse \
 	-instproc SoapBodyResponse {obj} {
 	  my instvar invocationContext
-	  $invocationContext unmarshalledResponse [$obj responseValue]
+	  #$invocationContext unmarshalledResponse [$obj responseValue]
+	  $invocationContext result [$obj responseValue]
 	}
   }
   

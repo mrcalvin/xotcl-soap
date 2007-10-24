@@ -146,22 +146,49 @@ namespace eval xosoap::client {
 			    -invocationContext $invocationContext]
     $requestVisitor releaseOn $requestEnvelope
     $invocationContext unmarshalledRequest $requestEnvelope
-    # 1.3) employ / adapt SoapMarshallerVisitor
-    set marshaller [SoapMarshallerVisitor new -volatile]
-    $marshaller releaseOn $requestEnvelope
-    # 1.4) store marshalled request/ payload with context
-    set payload [[$marshaller xmlDoc] asXML]
-    $invocationContext marshalledRequest $payload
     # / / / / / / / / / / / /
     # 2) forward to request handler
     next $invocationContext
   }
+  ::xosoap::Soap::Client instproc dispatch {invocationContext} {
+    # TODO: marshalling should happen after the request flow
+    # and all its interceptors have been processed, allowing
+    # for exchanging the unmarshaled request object for another
+    # and have it marshaled!!!
+    # / / / / / / / / / / / /
+    # a) marshalling
+    # a.1) employ / adapt SoapMarshallerVisitor
+    # / / / / / / / / / / / /
+    # PASSIFY: allows for other marshalers as interceptors in
+    # request flow!
+    # / / / / / / / / / / / /
+    if {![$invocationContext exists marshalledRequest]} {
+      set marshaller [SoapMarshallerVisitor new -volatile]
+      $marshaller releaseOn [$invocationContext unmarshalledRequest]
+      # a.2) store marshalled request/ payload with context
+      set payload [[$marshaller xmlDoc] asXML]
+      $invocationContext marshalledRequest $payload
+    }
+    next;#::xorb::client::ClientRequestHandler->dispatch
+  }
+  ::xosoap::Soap::Client instproc deliver {invocationContext} {
+    next;#::xorb::client::ClientRequestHandler->deliver
+    set responseVisitor [InvocationDataVisitor new \
+			     -volatile \
+			     -invocationContext $invocationContext]
+    # / / / / / / / / / / / / /
+    # populates context object
+    # with the result
+    # InvocationContext->result
+    $responseVisitor releaseOn [$invocationContext unmarshalledResponse]
+  }
+
   ::xosoap::Soap::Client instproc handleResponse {invocationContext} {
     namespace import ::xosoap::visitor::*
     namespace import ::xosoap::marshaller::*
     
     # / / / / / / / / / / / / / / /
-    # Demarshaling was handled
+    # PASSIFIED: Demarshaling was handled
     # before, no need to do it now!
     if {![$invocationContext exists unmarshalledResponse]} {
       # / / / / / / / / / / / /
@@ -179,17 +206,17 @@ namespace eval xosoap::client {
     # invocation context
     # from the client request 
     # handler
-    set ctx [next]
+    next
     # (6) return invocation results
-    my debug CTX=[$ctx serialize]
-    set responseVisitor [InvocationDataVisitor new \
-			     -volatile \
-			     -invocationContext $ctx]
-    # / / / / / / / / / / / / /
-    # populates context object
-    # with unmarshalled response
-    $responseVisitor releaseOn [$ctx unmarshalledResponse]
-    return $ctx
+    # my debug CTX=[$ctx serialize]
+#     set responseVisitor [InvocationDataVisitor new \
+# 			     -volatile \
+# 			     -invocationContext $ctx]
+#     # / / / / / / / / / / / / /
+#     # populates context object
+#     # with unmarshalled response
+#     $responseVisitor releaseOn [$ctx unmarshalledResponse]
+#     return $ctx
     # / / / / / / / / / / / /
     # 2) forward to request handler
   }
@@ -421,7 +448,9 @@ namespace eval xosoap::client {
       # 2.1.3-) indirect call to response
       # flow
       my debug "requestHandler handleResponse"
-      $requestHandler handleResponse $context
+      #$requestHandler handleResponse $context
+      # BOUNCING RETURN
+      return $context
     } else {
       # / / / / / / / / / / / / / / /
       # 2.2-) No matching cache entry
