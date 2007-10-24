@@ -200,25 +200,7 @@ namespace eval xosoap::client {
       $responseEnvelope parse $root
       $invocationContext unmarshalledResponse $responseEnvelope
     }
-    # / / / / / / / / /
-    # ctx represents the
-    # possibly mangled
-    # invocation context
-    # from the client request 
-    # handler
     next
-    # (6) return invocation results
-    # my debug CTX=[$ctx serialize]
-#     set responseVisitor [InvocationDataVisitor new \
-# 			     -volatile \
-# 			     -invocationContext $ctx]
-#     # / / / / / / / / / / / / /
-#     # populates context object
-#     # with unmarshalled response
-#     $responseVisitor releaseOn [$ctx unmarshalledResponse]
-#     return $ctx
-    # / / / / / / / / / / / /
-    # 2) forward to request handler
   }
   
   # # # # # # # # # # # # # # # # #
@@ -479,11 +461,10 @@ namespace eval xosoap::client {
 	return [list [$context marshalledResponse] $stream]
       }
     }
-    #my debug CACHINGonRESPONSE=[$context serialize]
     next;# next interceptor
   }
   # - register caching interceptor
-  ::xorb::client::consumer_chain add [CachingInterceptor self]
+  # ::xorb::client::consumer_chain add [CachingInterceptor self]
 
 
 
