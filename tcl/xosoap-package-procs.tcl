@@ -262,11 +262,10 @@ namespace eval ::xosoap {
   }
 
   Package instproc wsdlDocument {context} {
-   # set context [my acquireInvocationContext]
     if {[::xo::cc isGet] && [$context exists virtualObject]} {
-      ::xorb::Invoker mixin add ::xosoap::Soap::Invoker
-      set objectId [::xorb::Invoker resolve [$context virtualObject]]
-      ::xorb::Invoker mixin delete ::xosoap::Soap::Invoker
+      my mixin add ::xosoap::Soap
+      set objectId [my resolve [$context virtualObject]]
+      my mixin delete ::xosoap::Soap
       ::xorb::Skeleton mixin add ::xosoap::Wsdl1.1
       set implObj [::xorb::Skeleton getImplementation \
 		       -name $objectId]

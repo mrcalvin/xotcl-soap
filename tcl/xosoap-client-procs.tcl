@@ -330,8 +330,12 @@ namespace eval xosoap::client {
     # - cleanup - - - - - - 
     $requestObject destroy
     # - - - - - - - - - - -
-    $requestor onFailure \
-	[::xosoap::exceptions::HttpTransportProviderException new $msg] [self]
+    set exception [::xosoap::exceptions::HttpTransportProviderException new $reason]
+    # notify the sink about error condition
+    $requestor onFailure $exception [self]
+    # break the local program flow, otherwise
+    # it would continue as in non-blocking mode!
+    error $exception
   }
     
   # / / / / / / / / / / / / / / / / /
