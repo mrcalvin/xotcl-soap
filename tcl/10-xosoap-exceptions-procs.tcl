@@ -31,11 +31,11 @@ namespace eval ::xosoap::exceptions {
 	[my info class] instvar $p
       }
     }
-    my debug "---vars=[info vars],packageObj=$packageObj"
+    #my debug "---vars=[info vars],packageObj=$packageObj"
     set msg "$__message__($contentType)"
     $packageObj $returnCmd $statusCode $contentType $msg
   }
-  
+ 
   ::xotcl::Class ReturnableException -superclass LoggableException  \
       -parameter {
 	{returnCmd returnException}

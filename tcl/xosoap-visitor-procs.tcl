@@ -240,7 +240,8 @@ namespace eval ::xosoap::visitor {
   SoapMarshallerVisitor instproc SoapHeaderField {obj} {
     my instvar xmlDoc 
     $obj instvar __node__ value
-    $__node__ appendChild [$xmlDoc createTextNode $value]
+    $value marshal $xmlDoc $__node__ $obj
+    #$__node__ appendChild [$xmlDoc createTextNode $value]
   }
 
   SoapMarshallerVisitor ad_instproc releaseOn {node} {
@@ -304,14 +305,80 @@ namespace eval ::xosoap::visitor {
   # - - - - - - - - - - - - - - 
   
   ::xotcl::Class ContextDataVisitor -slots {
-    Attribute context
+    Attribute invocationInfo
+    Attribute role -default {[self class]::PostDeMarshaling}
   }
-  
+
+  ContextDataVisitor instproc init args {
+    my instvar role
+    my debug ROLE=$role
+    my mixin $role
+  }
+
   ContextDataVisitor instproc visit {obj} {
-    if {[$obj istype ::xosoap::marshaller::SoapHeaderField]} {
-      my instvar context
-      $context setData [$obj elementName] [$obj value]
+    set m [namespace tail [$obj info class]]
+    my debug CALLING=$m/[my procsearch $m]/[my info methods]
+    if {[lsearch -exact [my info methods] $m] ne "-1"} {
+      my $m $obj
     }
+  }
+
+  # / / / / / / / / / / / / / / / / / / / / / /
+  # pre-marshaling role:
+  # `- outward requests
+  # `- outward responses
+
+  ::xotcl::Class ContextDataVisitor::PreMarshaling
+  ContextDataVisitor::PreMarshaling instproc SoapEnvelope {object} {
+    my instvar invocationInfo
+    if {[$invocationInfo isSet context]} {
+      my debug INJECT=>HEADER
+      # -1- insert a SoapHeader element object
+      set header [::xosoap::marshaller::SoapHeader new -childof $object]
+      # -2- pop the new header object to the top of
+      # the children list (to obey the SOAP grammar)
+      $object addAt $header 0
+    }
+  }
+  ContextDataVisitor::PreMarshaling instproc SoapHeader {object} {
+    my instvar invocationInfo
+    # -3- insert header block objects
+    set typeObject [$invocationInfo informationType]
+    $typeObject instvar context
+    my debug INJECT-HEADER-BLOCKS=[array get context]
+    set fields [list]
+    foreach {qKey value} [array get context] {
+      foreach {key uri} [$typeObject getUnqualifiedKey $qKey] break;
+      append fields [subst {
+	::xosoap::marshaller::SoapHeaderField new \
+	    -elementName $key \
+	    -setValue $value $invocationInfo \
+	    -bindNS $uri
+      }]
+    }
+    if {$fields ne {}} {
+      $object contains $fields
+    }
+  }
+
+  # / / / / / / / / / / / / / / / / / / / / / /
+  # post-demarshaling role:
+  # `- inward requests
+  # `- inward responses
+
+
+
+
+  ::xotcl::Class ContextDataVisitor::PostDeMarshaling
+  ContextDataVisitor::PostDeMarshaling instproc SoapHeaderField {object} {
+    my instvar invocationInfo
+    set uri [$object resolveNS]
+    my debug RETRIEVE-HEADER=>uri=$uri/name=[$object elementName]
+    $invocationInfo setContext \
+	[$object elementName] \
+	[[$object value] as \
+	     -protocol [$invocationInfo protocol] \
+	     ::xosoap::xsd::XsString] $uri
   }
   
   # # # # # # # # # # # # # # # 

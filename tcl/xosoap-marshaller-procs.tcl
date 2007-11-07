@@ -77,6 +77,8 @@ namespace eval ::xosoap::marshaller {
     @author stefan.sobernig@wu-wien.ac.at
     @creation-date August, 19 2005
 
+  } -parameter {
+    successor ""
   }
   SoapNamespace ad_instproc init args {} {
     my array set nsArray {}
@@ -101,8 +103,58 @@ namespace eval ::xosoap::marshaller {
 	SoapElement+instproc+registerNS'>::xosoap::marshaller::\
 	SoapElement registerNS</a>
   } {
-    my debug ADD=$prefix
     my set nsArray($prefix) $uri
+  }
+
+  SoapNamespace instproc resolvePrefixForUri {uri} {
+    # / / / / / / / / / / / / / / /
+    # first, resolve URI in
+    # the scope of the local
+    # namespace handler
+    foreach prefix [my array names nsArray] {
+      if {[string match [my set nsArray($prefix)] $uri]} {
+        return $prefix
+      }
+    }
+    # / / / / / / / / / / / / / /
+    # cannot be resolved locally,
+    # forward to successor
+    my instvar successor
+    if {$successor ne {}} {
+      return [$successor resolvePrefixForUri $uri]
+    } else {
+      return ""
+    }
+  }
+
+  SoapNamespace instproc resolveUriForPrefix {prefix} {
+    # / / / / / / / / / / / / / / /
+    # first, resolve prefix in
+    # the scope of the local
+    # namespace handler
+    if {[my exists nsArray($prefix)]} {
+      return [my set nsArray($prefix)]
+    }
+    # / / / / / / / / / / / / / /
+    # cannot be resolved locally,
+    # forward to successor
+    my instvar successor
+    if {$successor ne {}} {
+      return [$successor resolveUriForPrefix $uri]
+    } else {
+      return ""
+    }
+  }
+
+  SoapNamespace instproc getFirstHandlerInChain {} {
+    my instvar successor
+    if {$successor eq ""} {
+      # -- i'am the first chain element ...
+      return [self]
+    } else {
+      # -- proceed ...
+      return [$successor getFirstHandlerInChain]
+    }
   }
 
   SoapNamespace instproc delete {prefix} {
@@ -254,24 +306,76 @@ namespace eval ::xosoap::marshaller {
     }
   }
 
-  SoapElement ad_instproc registerNS {{prefix_uri {}}} {
+#   SoapElement ad_instproc registerNS {{prefix_uri {}}} {
 
-    <p>In the course of parsing a specific SoapElement 
-    (see e.g. <a href='/api-doc/proc-view?proc=::xosoap::marshaller\
-	 ::SoapEnvelope+instproc+parse'>::xosoap::marshaller::\
-	 SoapEnvelope parse</a>) this method is called
-    to <a href='/api-doc/proc-view?proc=::xosoap::marshaller::\
-	SoapElement+instproc+resolveNS'>resolve</a> the namespace 
-	handler valid in the scope of the current SoapElement. 
-	If there is no superordinated namespace handler, a new instance of 
-    <a href='/xotcl/show-object?object=::xosoap::marshaller::SoapNamespace'>\
-	::xosoap::marshaller::SoapNamespace</a> is nested into the current 
-    SoapElement object and returned as the namespace handler responsible for 
-    <a href='/api-doc/proc-view?proc=::xosoap::marshaller::SoapNamespace\
-	+instproc+add'>adding</a> the prefix-uri pair.</p>
+#     <p>In the course of parsing a specific SoapElement 
+#     (see e.g. <a href='/api-doc/proc-view?proc=::xosoap::marshaller\
+# 	 ::SoapEnvelope+instproc+parse'>::xosoap::marshaller::\
+# 	 SoapEnvelope parse</a>) this method is called
+#     to <a href='/api-doc/proc-view?proc=::xosoap::marshaller::\
+# 	SoapElement+instproc+resolveNS'>resolve</a> the namespace 
+# 	handler valid in the scope of the current SoapElement. 
+# 	If there is no superordinated namespace handler, a new instance of 
+#     <a href='/xotcl/show-object?object=::xosoap::marshaller::SoapNamespace'>\
+# 	::xosoap::marshaller::SoapNamespace</a> is nested into the current 
+#     SoapElement object and returned as the namespace handler responsible for 
+#     <a href='/api-doc/proc-view?proc=::xosoap::marshaller::SoapNamespace\
+# 	+instproc+add'>adding</a> the prefix-uri pair.</p>
+
+#     @author stefan.sobernig@wu-wien.ac.at
+#     @creation-date August, 19 2005
+
+#     @param prefix The namespace prefix as identified in the \
+# 	SOAP/XML request, , i.e. a "xmlns"-attribute.
+#     @param uri The namespace URI as identified in the \
+# 	SOAP/XML request, i.e. a "xmlns"-attribute.
+
+#   } {
+#     if {$prefix_uri ne {}} {
+#       set ns [my resolveNSHandler]
+#       if {[string first [self] $ns] == -1} {
+# 	set newNS [SoapNamespace create [self]::[my autoname ns]]
+# 	$newNs successor $ns
+# 	my namespaceHandler $newNS
+# 	set ns $newNS
+#       }
+#       set l [split $prefix_uri]
+#       if {[llength $l] ne "2"} {
+# 	error [::xosoap::exceptions::Server::MalformedNamespaceDeclaration new \
+# 		   [subst {
+# 		     '$prefix_uri' could not be transformed 
+# 		     into a list of 2 elements
+# 		   }]]
+#       }
+#       eval $ns add [lindex $l 0] [lindex $l 1]
+#     }
+#   }
+
+  SoapElement instproc registerNamespaces {declarations} {
+    foreach declaration $declarations {
+      switch [llength $declaration] {
+	1 { 
+	  # -- no custom prefix
+	  my registerNS [list $declaration]
+	}
+	2 {
+	  # -- custom prefix
+	  my registerNS $declaration
+	}
+	default {
+	  error [subst {
+	    Invalid number of elements in namespace declaration: 
+	    '$declaration'
+	    }]
+	}
+      }
+    }
+  }
+
+  SoapElement ad_instproc registerNS {prefix_uri} {
 
     @author stefan.sobernig@wu-wien.ac.at
-    @creation-date August, 19 2005
+    @creation-date Nov, 1 2007
 
     @param prefix The namespace prefix as identified in the \
 	SOAP/XML request, , i.e. a "xmlns"-attribute.
@@ -279,24 +383,73 @@ namespace eval ::xosoap::marshaller {
 	SOAP/XML request, i.e. a "xmlns"-attribute.
 
   } {
+
+
+
+    my debug prefix_uri=$prefix_uri
     if {$prefix_uri ne {}} {
       set ns [my resolveNSHandler]
       if {[string first [self] $ns] == -1} {
-	set newNS [SoapNamespace create [self]::[my autoname ns]]
+	set newNS [SoapNamespace create [self]::[my autoname nsHandler]]
+	$newNS successor $ns
 	my namespaceHandler $newNS
 	set ns $newNS
       }
-      set l [split $prefix_uri]
-      if {[llength $l] ne "2"} {
-	error [::xosoap::exceptions::Server::MalformedNamespaceDeclaration new \
-		   [subst {
-		     '$prefix_uri' could not be transformed 
-		     into a list of 2 elements
-		   }]]
+      my debug ns=$ns,successor=[$ns set successor]
+      switch -- [llength $prefix_uri] {
+	1 {set tokens uri}
+	2 {set tokens [list prefix uri]}
+	default {
+	  error [::xosoap::exceptions::Server::MalformedNamespaceDeclaration new \
+		     [subst {
+		       Invalid namespace declaration '$prefix_uri'.
+		     }]]
+	}
       }
-      eval $ns add [lindex $l 0] [lindex $l 1]
+      foreach $tokens $prefix_uri break;
+      if {![info exists prefix]} {
+	my debug HERE
+	set documentWideHandler [$ns getFirstHandlerInChain]
+	my debug FIRST=$documentWideHandler
+	set prefix [$documentWideHandler autoname ns]
+      }
+      $ns add $prefix $uri
+      return $prefix
     }
   }
+
+  SoapElement instproc addAt {object index} {
+    my instvar __children
+    set __children [linsert $__children $index $object]
+    $object set __parent [self]
+  }
+
+  SoapElement instproc bindNS {
+    uri
+    {prefix ""}
+  } {
+    set nsHandler [my resolveNSHandler]
+    set p [$nsHandler resolvePrefixForUri $uri]
+    if {$p eq {}} {
+      if {$prefix eq {}} {
+	set p [my registerNS [list $uri]]
+      } else {
+	set p [my registerNS [list $prefix $uri]]
+      }
+    }
+    my debug BINDNS=$p
+    my elementNamespace $p
+  }
+
+  SoapElement instproc resolveNS {{prefix ""}} {
+    if {$prefix eq {}} {
+      set prefix [my elementNamespace]
+    }
+    set nsHandler [my resolveNSHandler]
+    return [$nsHandler resolveUriForPrefix $prefix]
+  }
+
+
   SoapElement instproc unregisterNS {prefix} {
     if {$prefix ne {}} {
       set ns [my resolveNSHandler]
@@ -387,6 +540,8 @@ namespace eval ::xosoap::marshaller {
 		[string equal [lindex $attrib 2] ""]} {
 	  my registerNS [list [lindex $attrib 0] \
 			     [$node getAttribute "xmlns:[lindex $attrib 0]"]]
+	 # my registerNS -prefix [lindex $attrib 0] \
+	  #    -uri [$node getAttribute "xmlns:[lindex $attrib 0]"]
 	} elseif {[string equal [lindex $attrib 0] "encodingStyle"]} {
 	  my registerEnc [lindex $attrib 2]
 	} 
@@ -398,8 +553,6 @@ namespace eval ::xosoap::marshaller {
   ###############################################
   # Soap Syntax Tree
   ###############################################
-
-
 
   ::xotcl::Class SoapEnvelope -superclass SoapElement -slots {
     Attribute encodingStyle
@@ -422,6 +575,8 @@ namespace eval ::xosoap::marshaller {
     my elementName "Envelope"
     my elementNamespace "SOAP-ENV"
     my registerNS [list "SOAP-ENV" "http://schemas.xmlsoap.org/soap/envelope/"]
+    #my registerNS -prefix "SOAP-ENV" \
+	#	-uri "http://schemas.xmlsoap.org/soap/envelope/"
   }
 
   SoapEnvelope proc new {
@@ -439,7 +594,6 @@ namespace eval ::xosoap::marshaller {
     if {$nest ne {}} {
       set injection $nest
     } else {
-      my debug SWITCHRESPONSE=$response
       if {$response} {
 	set injection [list ::xosoap::marshaller::SoapBodyResponse new]
       } else {
@@ -502,9 +656,9 @@ namespace eval ::xosoap::marshaller {
    # add an object representative
    # to take over the parsing
    set headerNode [$rootNode getElementsByTagName *Header]
-   my debug headerNode=$headerNode,firstChild=[$rootNode firstChild]
+   #my debug headerNode=$headerNode,firstChild=[$rootNode firstChild]
    if {$headerNode ne {} && $headerNode eq [$rootNode firstChild]} {
-     my add [SoapHeader new]
+     my add [SoapHeader new -childof [self]]
    }
    
  }
@@ -523,7 +677,7 @@ namespace eval ::xosoap::marshaller {
   }
 
   SoapHeader ad_instproc parse {rootNode} {
-
+    
     <p>The parse method of 
     <a href='/xotcl/show-object?object=::xosoap::marshaller::SoapHeader'>\
 	::xosoap::marshaller::SoapHeader</a> provides the fundamentals
@@ -543,10 +697,16 @@ namespace eval ::xosoap::marshaller {
     
     set fields [list]
     foreach fieldNode [$headerNode childNodes] {
+      set any [::xosoap::xsd::XsAnything new \
+		   -name__ [$fieldNode localName] \
+		   -parse $fieldNode]
+
       append fields [subst {
 	::xosoap::marshaller::SoapHeaderField new\
-	    -elementName [$fieldNode nodeName] \
-	    -value [$fieldNode text]
+	    -elementName [$fieldNode localName] \
+	    -value $any \
+	    -elementNamespace [$fieldNode prefix] \
+	    -parseAttributes $fieldNode
       }]
     }
     if {$fields ne {}} {
@@ -559,10 +719,67 @@ namespace eval ::xosoap::marshaller {
   # - - - - - - - - - - - - - 
 
   ::xotcl::Class SoapHeaderField -slots {
-    Attribute value
+    Attribute value -type ::xorb::datatypes::Anything
   } -superclass SoapElement
-  SoapHeaderField instproc init args {
-    my elementNamespace ""
+  
+  # / / / / / / / / / / / / / / / / / / / /
+  # Soap header fields, or, as officially
+  # called in Soap 1.1/1.2 specs, "header blocks",
+  # may contain arbitrarily complex elements. We, 
+  # therefore, extend basic Anything support
+  
+  SoapHeaderField instproc setValue {in invocationContext} {
+    my instvar value elementName    
+    if {![my isobject $in]} {
+      #set reader [::xorb::datatypes::AnyReader new \
+	#	      -typecode ::xosoap::xsd::XsString \
+	#	      -protocol ::xosoap::Soap]
+      #my debug READER=[$reader serialize]
+      #set any [$reader any]
+      set any ::xosoap::xsd::XsString
+      set value [$any new \
+		     -childof [self] \
+		     -name__ $elementName \
+		     -set __value__ $in]
+    } else {
+      my log "WARNING: Compound header types not supported."
+    }
+  }
+
+  # / / / / / / / / / / / / / / / / / / / /
+  # Soap 1.1/1.2 require so-called
+  # "SOAP header blocks" to be
+  # streamed in a fully-qualified
+  # manner. We, therefore, need
+  # to:
+  # a) register a namespace uri, by
+  # referring to either an tcl-to-xml
+  # namespace mapping or the impicit
+  # tcl-to-urn mapping: We, currently,
+  # apply the following resolution order:
+  # -1- namespace mapping in invocation
+  # context?
+  # -2- tcl namespace of client proxy or
+  # invocation context obj -> generate
+  # urn ...
+  # -3- if toplevel (::) or exception (::template) 
+  # > xosoap default ...
+  # b) binding the element to this
+  # namespace ...
+  
+  SoapHeaderField instproc resolveNamespace {value invocationContext} {
+    set tclNamespace [namespace qualifiers $value]
+    # TODO: exemptions should be dealt with more
+    # generically
+    # -3- defaulting? 
+    if {$tclNamespace eq "" || \
+	    [lsearch -exact [list ::template] ::template] != -1} {
+      # xosoap default > parameter?
+      return urn:xosoap
+    }
+    # -1- explicit mapping?
+    set xmlNamespace [$invocationContext mapNamespace $tclNamespace]
+    return $xmlNamespace
   }
 
   ::xotcl::Class SoapBody -superclass SoapElement -ad_doc {
@@ -592,10 +809,10 @@ As specified for the RPC mode of operation, a single child of type
 		      /#_Toc478383495'>SOAP 1.1</a> and 
 		  <a href='http://www.w3.org/TR/2003/REC-soap12-part1-20030624\
 		      /#soapenv'>SOAP 1.2</a> specs).</p>
-
+    
     @author stefan.sobernig@wu-wien.ac.at
     @creation-date August, 19 2005
-
+    
     @param rootNode The top most or root element of the SOAP/XML \
 	request as tDOM domNode object.
     
@@ -619,6 +836,7 @@ As specified for the RPC mode of operation, a single child of type
   SoapBodyEntry ad_instproc init args {} {
     my elementNamespace "m"
     my registerNS [list "m" "Some-URI"]
+    #my registerNS -prefix "m" -uri "Some-URI"]
     my set methodArgs [list]
     next  
   }
@@ -639,6 +857,7 @@ As specified for the RPC mode of operation, a single child of type
     my elementName "Fault"
     my elementNamespace "SOAP-ENV"
     my registerNS {xosoap urn:xotcl-soap}
+    #my registerNS -prefix xosoap -uri urn:xotcl-soap
   }
   SoapFault instproc parse {rootNode} {
     set fault [$rootNode getElementsByTagName *Fault]
@@ -746,146 +965,6 @@ As specified for the RPC mode of operation, a single child of type
       lappend methodArgs $any
     }
   } 
-
-
-  # # # # # # # # # # # # 
-  # # # # # # # # # # # # 
-  # # Class SoapParameter
-  # # # # # # # # # # # # 
-  # # # # # # # # # # # # 
-  
-  ::xotcl::Class SoapParameter -slots {
-    Attribute domNode
-    Attribute value -type ::xosoap::xsd::Type
-    Attribute name
-  }
-
-  SoapParameter instproc getObject {-forNode:required} {
-    my instvar objectsForNodes
-    if {[array exists objectsForNodes] && \
-	    [info exists objectsForNodes($forNode)]} {
-      return $objectsForNodes($forNode)
-    }
-  }
-
-  SoapParameter instproc setObject {-forNode:required obj} {
-    my instvar objectsForNodes
-    set objectsForNodes($forNode) $obj
-  }
-
-  SoapParameter instproc init {} {
-    # / / / / / / / / / / / / / / / / / / /
-    # type of parameter: atom or compound?
-    if {[my exists domNode]} {
-       my instvar domNode
-      my setObject -forNode $domNode [self]
-      set childNodeType [[$domNode firstChild] nodeType]
-      if {$childNodeType == "TEXT_NODE"} {
-	my parseAtom
-      } else {
-	my parseCompound
-      }
-    }
-  }
-  
-  SoapParameter instproc isElementWise {node} {
-    Soap1.1 instvar namespaces
-    return [string equal -nocase \
-		[$node namespaceURI] \
-		$namespaces(soap-enc)]
-  }
-
-  SoapParameter instproc isTypeWise {node} {
-    Soap1.1 instvar namespaces
-    return [expr {$node hasAttributeNS $namespaces(xsi) "type"}]
-  }
-  
-  SoapParameter instproc isByPrecedence {node} {
-    my instvar parent
-    Soap1.1 instvar namespaces
-    if {[$parent type] eq "::xosoap::xsd::Array" && \
-	    [$parent type] ne "ur-type"} {
-      return 1
-    } else {
-      return 0
-    }
-  }
-
-  SoapParameter instproc parseAtom {} {
-    my instvar domNode parent value
-    Soap1.1 instvar namespaces
-    # / / / / / / / / / / / / / / /
-    # Atom (primitive) types come in
-    # two (three) encoding flavours:
-    # 1) element-wise (SOAP-specific) 
-    # encoding (e.g. SOAP-ENC:String, ...)
-    # 2) type-wise (XS-specific)
-    # encoding (e.g. <... type="xsd:string" .../>,)
-    # 2a) specific to XS atomic types is that
-    # they can be typed by means of precedence,
-    # i.e. if contained/ member of an Array compound
-    # type, they (if not specific about their type)
-    # inherit the type of the Array parent compound.
-    # 3) custom encoding schemes, specified
-    # by XS specifications (NOT IMPLEMENTED)
-    set atomType "default"
-    if {[my isElementWise $domNode]} {
-      # we have 1)
-      set attribute [$domNode getAttributeNS $namespaces(xsi) "type"]
-      set atomType [lindex [split $attribute ":"] 1]
-    } elseif {[my isTypeWise $domNode]} {
-      # we have 2)
-      
-    } elseif {[my isByPrecedence $domNode]} {
-      set atomType [$parent type]
-    } else {
-      # we have 3) -> exception
-      if {[my isByPrecedence $domNode]} {
-	set atomType [$parent type]
-      } else {
-	error [::xosoap::exceptions::InvalidSoapEncodingException new \
-		   "Causing soap parameter: [$domNode asXML]"]
-      }
-    }
-
-    set typeObj $xsd($atomType)
-    set parent [my getObject -forNode [$domNode parentNode]]
-    if {$parent eq [self]} {
-      set value [$typeObj new -value [$domNode text]]
-    } else {
-      my add -parent $parent \
-	  -child [list $typeObj new -value [$domNode text]] \
-	  -node $domNode
-      $parent slots 
-    }
-    
-  }
-
-  SoapParameter instproc add {
-    -parent
-    -child
-    -node
-  } {
-    $parent mixin [self class]::ComplexType
-    $parent node $node
-    $parent param [self]
-    $parent slots $child
-    $parent mixin delete [self class]::ComplexType
-  }
-
-  Class SoapParameter::ComplexType -slots {
-    Attribute node
-    Attribute param
-  }
-  SoapParameter::ComplexType instproc notify {name} {
-    my instvar node param
-    $param setObject -forNode $node [self]::slot::$name
-    next
-  }
-
-  SoapParameter instproc parseCompound {} {
-    
-  }
   
   # # # # # # # # # 
   # # # # # # # # #
@@ -896,141 +975,4 @@ As specified for the RPC mode of operation, a single child of type
   namespace export SoapElement SoapEnvelope SoapHeader SoapBody \
       SoapBodyEntry SoapBodyResponse SoapBodyRequest SoapFault \
       SoapParameter SoapHeaderField
-
-  ::xotcl::Class Argument -parameter {domNode} 
-  Argument set mapping(default) ::xorb::aux::String
-  Argument set mapping(int) ::xorb::aux::Integer 
-  Argument set mapping(string) ::xorb::aux::String 
-  Argument set mapping(double) ::xorb::aux::Double 
-  Argument set mapping(boolean) ::xorb::aux::Boolean 
-  Argument set mapping(struct) ::xorb::aux::Dict 
-  Argument set mapping(array) ::xorb::aux::Array 
-  
-
-  Argument ad_instproc init args {} {
-    
-    my set current [self]
-    my parse
-  }	
-  
-
-  Argument ad_instproc parse {} {} {
-    
-    
-    if {[my exists domNode]} {
-      
-      my instvar domNode
-      
-      set childNodeType [[$domNode firstChild] nodeType]
-      if {$childNodeType == "TEXT_NODE"} {
-	my parseAtom
-      } else {
-	my parseCompound
-      }
-    }
-
-  }
-
-  Argument ad_instproc parseAtom {} {} {
-    
-    my instvar domNode current
-    [self class] instvar mapping
-    [1.1 new -volatile] instvar namespaces
-    
-    
-
-    
-    set typeIdentifier "default"
-
-    if {[string equal -nocase [$domNode namespaceURI] $namespaces(soap-enc)]} {
-      
-      set typeIdentifier [string tolower [$domNode localName] 0 0]
-      
-      # follows XML schema type-wise encoding of data types
-    } elseif {[$domNode hasAttributeNS $namespaces(xsi) "type"]} {
-      set typeIdentifier [lindex [split [$domNode getAttributeNS $namespaces(xsi) "type"] ":"] 1]
-      if {[$current istype ::xorb::aux::Array] && [$current type] ne "ur-type" && $typeIdentifier ne [$current type]} {
-	my error "Typing of atom '[$domNode nodeName]' violates type limitation by Array declaration ([$current type])."
-      }
-    } elseif {[$current istype ::xorb::aux::Array] } {
-      if {[$current type] ne "ur-type"} {
-	set typeIdentifier [$current type]
-      } else {
-	
-	my error "Atom is not typed by any means, neither attribute- /element-wise nor by precedence."
-	
-      }
-      
-      
-    }
-    
-    #my log "atom identifier: $typeIdentifier"
-    
-    set container [$mapping($typeIdentifier)]
-    $container new -childof $current -name [$domNode nodeName] -detainee [$domNode text]
-    
-    # register atom with the superlevel compound
-    #if {$current != [self]} {
-    
-    #	my log "current($current): [$current info class], containerInst ($containerInst): [$containerInst info class]"
-    
-    #	$current ascribe $containerInst 
-    #}
-    
-  }
-
-  Argument ad_instproc parseCompound {} {} {
-
-    
-    my instvar domNode current
-    [self class] instvar mapping
-    [1.1 new -volatile] instvar namespaces
-    # struct, array?
-    
-    my debug "attr=[$domNode hasAttributeNS $namespaces(soap-enc) "arrayType"]"
-    
-    if {([$domNode namespaceURI] eq $namespaces(soap-enc) && [string equal -nocase [$domNode localName] "Array"]) || [$domNode hasAttributeNS $namespaces(soap-enc) "arrayType"] || ([$domNode hasAttributeNS $namespaces(xsi) "type"] && [string equal -nocase [$domNode getAttributeNS $namespaces(xsi) "type"] "SOAP-ENC:Array"])} {
-      set typeIdentifier "array"
-      set container $mapping($typeIdentifier)
-      set current [$container new -childof $current -name [$domNode localName] -domNode $domNode]
-      if {[$domNode hasAttributeNS $namespaces(soap-enc) "arrayType"]} {
-	
-	set arrayDeclaration [$domNode getAttributeNS $namespaces(soap-enc) "arrayType"]
-	set declv [split $arrayDeclaration ":"]
-	#regexp -- {^([a-z,A-Z,[.-.]]*)[[.[.]]([0-9]+)[[.].]]$} $a -> t o
-	if {![regexp -- {^([a-z,A-Z,[.-.]]*)[[.[.]]([0-9]+)[[.].]]$} [lindex $declv 1] -> t o]} {
-	  my error "Argument parsing: invalid Array declaration."
-	}
-	
-	$current type $t
-	$current occurrence $o 
-	
-      }
-    } else {
-      
-      set typeIdentifier "struct"
-      set container [$mapping($typeIdentifier)]
-      set current [$container new -childof $current -name [$domNode localName] -domNode $domNode]
-    }
-    
-    my debug "typeIdentifier: $typeIdentifier, class: [$current info class]"
-    
-    foreach itemNode [$domNode childNodes] {
-      my domNode $itemNode
-      my parse
-    }
-    
-  }
-
-  Argument ad_instproc rollOut {} {} {
-    
-    #my debug "argument container: [lindex [my info children] 0], type: [[lindex [my info children] 0] info class]"
-    
-    if {[my info children] != ""} {
-      
-      my debug "childs: [my info children]"
-      return [[lindex [my info children] 0] getValue]
-    } 
-  }
-
 }

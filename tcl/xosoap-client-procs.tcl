@@ -24,7 +24,6 @@ namespace eval xosoap::client {
 
   ContextObjectClass SoapGlueObject -slots {
     Attribute callNamespace
-    Attribute schemas
     Attribute messageStyle -default ::xosoap::RpcLiteral
   } -instproc init args {
     my protocol ::xosoap::Soap
@@ -47,7 +46,7 @@ namespace eval xosoap::client {
     <li>callNamespace: Allows to add a namespace URI that is 
     then bound to the namespace prefix of the request element 
     in the body part of the SOAP message.</li>
-    <li>schemas: By providing a list of prefix/URI pairs to this
+    <li>namespaces: By providing a list of prefix/URI pairs to this
     property, one may register custom namespaces to be streamed
     into the SOAP request message.</li>
     <li>
@@ -81,8 +80,9 @@ namespace eval xosoap::client {
 
     @author stefan.sobernig@wu-wien.ac.at
   } -superclass ContextObject \
-      -clientPlugin ::xosoap::Soap::Client
-
+      -clientPlugin ::xosoap::Soap::Client  \
+      -set __informationType ::xosoap::SoapInformationType
+  SoapGlueObject instforward endpoint %self virtualObject
   SoapGlueObject instproc getCallNamespace {} {
     my instvar callNamespace
     if {![info exists callNamespace]} return;
@@ -90,33 +90,22 @@ namespace eval xosoap::client {
       prefix 	""
       uri	""
     }
-    switch [llength $callNamespace] {
+    set ns [my getSubstified callNamespace]
+    switch [llength $ns] {
       1 {
 	# -- default per-element namespace
-	set tmp(uri) $callNamespace
+	set tmp(uri) $ns
       }
       2 {
 	# -- prefixed per-element namespace
-	set tmp(prefix) [lindex $callNamespace 0]
-	set tmp(uri) [lindex $callNamespace 1]
+	set tmp(prefix) [lindex $ns 0]
+	set tmp(uri) [lindex $ns 1]
       }
       default return;
     }
     return [array get tmp]
   }
-  SoapGlueObject instproc setHttpHeader {field value} {
-    my instvar httpHeader
-    set httpHeader($field) $value
-  }
-  SoapGlueObject instproc getHttpHeader {field} {
-    my instvar httpHeader
-    if {[info exists httpHeader($field)]} {
-      return $httpHeader($field)
-    }
-  }
-  SoapGlueObject instforward action -default {getHttpHeader setHttpHeader} %self %1 SOAPAction 
-  SoapGlueObject instforward endpoint %self virtualObject
-  
+
   # # # # # # # # # # # # # # # # #
   # # # # # # # # # # # # # # # # #
   # Soap Client handler
@@ -134,12 +123,8 @@ namespace eval xosoap::client {
     # 1.1) construe SOAP request object structure
     # / / / / / / / / / / / / / /
     # Introducing header?
-    if {[$invocationContext exists data]} {
-      set requestEnvelope [SoapEnvelope new -header]
-    } else {
-      set requestEnvelope [SoapEnvelope new]
-    }
-    
+    set requestEnvelope [SoapEnvelope new]
+        
     # 1.2) populate SOAP request object 
     set requestVisitor [InvocationDataVisitor new \
 			    -volatile \
@@ -150,6 +135,10 @@ namespace eval xosoap::client {
     # 2) forward to request handler
     next $invocationContext
   }
+
+
+
+
   ::xosoap::Soap::Client instproc dispatch {invocationContext} {
     # TODO: marshalling should happen after the request flow
     # and all its interceptors have been processed, allowing
@@ -163,6 +152,30 @@ namespace eval xosoap::client {
     # request flow!
     # / / / / / / / / / / / /
     if {![$invocationContext exists marshalledRequest]} {
+
+      # pre-register custom-defined namespace declarations
+      # at the latest possibly time before marhsaling,
+      # to allow various hooking levels to mangle the
+      # list of custom-defined namespaces ...
+      if {[$invocationContext isSet namespaces]} {
+	[$invocationContext unmarshalledRequest] registerNamespaces \
+	    [$invocationContext namespaces]
+      }
+
+      # / / / / / / / / / / / / / / /
+      # Inject context information as 
+      # header/header blocks before
+      # continueing with marshaling ...
+      # This allows to stream context
+      # info added in the response flow
+      # at the latest point in time 
+      # possible ...
+      set contextVisitor [::xosoap::visitor::ContextDataVisitor new \
+			      -volatile \
+			      -role ::xosoap::visitor::ContextDataVisitor::PreMarshaling \
+			      -invocationInfo $invocationContext]
+      [$invocationContext unmarshalledRequest] accept $contextVisitor
+      # - - - - - - - - - - - - - -
       set marshaller [SoapMarshallerVisitor new -volatile]
       $marshaller releaseOn [$invocationContext unmarshalledRequest]
       # a.2) store marshalled request/ payload with context
@@ -194,12 +207,19 @@ namespace eval xosoap::client {
       # / / / / / / / / / / / /
       # 1) initiate demarshalling
       
-      set responseEnvelope [::xosoap::marshaller::SoapEnvelope new -response true]
+      set responseEnvelope [::xosoap::marshaller::SoapEnvelope new \
+				-response true]
       set doc [dom parse [$invocationContext marshalledResponse]]
       set root [$doc documentElement]
       $responseEnvelope parse $root
       $invocationContext unmarshalledResponse $responseEnvelope
     }
+    # -- get context data
+    # (in post-demarshaling role)
+    set contextVisitor [::xosoap::visitor::ContextDataVisitor new \
+			    -volatile \
+			    -invocationInfo $invocationContext]
+    [$invocationContext unmarshalledResponse] accept $contextVisitor
     next
   }
   
@@ -271,10 +291,12 @@ namespace eval xosoap::client {
     set postData [$invocationObject marshalledRequest]
     set url http://[$invocationObject virtualObject]
     array set headers [list]
-    # -- process headers
-    foreach field [$invocationObject array names httpHeader] {
+    # -- process headers (stored with the type object)
+    set typeObject [$invocationObject informationType]
+    foreach field [$typeObject array names httpHeader] {
       set headers($field) [$invocationObject getSubstified httpHeader($field)]
     }
+    my debug HEADERS=[array get headers]
     # -- some defaults
     if {![info exists headers(SOAPAction)]} {
       set headers(SOAPAction) $url
@@ -312,14 +334,12 @@ namespace eval xosoap::client {
       # - cleanup - - - - - - 
       $requestObject destroy
       # - - - - - - - - - - -
-      my debug AsyncHttpError1
       $requestor onFailure \
 	  [::xosoap::exceptions::HttpTransportProviderException new $msg] [self]
     } else {
       # - cleanup - - - - - - 
       $requestObject destroy
       # - - - - - - - - - - -
-      my debug AsyncHttpError2
       $requestor onSuccess $invocationObject [self]
     }
   }
@@ -361,7 +381,8 @@ namespace eval xosoap::client {
     </p>
     
     @author stefan.sobernig@wu-wien.ac.at
-  } -clientPlugin ::xosoap::Soap::Client
+  } -clientPlugin ::xosoap::Soap::Client \
+      -set __informationType ::xosoap::SoapInformationType
 
 
 

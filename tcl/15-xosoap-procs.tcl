@@ -38,12 +38,6 @@ namespace eval ::xosoap {
     next;#ListenerClass->initialise 
     return filter_ok;
   }
-#   SoapHttpListener proc redirect {} {
-#     # TODO: move to ListenerClass->redirect?
-#     #[my plugin] plug -listener [self]::listener
-#     next;#ListenerClass->redirect
-#     #my terminate; # unplug
-#   }
   SoapHttpListener instproc processRequest {} {
 
     # / / / / / / / / / / / / / / / / / / / / / / / / / 
@@ -96,9 +90,7 @@ namespace eval ::xosoap {
       ::xo::cc httpMethod [ns_conn method]
       
       # -- 3-)
-      
-
-      my debug params=$params,solicit=$s
+      #my debug params=$params,solicit=$s
       ::$package_id solicit $s
       # - - - - - - - - - - - - - - - - - - - - - - - -
     } e]} {
@@ -122,15 +114,13 @@ namespace eval ::xosoap {
   # # 2) Protocol-Plugin
 
   PluginClass Soap -ad_doc {
-    
     A Protocol-Plugin allows for either ...
     -1- mixing-in into the initial / final actions of the 
     RequestHandler (handleRequest/ handleResponse)
     -2- adding protocol-specific interceptors to the chain
     of interceptors for the protocol-specific call.
- 
-  } -contextClass "::xosoap::SoapInvocationContext"
-
+  } -contextClass "::xosoap::SoapInformation"
+  
   Soap instproc resolve {objectId} {
     # / / / / / / / / / / / / /
     # we assume the following identifier
@@ -215,7 +205,8 @@ namespace eval ::xosoap {
       return $soapEncVersion
     } else {
       # fallback to version of envelope namespace
-      my debug "Version mismatch between envelope/ encoding-style namespaces."
+      
+      #my debug "Version mismatch between envelope/ encoding-style namespaces."
       return $soapEnvVersion
     }
   }
@@ -245,15 +236,13 @@ namespace eval ::xosoap {
       $context version [my getVersion $requestObj]
       $context unmarshalledRequest $requestObj
       
-      # / / / / / / / / / / / / / / / / / / / /
+      # / / / / / / / / / / / / / / / / / / / / / / /
       # 2.1)
-      # get context data
+      # get context data (in post-demarshaling role)
       set contextVisitor [::xosoap::visitor::ContextDataVisitor new \
 			      -volatile \
-			      -context $context]
+			      -invocationInfo $context]
       $requestObj accept $contextVisitor
-      my debug context=[$context array get data]
-      my debug "endpoint=[$context virtualObject],version=[$context version]"
     } catch {Exception e} {
       # rethrow
       error $e
@@ -327,9 +316,15 @@ namespace eval ::xosoap {
     # somehow useless, as most of them
     # would use visitors to access and
     # mangle the message objects.
-
+    #my debug OUTHEADER=[$context isSet context],[$context serialize]
+    #if {[$context isSet context]} {
+#      set responseObj [::xosoap::marshaller::SoapEnvelope new \
+#			   -response true -header]
+    #   } else {
     set responseObj [::xosoap::marshaller::SoapEnvelope new \
 			 -response true]
+    #    }
+
     my debug "NEWRESPONSE=[$responseObj serialize]"
     # / / / / / / / / / / / / / / / / / / / / /
     # 2) Transform request into response object
@@ -345,24 +340,32 @@ namespace eval ::xosoap {
 
   Soap instproc deliver {context} {
     next;# ::xorb::ServerRequestHandler->deliver
-    my debug DISPATCH-RESPONSE=[my transport]
+
+    # pre-register custom-defined namespace declarations
+    # at the latest possibly time before marhsaling,
+    # to allow various hooking levels to mangle the
+    # list of custom-defined namespaces ...
+    if {[$context isSet namespaces]} {
+      [$context unmarshalledResponse] registerNamespaces \
+	  [$context namespaces]
+    }
+
+    # / / / / / / / / / / / / / / /
+    # Inject context information as 
+    # header/header blocks before
+    # continueing with marshaling ...
+    # This allows to stream context
+    # info added in the response flow
+    # at the latest point in time 
+    # possible ...
+    set contextVisitor [::xosoap::visitor::ContextDataVisitor new \
+			    -volatile \
+			    -role ::xosoap::visitor::ContextDataVisitor::PreMarshaling \
+			    -invocationInfo $context]
+    [$context unmarshalledResponse] accept $contextVisitor
+    # - - - - - - - - - - - - - - -
     [my transport] dispatchResponse 200 text/xml [my marshal $context]
   }
-
-
- #  Class Soap::Invoker -instproc init args {
-#     my instvar context
-#     # / / / / / / / / / / / / / / / / / / /
-#     # Call InvocationDataVisitor to
-#     # extract the invocation data from
-#     # the SOAP message object into the 
-#     # context object (::xo::cc)
-#     set visitor [::xosoap::visitor::InvocationDataVisitor new \
-# 		     -volatile \
-# 		     -invocationContext $context]
-#     $visitor releaseOn [$context unmarshalledRequest]
-#     next;# Invoker->init
-#   }
 
   Soap instproc dispatch {context} {
     # / / / / / / / / / / / / / / / / / / /
@@ -469,13 +472,13 @@ namespace eval ::xosoap {
       # -1- http basic auth
       # -- get credentials
       set decoded [ns_uudecode [lindex $challenge 1]]
-      my debug challenge=$challenge,decoded=$decoded
       set username [lindex [split $decoded ":"] 0]
       set password [lindex [split $decoded ":"] 1]
-    } elseif {[$context dataExists username] && [$context dataExists username]} {
+    } elseif {[$context contextExists username urn:org:vue:auth] && \
+		  [$context contextExists password urn:org:vue:auth]} {
       # -2- soap header
-      set username [$context getData username]
-      set password [$context getData password]
+      set username [$context getContext username urn:org:vue:auth]
+      set password [$context getContext password urn:org:vue:auth]
     } elseif {$cookie ne {}} {
       # -3- http cookie
       # TODO: somewhat mimic sec_login_handler
@@ -517,6 +520,15 @@ namespace eval ::xosoap {
     next;# next interceptor
   }
   AuthenticationInterceptor instproc handleResponse {context} {
+    # provide a sample response header block
+    set envelope [$context unmarshalledResponse]
+    $envelope registerNamespaces {
+      {myauth urn:org:vue:auth}
+    }
+    $context namespaces {
+      {xosoap urn:xosoap}
+    }
+    $context setContext authstatus [::xo::cc user_id] urn:org:vue:auth
     # explicitly clear identity
     ::xo::cc user_id -1
     next;# next interceptor
@@ -524,15 +536,95 @@ namespace eval ::xosoap {
   # -- register
   ::xorb::provider_chain add [AuthenticationInterceptor self]
 
-  # # # # # # # # # # # # # # #
-  # # # # # # # # # # # # # # #
-  # # 5) Invocation Data and Dispatch
-  # # Styles
+  # # # # # # # # # # # # # # # # # #
+  # # # # # # # # # # # # # # # # # #
+  # # 5) Invocation information
 
-  ::xotcl::Class SoapInvocationContext -parameter {
-    action
-    {version "1.1"}
-  } -superclass RemotingInvocationContext
+  # / / / / / / / / / / / / / / / /
+  # Type object class for SOAP-
+  # specific invocation information
+  ::xotcl::Class SoapInformationType -slots {
+    Attribute namespaces -multivalued true
+    Attribute version -default "1.1"
+    Attribute namespaceMap
+  } -superclass InvocationInformationType
+
+  
+  # / / / / / / / / / / / / / / / /
+  # `- namespace mappings
+  SoapInformationType instproc mapNamespace {key} {
+    my instvar namespaceMap
+    array set tmp $namespaceMap
+    if {[info exists tmp($key)]} {
+      return $tmp($key)
+    }
+  }
+
+  # / / / / / / / / / / / / / / / /
+  # `- http headers
+  SoapInformationType instproc setHttpHeader {field value} {
+    my instvar httpHeader
+    set httpHeader($field) $value
+  }
+  SoapInformationType instproc getHttpHeader {field} {
+    my instvar httpHeader
+    if {[info exists httpHeader($field)]} {
+      return $httpHeader($field)
+    }
+  }
+  SoapInformationType instforward action \
+      -default {getHttpHeader setHttpHeader} %self %1 SOAPAction 
+  
+
+  # / / / / / / / / / / / / / / / /
+  # `- soap headers
+  # - - - - - - - - - - - - - - - - 
+  # TODO: canonise URIs!
+
+  SoapInformationType instproc getQualifiedKey {key uri} {
+    return "($uri).$key"
+  }
+
+  SoapInformationType instproc getUnqualifiedKey {qualifiedKey} {
+    if {[regexp {^\((.*)\)\.(.*)$} $qualifiedKey _ uri key]} {
+      return [list $key $uri]
+    } else {
+      error "Invalid qualified key string."
+    }
+  }
+
+
+  SoapInformationType instproc setContext {key value uri} {
+    my debug SET-CONTEXT=$key/$value/$uri/[self next]
+    next [my getQualifiedKey $key $uri] $value
+  }
+
+  SoapInformationType instproc getContext {key uri} {
+    next [my getQualifiedKey $key $uri]
+  }
+
+  SoapInformationType instproc contextExists {key uri} {
+    next [my getQualifiedKey $key $uri]
+  }
+
+  # / / / / / / / / / / / / / / / /
+  # Component class for SOAP-provider
+  # invocation information
+  ::xotcl::Class SoapInformation \
+      -superclass ProviderInformation \
+      -set __informationType ::xosoap::SoapInformationType
+  SoapInformation instproc init args {
+    # / / / / / / / / / / / / / / / /
+    # initialise and refer to 
+    # a type object ...
+    #my informationType [SoapInformationType new -childof [self]]
+    next
+  }
+
+  # # # # # # # # # # # # # # # # # #
+  # # # # # # # # # # # # # # # # # #
+  # # 6) message styles
+
 
   AggregationClass RpcEncoded -contains {
     Class SoapMarshallerVisitor \
@@ -687,23 +779,27 @@ namespace eval ::xosoap {
 	  $obj registerNS \
 	      [list "SOAP-ENC" "http://schemas.xmlsoap.org/soap/encoding/"]
 	  $obj registerEnc "http://schemas.xmlsoap.org/soap/encoding/"
-	}\
-	-instproc SoapHeader {obj} {
-	  my instvar invocationContext
-	  $invocationContext instvar data
-	  my debug HEADER=[array get data]
-	  set fields [list]
-	  foreach {key value} [array get data] {
-	    append fields [subst {
-	      ::xosoap::marshaller::SoapHeaderField new \
-		  -elementName $key \
-		  -value $value
-	    }]
-	  }
-	  if {$fields ne {}} {
-	    $obj contains $fields
-	  }
 	}
+    # \
+# 	-instproc SoapHeader {obj} {
+# 	  my instvar invocationContext
+# 	  set typeObject [$invocationContext informationType]
+# 	  $typeObject instvar context
+# 	  my debug HEADER=[array get context]
+# 	  set fields [list]
+# 	  foreach {qKey value} [array get context] {
+# 	    foreach {key uri} [$typeObject getUnqualifiedKey $qKey] break;
+# 	    append fields [subst {
+# 	      ::xosoap::marshaller::SoapHeaderField new \
+# 		  -elementName $key \
+# 		  -setValue $value $invocationContext \
+# 		  -bindNS $uri
+# 	    }]
+# 	  }
+# 	  if {$fields ne {}} {
+# 	    $obj contains $fields
+# 	  }
+# 	}
     Class InboundResponse \
 	-instproc SoapBodyResponse {obj} {
 	  my instvar invocationContext
@@ -765,6 +861,26 @@ namespace eval ::xosoap {
 	$obj set style [[self class] info parent]
 	$obj responseValue [my batch]
       }
+    # \
+#        -instproc SoapHeader {obj} {
+# 	  my instvar invocationContext
+# 	  set typeObject [$invocationContext informationType]
+# 	  $typeObject instvar context
+# 	  my debug OUTHEADER=[array get context]
+# 	  set fields [list]
+# 	  foreach {qKey value} [array get context] {
+# 	    foreach {key uri} [$typeObject getUnqualifiedKey $qKey] break;
+# 	    append fields [subst {
+# 	      ::xosoap::marshaller::SoapHeaderField new \
+# 		  -elementName $key \
+# 		  -setValue $value $invocationContext \
+# 		  -bindNS $uri
+# 	    }]
+# 	  }
+# 	  if {$fields ne {}} {
+# 	    $obj contains $fields
+# 	  }
+# 	}
     Class OutboundRequest \
 	-instproc SoapBodyRequest {obj} {
 	  my instvar invocationContext
@@ -788,23 +904,27 @@ namespace eval ::xosoap {
 	  # 	    # TODO: default namespace support!!!!!
 	  # 	    $obj registerNS [list "m" [$invocationContext callNamespace]]
 	  # 	  } 
-	}\
-	-instproc SoapHeader {obj} {
-	  my instvar invocationContext
-	  $invocationContext instvar data
-	  my debug HEADER=[array get data]
-	  set fields [list]
-	  foreach {key value} [array get data] {
-	    append fields [subst {
-	      ::xosoap::marshaller::SoapHeaderField new \
-		  -elementName $key \
-		  -value $value
-	    }]
-	  }
-	  if {$fields ne {}} {
-	    $obj contains $fields
-	  }
 	}
+    # \
+# 	-instproc SoapHeader {obj} {
+# 	  my instvar invocationContext
+# 	  set typeObject [$invocationContext informationType]
+# 	  $typeObject instvar context
+# 	  my debug HEADER=[array get context]
+# 	  set fields [list]
+# 	  foreach {qKey value} [array get context] {
+# 	    foreach {key uri} [$typeObject getUnqualifiedKey $qKey] break;
+# 	    append fields [subst {
+# 	      ::xosoap::marshaller::SoapHeaderField new \
+# 		  -elementName $key \
+# 		  -setValue $value $invocationContext \
+# 		  -bindNS $uri
+# 	    }]
+# 	  }
+# 	  if {$fields ne {}} {
+# 	    $obj contains $fields
+# 	  }
+# 	}
     Class InboundResponse \
 	-instproc SoapBodyResponse {obj} {
 	  my instvar invocationContext
@@ -894,7 +1014,7 @@ namespace eval ::xosoap {
   
 
   namespace export SoapHttpListener Soap DeMarshallingInterceptor \
-      LoggingInterceptor SoapInvocationContext RpcLiteral DocumentLiteral \
+      LoggingInterceptor SoapInformation RpcLiteral DocumentLiteral \
       RpcEncoded SoapInterceptor AuthenticationInterceptor
 }
 

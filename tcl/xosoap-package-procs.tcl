@@ -81,14 +81,15 @@ namespace eval ::xosoap {
     next;# ProtocolPackage->remove
   }
 
-  Package instproc acquireInvocationContext {} {
+  Package instproc acquireInvocationInformation {} {
     my instvar listener protocol
     set ctxClass [$protocol contextClass]
-    set context [next];# ProtocolPackage->acquireInvocationContext
+    set context [next];# ProtocolPackage->acquireInvocationInformation
     $context transport $listener
     $context protocol [my protocol]
     $context package [self]
     $context marshalledRequest [ns_conn content]
+    my debug "PAYLOAD=[$context marshalledRequest]"
     if {[$listener exists fragment] && [$listener set fragment] ne {}} {
       my debug FRAG=[$listener set fragment]
       $context virtualObject [$listener set fragment]
@@ -200,7 +201,7 @@ namespace eval ::xosoap {
     # / / / / / / / / / / / / / / / 
     # create the invocation context
     my instvar protocol listener
-    set context [my acquireInvocationContext]
+    set context [my acquireInvocationInformation]
     # / / / / / / / / / / / / / / / 
     # dispatch guards to enforce
     # - if post, action header present
@@ -209,7 +210,7 @@ namespace eval ::xosoap {
     # - - - - - - - - - - - - - - - 
     # - if get, object present query param present (?)
     if {[::xo::cc isPost]} {
-      if {![$context exists action]} {
+      if {[$context action] eq ""} {
 	error [::xosoap::exceptions::Client::SoapHttpRequestException new \
 		   [subst {
 		     No header field 'SOAPAction' present in 
@@ -220,7 +221,7 @@ namespace eval ::xosoap {
 	# 	  HTTP post request.
 	# 	}]]
       }
-      if {![$context exists virtualObject]} {
+      if {![$context isSet virtualObject]} {
 	error [::xosoap::exceptions::Client::SoapHttpRequestException new \
 		   [subst {
 		     No object identifier information given 
@@ -262,7 +263,7 @@ namespace eval ::xosoap {
   }
 
   Package instproc wsdlDocument {context} {
-    if {[::xo::cc isGet] && [$context exists virtualObject]} {
+    if {[::xo::cc isGet] && [$context isSet virtualObject]} {
       my mixin add ::xosoap::Soap
       set objectId [my resolve [$context virtualObject]]
       my mixin delete ::xosoap::Soap
@@ -282,7 +283,7 @@ namespace eval ::xosoap {
 
   Package instproc solicit=wsdl {} {
     my instvar listener
-    set context [my acquireInvocationContext]
+    set context [my acquireInvocationInformation]
     $listener dispatchResponse 200 text/xml [[my wsdlDocument $context] asXML]
   }
   
@@ -290,9 +291,9 @@ namespace eval ::xosoap {
     my instvar listener
     # single service badge
     ::xoexception::try {
-      set context [my acquireInvocationContext]
+      set context [my acquireInvocationInformation]
       my debug CONTEXT=[$context serialize]
-      if {[$context exists virtualObject]} {
+      if {[$context isSet virtualObject]} {
 	# single service badge
 	set xsltFile [open [my getPackagePath]/www/badge.xsl r]
 	set xslt [read $xsltFile]

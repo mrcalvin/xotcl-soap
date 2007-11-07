@@ -1,3 +1,30 @@
+2007-11-07  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
+
+	* Finalised first implementation step for a generic context
+          information support (SOAP 1.1/1.2 Headers) for xosoap, based
+          on xorb's invocation contexts, both for the provider and
+          consumer side.
+	  - Integration (and specialising) with the xorb context interface
+          (setContext/getContext), providing for a dynamic namespace
+          bindings. This is required because SOAP 1.1/1.2 require
+          so-called SOAP header blocks to be fully qualified.
+	  - Context mangling is now possible at various hook levels
+          (protocol plug-in mixins, interceptors, beyond ...),
+          the streaming of context information is postponed to the
+          latest possible point in time (just before the marshaling
+          steps).
+	  - Some refinements of the SOAP Object representation
+          infrastructure. Making use of the chain of responsibility to
+          dynamically resolve namespace scopes, document-wide
+          assignment of auto-generated prefices etc.
+	  - The visitor responsible for context-related tasks
+          (ContextDataVisitor) has been rewritten and generalised.
+
+2007-10-25  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
+
+	* tcl/xosoap-client-procs.tcl: Allow substifying of invocation
+          context properties in callnamespace property.
+
 2007-10-24  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
 
 	* tcl/xosoap-client-procs.tcl: In line with xorb r113, we
