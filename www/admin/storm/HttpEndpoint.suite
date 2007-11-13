@@ -1,0 +1,83 @@
+namespace eval ::xosoap::tests {
+
+  namespace import ::xorb::storm::*
+
+  TestSuite HttpEndpoint -contains {
+    ::xorb::storm::TestCase MissingSoapActionHeader \
+	-setup_script {
+	  set url \
+	      http://localhost:8000/xosoap/services/xorb/manual/EchoServiceImpl
+	} \
+	-preconditions {
+	  {::xotcl::Object isobject ::xo::HttpRequest}
+	} \
+	-contains {
+	  ::xorb::storm::TestScenario MissingSoapActionHeader1 \
+	      -test_body {
+		set r1 [::xo::HttpRequest new -url $url \
+			    -content_type "text/xml" \
+			    -post_data "<test></test>"]
+		$r1 set status_code
+	      } -expected_result 500
+	  ::xorb::storm::TestScenario MissingSoapActionHeader2 \
+	      -test_body {
+		set doc [dom parse [$r1 set data]]
+		set root [$doc documentElement]
+		set n [$root selectNodes //faultcode]
+		$n text
+	      } -expected_result xosoap:Client.SoapHttpRequestException
+	} -description {
+	  Failing due to missing HTTP header field 'SOAPAction'
+	} -cleanup_script {
+	  foreach i [::xo::HttpRequest allinstances] {
+	    $i destroy
+	  }
+	}
+    ::xorb::storm::TestCase MissingPayload \
+	-setup_script {
+	  set url \
+	      http://localhost:8000/xosoap/services/xorb/manual/EchoServiceImpl
+
+	  # / / / / / / / / / / / / / / / / /
+	  # A helper to force an empty 
+	  # post payload!
+	  Class HttpRequestMangle
+	  HttpRequestMangle instproc POST {} {
+	    my instvar post_data
+	    set post_data ""
+	    next
+	  }
+	  ::xo::HttpRequest instmixin add HttpRequestMangle
+	} \
+	-preconditions {
+	  {::xotcl::Object isobject ::xo::HttpRequest}
+	  {expr {[info command ::dom] ne {}}}
+	} \
+	-contains {
+	  ::xorb::storm::TestScenario MissingPayload1 \
+	      -test_body {
+		set r1 [::xo::HttpRequest new -url $url \
+			    -content_type "text/xml"\
+			    -request_header_fields [list SOAPAction $url] \
+			    -post_data "<dummy/>"]
+		$r1 set status_code
+	      } -expected_result 500
+	  ::xorb::storm::TestScenario MissingPayload2 \
+	      -test_body {
+		set doc [dom parse [$r1 set data]]
+		set root [$doc documentElement]
+		set n [$root selectNodes //faultcode]
+		$n text
+	      } -expected_result xosoap:Client.SoapHttpRequestException
+	} -description {
+	  Failing due to missing payload in HTTP POST requests
+	} \
+	-cleanup_script {
+	  ::xo::HttpRequest instmixin delete [HttpRequestMangle self]
+	  HttpRequestMangle destroy
+	  foreach i [::xo::HttpRequest allinstances] {
+	    $i destroy
+	  }
+	}
+  }
+}
