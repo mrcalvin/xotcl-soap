@@ -1,3 +1,9 @@
+2007-11-13  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
+
+	* www/admin/run-storm.tcl: Adding some generic test-running
+	environment that will be steadily extended. It can be used to
+	arbitrarily select storm test suites to be sourced and executed.
+
 2007-11-07  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
 
 	* Finalised first implementation step for a generic context
