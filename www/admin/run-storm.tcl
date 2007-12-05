@@ -11,16 +11,36 @@
   
 }
 
-::xotcl::Object TestRunner -set jobs {
+set all {
   ::xosoap::tests::HttpEndpoint
+  ::xosoap::tests::SOAPBuildersRound2BaseConsumer
+  ::xosoap::tests::XosoapQuickStartEchoConsumer
+}
+
+
+::xotcl::Object TestRunner -set jobs {
+  ::xosoap::tests::XosoapQuickStartEchoConsumer
 } -proc go {package} {
   my instvar jobs
+  $package requireXorb
+  $package instvar xorb
   foreach job $jobs {
+    # / / / / / / / / / / / / / / / / 
+    # Resolving suite file:
+    # 1-) xosoap directory tree?
+    # 2-) xorb directory tree?
     set filename [namespace tail $job]
-    set path "[get_server_root]/packages/[$package package_key]/www/admin/storm/${filename}.suite"
-    if {![my isobject $job] && [file readable $path]} {
-      if {[catch {source $path} msg]} {
-	error "Sourcing '$path' failed: '$msg'."
+    lappend paths "[get_server_root]/packages/[$package package_key]/www/admin/storm/${filename}.suite"
+    lappend paths "[get_server_root]/packages/[$xorb package_key]/www/admin/storm/${filename}.suite"
+    if {![my isobject $job]} {
+      foreach path $paths {
+	if {[file readable $path]} {
+	  if {[catch {source $path} msg]} {
+	    error "Sourcing '$path' failed: '$msg'."
+	  } else {
+	    break
+	  }
+	}
       }
     }
     $job volatile

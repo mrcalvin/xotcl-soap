@@ -1,0 +1,572 @@
+namespace eval ::xosoap::tests {
+
+  namespace import ::xorb::storm::*
+
+  TestSuite SOAPBuildersRound2BaseConsumer -ad_doc {
+
+    Consumer-side test suite implementing the SOAPBuilders
+    Interoperability Lab "Round 2", "Base" test suite; see
+    http://www.whitemesa.com/interop/proposal2.html and
+    http://www.whitemesa.com/interop/InteropTest.wsdl
+    
+  } -setup_script {
+    
+    namespace import ::xosoap::client::*
+    namespace import ::xorb::stub::*
+    namespace import ::xosoap::xsd::*
+    
+    #set location [ns_conn location]
+    set location localhost:8000
+    set endpoint \
+	"http://$location/xosoap/services/xosoap/demo/SoapInterop2Impl"
+
+  } -contains {
+    # # # # # # # # # # # # # # #
+    # #       TestCase        # # 
+    # # # # # # # # # # # # # # #
+    ::xorb::storm::TestCase AcquireConsumerProxy -preconditions {
+      {::xotcl::Object isobject ::xorb::stub::ProxyObject}
+      {::xotcl::Object isobject ::xosoap::client::SoapGlueObject}
+    } -contains {
+      # # # # # # # # # # # # # # #
+      # #      TestScenario     # # 
+      # # # # # # # # # # # # # # #
+      ::xorb::storm::NonFailureScenario CreateGlueObject \
+	  -test_body {
+	    set glueObject [SoapGlueObject  new \
+				-endpoint $endpoint \
+				-messageStyle ::xosoap::RpcLiteral]
+	    
+	  }
+      # # # # # # # # # # # # # # #
+      # #      TestScenario     # # 
+      # # # # # # # # # # # # # # #
+      ::xorb::storm::NonFailureScenario CreateProxyObject \
+	  -test_body {
+	    ProxyObject Round2BaseConsumer -glueobject $glueObject
+	  }
+    } -postconditions {
+      {::xotcl::Object isobject Round2BaseConsumer}
+    }
+    # # # # # # # # # # # # # # # # # # # # # #
+    # #       TestCase // echoString        # # 
+    # # # # # # # # # # # # # # # # # # # # # # 
+    ::xorb::storm::TestCase EchoString -contains {
+      # # # # # # # # # # # # # # #
+      # #      TestScenario     # # 
+      # # # # # # # # # # # # # # #
+      ::xorb::storm::NonFailureScenario DeclareEchoStringStub -preconditions {
+	{expr {[lsearch -exact \
+		    [Round2BaseConsumer info procs] "echoString"] == -1}}
+      } -test_body {
+	Round2BaseConsumer ad_proc -returns xsString \
+	    echoString {-inputString:xsString} {
+	      see http://www.whitemesa.com/interop/proposal2.html#echoString
+	    } {}
+      } -postconditions {
+	{expr {[lsearch -exact \
+		    [Round2BaseConsumer info procs] "echoString"] != -1}}
+      }
+      # # # # # # # # # # # # # # #
+      # #      TestScenario     # # 
+      # # # # # # # # # # # # # # #
+      ::xorb::storm::TestScenario DoEchoString -test_body {
+	Round2BaseConsumer echoString -inputString "echoMe"
+      } -expected_result "echoMe"
+    }
+    # # # # # # # # # # # # # # # # # # # # # #
+    # #       TestCase // echoInteger       # # 
+    # # # # # # # # # # # # # # # # # # # # # # 
+    ::xorb::storm::TestCase EchoInteger -contains {
+      # # # # # # # # # # # # # # #
+      # #      TestScenario     # # 
+      # # # # # # # # # # # # # # #
+      ::xorb::storm::NonFailureScenario DeclareEchoIntegerStub \
+	  -preconditions {
+	    {expr {[lsearch -exact \
+			[Round2BaseConsumer info procs] "echoInteger"] == -1}}
+	  } -test_body {
+	    Round2BaseConsumer ad_proc -returns xsInteger \
+		echoInteger {-inputInteger:xsInteger} {
+		  see
+		  http://www.whitemesa.com/interop/proposal2.html#echoInteger
+		} {}
+	  } -postconditions {
+	    {expr {[lsearch -exact \
+			[Round2BaseConsumer info procs] "echoInteger"] != -1}}
+	  }
+      # # # # # # # # # # # # # # #
+      # #      TestScenario     # # 
+      # # # # # # # # # # # # # # #
+      ::xorb::storm::TestScenario DoEchoInteger -test_body {
+	Round2BaseConsumer echoInteger -inputInteger 42
+      } -expected_result "42"
+    } -description {
+      see http://www.whitemesa.com/interop/proposal2.html#echoInteger
+    }
+    # # # # # # # # # # # # # # # # # # # # # #
+    # #       TestCase // echoFloat         # # 
+    # # # # # # # # # # # # # # # # # # # # # # 
+    ::xorb::storm::TestCase EchoFloat -contains {
+      # # # # # # # # # # # # # # #
+      # #      TestScenario     # # 
+      # # # # # # # # # # # # # # #
+      ::xorb::storm::NonFailureScenario DeclareEchoFloatStub \
+	  -preconditions {
+	    {expr {[lsearch -exact \
+			[Round2BaseConsumer info procs] "echoFloat"] == -1}}
+	  } -test_body {
+	    Round2BaseConsumer ad_proc -returns xsFloat \
+		echoFloat {-inputFloat:xsFloat} {
+		  see
+		  http://www.whitemesa.com/interop/proposal2.html#echoFloat
+		} {}
+	  } -postconditions {
+	    {expr {[lsearch -exact \
+			[Round2BaseConsumer info procs] "echoFloat"] != -1}}
+	  }
+      # # # # # # # # # # # # # # #
+      # #      TestScenario     # # 
+      # # # # # # # # # # # # # # #
+      ::xorb::storm::TestScenario DoEchoFloat -test_body {
+	Round2BaseConsumer echoFloat -inputFloat 0.005
+      } -expected_result "0.005"
+    } -description {
+      see http://www.whitemesa.com/interop/proposal2.html#echoFloat
+    }
+    # # # # # # # # # # # # # # # # # # # # # #
+    # #       TestCase // echoVoid          # # 
+    # # # # # # # # # # # # # # # # # # # # # # 
+    ::xorb::storm::TestCase EchoVoid -contains {
+      # # # # # # # # # # # # # # #
+      # #      TestScenario     # # 
+      # # # # # # # # # # # # # # #
+      ::xorb::storm::NonFailureScenario DeclareEchoVoidStub \
+	  -preconditions {
+	    {expr {[lsearch -exact \
+			[Round2BaseConsumer info procs] "echoVoid"] == -1}}
+	  } -test_body {
+	    Round2BaseConsumer ad_proc -returns xsVoid \
+		echoVoid {} {
+		  see
+		  http://www.whitemesa.com/interop/proposal2.html#echoVoid
+		} {}
+	  } -postconditions {
+	    {expr {[lsearch -exact \
+			[Round2BaseConsumer info procs] "echoVoid"] != -1}}
+	  }
+      # # # # # # # # # # # # # # #
+      # #      TestScenario     # # 
+      # # # # # # # # # # # # # # #
+      ::xorb::storm::TestScenario DoEchoVoid -test_body {
+	Round2BaseConsumer echoVoid
+      } -expected_result ""
+    } -description {
+      see http://www.whitemesa.com/interop/proposal2.html#echoFloat
+    }
+    # # # # # # # # # # # # # # # # # # # # # #
+    # #       TestCase // echoBase64        # # 
+    # # # # # # # # # # # # # # # # # # # # # # 
+    ::xorb::storm::TestCase EchoBase64 -contains {
+      # # # # # # # # # # # # # # #
+      # #      TestScenario     # # 
+      # # # # # # # # # # # # # # #
+      ::xorb::storm::NonFailureScenario DeclareEchoBase64Stub \
+	  -preconditions {
+	    {expr {[lsearch -exact \
+			[Round2BaseConsumer info procs] "echoBase64"] == -1}}
+	  } -test_body {
+	    Round2BaseConsumer ad_proc -returns xsBase64Binary \
+		echoBase64 {-inputBase64:xsBase64Binary} {
+		  see
+		  http://www.whitemesa.com/interop/proposal2.html#echoBase64
+		} {}
+	  } -postconditions {
+	    {expr {[lsearch -exact \
+			[Round2BaseConsumer info procs] "echoBase64"] != -1}}
+	  }
+      # # # # # # # # # # # # # # #
+      # #      TestScenario     # # 
+      # # # # # # # # # # # # # # #
+      ::xorb::storm::TestScenario DoEchoBase64 -test_body {
+	Round2BaseConsumer echoBase64 -inputBase64 "YUdWc2JHOGdkMjl5YkdRPQ=="
+      } -expected_result "YUdWc2JHOGdkMjl5YkdRPQ=="
+    } -description {
+      see http://www.whitemesa.com/interop/proposal2.html#echoBase64
+    }
+    # # # # # # # # # # # # # # # # # # # # # #
+    # #       TestCase // echoHexBinary     # # 
+    # # # # # # # # # # # # # # # # # # # # # # 
+    ::xorb::storm::TestCase EchoHexBinary -contains {
+      # # # # # # # # # # # # # # #
+      # #      TestScenario     # # 
+      # # # # # # # # # # # # # # #
+      ::xorb::storm::NonFailureScenario DeclareEchoHexBinaryStub \
+	  -preconditions {
+	    {expr {[lsearch -exact \
+			[Round2BaseConsumer info procs] "echoHexBinary"] == -1}}
+	  } -test_body {
+	    Round2BaseConsumer ad_proc -returns xsHexBinary \
+		echoHexBinary {-inputHexBinary:xsHexBinary} {
+		  see
+		  http://www.whitemesa.com/interop/proposal2.html#echoHexBinary
+		} {}
+	  } -postconditions {
+	    {expr {[lsearch -exact \
+			[Round2BaseConsumer info procs] "echoHexBinary"] != -1}}
+	  }
+      # # # # # # # # # # # # # # #
+      # #      TestScenario     # # 
+      # # # # # # # # # # # # # # #
+      ::xorb::storm::TestScenario DoEchoHexBinary -test_body {
+	Round2BaseConsumer echoHexBinary \
+	-inputHexBinary "68656C6C6F20776F726C6421"
+      } -expected_result "68656C6C6F20776F726C6421"
+    } -description {
+      see http://www.whitemesa.com/interop/proposal2.html#echoHexBinary
+    }
+    # # # # # # # # # # # # # # # # # # # # # #
+    # #       TestCase // echoDate          # # 
+    # # # # # # # # # # # # # # # # # # # # # # 
+    ::xorb::storm::TestCase EchoDate -contains {
+      # # # # # # # # # # # # # # #
+      # #      TestScenario     # # 
+      # # # # # # # # # # # # # # #
+      ::xorb::storm::NonFailureScenario DeclareEchoDateStub \
+	  -preconditions {
+	    {expr {[lsearch -exact \
+			[Round2BaseConsumer info procs] "echoDate"] == -1}}
+	  } -test_body {
+	    Round2BaseConsumer ad_proc -returns xsDateTime \
+		echoDate {-inputDate:xsDateTime} {
+		  see
+		  http://www.whitemesa.com/interop/proposal2.html#echoDate
+		} {}
+	  } -postconditions {
+	    {expr {[lsearch -exact \
+			[Round2BaseConsumer info procs] "echoDate"] != -1}}
+	  }
+      # # # # # # # # # # # # # # #
+      # #      TestScenario     # # 
+      # # # # # # # # # # # # # # #
+      ::xorb::storm::TestScenario DoEchoDate -test_body {
+	Round2BaseConsumer echoDate \
+	    -inputDate "1956-10-18T22:20:00-07:00"
+      } -expected_result "1956-10-18T22:20:00-07:00"
+    } -description {
+      see http://www.whitemesa.com/interop/proposal2.html#echoDate
+    }
+    # # # # # # # # # # # # # # # # # # # # # #
+    # #       TestCase // echoDecimal       # # 
+    # # # # # # # # # # # # # # # # # # # # # # 
+    ::xorb::storm::TestCase EchoDecimal -contains {
+      # # # # # # # # # # # # # # #
+      # #      TestScenario     # # 
+      # # # # # # # # # # # # # # #
+      ::xorb::storm::NonFailureScenario DeclareEchoDecimalStub \
+	  -preconditions {
+	    {expr {[lsearch -exact \
+			[Round2BaseConsumer info procs] "echoDecimal"] == -1}}
+	  } -test_body {
+	    Round2BaseConsumer ad_proc -returns xsDecimal \
+		echoDecimal {-inputDecimal:xsDecimal} {
+		  see
+		  http://www.whitemesa.com/interop/proposal2.html#echoDecimal
+		} {}
+	  } -postconditions {
+	    {expr {[lsearch -exact \
+			[Round2BaseConsumer info procs] "echoDecimal"] != -1}}
+	  }
+      # # # # # # # # # # # # # # #
+      # #      TestScenario     # # 
+      # # # # # # # # # # # # # # #
+      ::xorb::storm::TestScenario DoEchoDecimal -test_body {
+	Round2BaseConsumer echoDecimal \
+	    -inputDecimal "123.45678901234567890"
+      } -expected_result "123.45678901234567890"
+    } -description {
+      see http://www.whitemesa.com/interop/proposal2.html#echoDecimal
+    }
+    # # # # # # # # # # # # # # # # # # # # # #
+    # #       TestCase // echoBoolean       # # 
+    # # # # # # # # # # # # # # # # # # # # # # 
+    ::xorb::storm::TestCase EchoBoolean -contains {
+      # # # # # # # # # # # # # # #
+      # #      TestScenario     # # 
+      # # # # # # # # # # # # # # #
+      ::xorb::storm::NonFailureScenario DeclareEchoBooleanStub \
+	  -preconditions {
+	    {expr {[lsearch -exact \
+			[Round2BaseConsumer info procs] "echoBoolean"] == -1}}
+	  } -test_body {
+	    Round2BaseConsumer ad_proc -returns xsBoolean \
+		echoBoolean {-inputBoolean:xsBoolean} {
+		  see
+		  http://www.whitemesa.com/interop/proposal2.html#echoBoolean
+		} {}
+	  } -postconditions {
+	    {expr {[lsearch -exact \
+			[Round2BaseConsumer info procs] "echoBoolean"] != -1}}
+	  }
+      # # # # # # # # # # # # # # #
+      # #      TestScenario     # # 
+      # # # # # # # # # # # # # # #
+      ::xorb::storm::TestScenario DoEchoBoolean -test_body {
+	Round2BaseConsumer echoBoolean \
+	    -inputBoolean "1"
+      } -expected_result "1"
+    } -description {
+      see http://www.whitemesa.com/interop/proposal2.html#echoBoolean
+    }
+    # # # # # # # # # # # # # # # # # # # # # #
+    # #       TestCase // echoStruct        # # 
+    # # # # # # # # # # # # # # # # # # # # # # 
+    ::xorb::storm::TestCase EchoStruct -setup_script {
+
+      Class exampleStruct -slots {
+	::xorb::datatypes::AnyAttribute varString \
+	    -anyType ::xosoap::xsd::XsString
+	::xorb::datatypes::AnyAttribute varInt \
+	    -anyType ::xosoap::xsd::XsInteger
+	::xorb::datatypes::AnyAttribute varFloat \
+	    -anyType ::xosoap::xsd::XsFloat
+      }
+      
+      set struct [exampleStruct new]
+      $struct varString "hello world"
+      $struct varInt "42"
+      $struct varFloat 0.005
+
+    } -contains {
+      # # # # # # # # # # # # # # #
+      # #      TestScenario     # # 
+      # # # # # # # # # # # # # # #
+      ::xorb::storm::NonFailureScenario DeclareEchoStructStub \
+	  -preconditions {
+	    {expr {[lsearch -exact \
+			[Round2BaseConsumer info procs] "echoStruct"] == -1}}
+	  } -test_body {
+	    Round2BaseConsumer ad_proc \
+		-returns soapStruct([exampleStruct self]) \
+		echoStruct [subst {
+		  -inputStruct:soapStruct([exampleStruct self])
+		}] {
+		  see
+		  http://www.whitemesa.com/interop/proposal2.html#echoStruct
+		} {}
+	  } -postconditions {
+	    {expr {[lsearch -exact \
+			[Round2BaseConsumer info procs] "echoStruct"] != -1}}
+	  }
+      # # # # # # # # # # # # # # #
+      # #      TestScenario     # # 
+      # # # # # # # # # # # # # # #
+      ::xorb::storm::TestScenario DoEchoStruct -test_body {
+	set result [Round2BaseConsumer echoStruct \
+	    -inputStruct $struct]
+	$result varString
+      } -expected_result "hello world"
+    } -cleanup_script {
+      #exampleStruct destroy
+      unset struct
+    } -description {
+      see http://www.whitemesa.com/interop/proposal2.html#echoStruct
+    }
+    # # # # # # # # # # # # # # # # # # # # # #
+    # #       TestCase // echoStringArray   # # 
+    # # # # # # # # # # # # # # # # # # # # # # 
+    ::xorb::storm::TestCase EchoStringArray -setup_script {
+
+      set stringArray [ArrayBuilder new \
+			   -type ::xosoap::xsd::XsString \
+			   -size 2]
+      set i [$stringArray new]
+      $i 0 hello
+      $i 1 world
+
+    } -contains {
+      # # # # # # # # # # # # # # #
+      # #      TestScenario     # # 
+      # # # # # # # # # # # # # # #
+      ::xorb::storm::NonFailureScenario DeclareEchoStringArrayStub \
+	  -preconditions {
+	    {expr {[lsearch -exact \
+			[Round2BaseConsumer info procs] "echoStringArray"] == -1}}
+	  } -test_body {
+	    Round2BaseConsumer ad_proc \
+		-returns soapArray(xsString)<2> \
+		echoStringArray {
+		  -inputStringArray:soapArray(xsString)<2>
+		} {
+		  see
+		  http://www.whitemesa.com/interop/proposal2.html#echoStringArray
+		} {}
+	  } -postconditions {
+	    {expr {[lsearch -exact \
+			[Round2BaseConsumer info procs] "echoStringArray"] != -1}}
+	  }
+      # # # # # # # # # # # # # # #
+      # #      TestScenario     # # 
+      # # # # # # # # # # # # # # #
+      ::xorb::storm::TestScenario DoEchoStringArray -test_body {
+	set result [Round2BaseConsumer echoStringArray \
+			-inputStringArray $i]
+	$result 1
+      } -expected_result "world"
+    } -cleanup_script {
+      $stringArray destroy
+      $result destroy
+    } -description {
+      see http://www.whitemesa.com/interop/proposal2.html#echoStringArray
+    }
+    # # # # # # # # # # # # # # # # # # # # # #
+    # #       TestCase // echoIntegerArray  # # 
+    # # # # # # # # # # # # # # # # # # # # # # 
+    ::xorb::storm::TestCase EchoIntegerArray -setup_script {
+
+      set integerArray [ArrayBuilder new \
+			   -type ::xosoap::xsd::XsInteger \
+			   -size 2]
+
+      set i [$integerArray new]
+      $i 0 100
+      $i 1 200
+
+    } -contains {
+      # # # # # # # # # # # # # # #
+      # #      TestScenario     # # 
+      # # # # # # # # # # # # # # #
+      ::xorb::storm::NonFailureScenario DeclareEchoIntegerArrayStub \
+	  -preconditions {
+	    {expr {[lsearch -exact \
+			[Round2BaseConsumer info procs] "echoIntegerArray"] == -1}}
+	  } -test_body {
+	    Round2BaseConsumer ad_proc \
+		-returns soapArray(xsInteger)<2> \
+		echoIntegerArray {
+		  -inputIntegerArray:soapArray(xsInteger)<2>
+		} {
+		  see
+		  http://www.whitemesa.com/interop/proposal2.html#echoIntegerArray
+		} {}
+	  } -postconditions {
+	    {expr {[lsearch -exact \
+			[Round2BaseConsumer info procs] "echoIntegerArray"] != -1}}
+	  }
+      # # # # # # # # # # # # # # #
+      # #      TestScenario     # # 
+      # # # # # # # # # # # # # # #
+      ::xorb::storm::TestScenario DoEchoIntegerArray -test_body {
+	set result [Round2BaseConsumer echoIntegerArray \
+			-inputIntegerArray $i]
+	$result 1
+      } -expected_result "200"
+    } -cleanup_script {
+      $integerArray destroy
+      $result destroy
+    } -description {
+      see http://www.whitemesa.com/interop/proposal2.html#echoIntegerArray
+    }
+    # # # # # # # # # # # # # # # # # # # # # #
+    # #       TestCase // echoFloatArray  # # 
+    # # # # # # # # # # # # # # # # # # # # # # 
+    ::xorb::storm::TestCase EchoFloatArray -setup_script {
+
+      set floatArray [ArrayBuilder new \
+			   -type ::xosoap::xsd::XsFloat \
+			   -size 2]
+
+      set i [$floatArray new]
+      $i 0 0.00000555
+      $i 1 12999.9
+    } -contains {
+      # # # # # # # # # # # # # # #
+      # #      TestScenario     # # 
+      # # # # # # # # # # # # # # #
+      ::xorb::storm::NonFailureScenario DeclareEchoFloatArrayStub \
+	  -preconditions {
+	    {expr {[lsearch -exact \
+			[Round2BaseConsumer info procs] "echoFloatArray"] == -1}}
+	  } -test_body {
+	    Round2BaseConsumer ad_proc \
+		-returns soapArray(xsFloat)<2> \
+		echoFloatArray {
+		  -inputFloatArray:soapArray(xsFloat)<2>
+		} {
+		  see
+		  http://www.whitemesa.com/interop/proposal2.html#echoFloatArray
+		} {}
+	  } -postconditions {
+	    {expr {[lsearch -exact \
+			[Round2BaseConsumer info procs] "echoFloatArray"] != -1}}
+	  }
+      # # # # # # # # # # # # # # #
+      # #      TestScenario     # # 
+      # # # # # # # # # # # # # # #
+      ::xorb::storm::TestScenario DoEchoFloatArray -test_body {
+	set result [Round2BaseConsumer echoFloatArray \
+			-inputFloatArray $i]
+	$result 1
+      } -expected_result "12999.9"
+    } -cleanup_script {
+      $floatArray destroy
+      $result destroy
+    } -description {
+      see http://www.whitemesa.com/interop/proposal2.html#echoFloatArray
+    }
+    # # # # # # # # # # # # # # # # # # # # # #
+    # #       TestCase // echoStructArray   # # 
+    # # # # # # # # # # # # # # # # # # # # # # 
+    ::xorb::storm::TestCase EchoStructArray -setup_script {
+
+      set structArray [ArrayBuilder new \
+			   -type [exampleStruct self] \
+			   -size 2]
+
+      set i [$structArray new]
+      $i 0 [exampleStruct new \
+		-varInt 42 \
+		-varString "hello world" \
+		-varFloat 0.005]
+      $i 1 [exampleStruct new \
+		-varInt 42 \
+		-varString "hello world" \
+		-varFloat 0.005]
+    } -contains {
+      # # # # # # # # # # # # # # #
+      # #      TestScenario     # # 
+      # # # # # # # # # # # # # # #
+      ::xorb::storm::NonFailureScenario DeclareEchoStructArrayStub \
+	  -preconditions {
+	    {expr {[lsearch -exact \
+			[Round2BaseConsumer info procs] "echoStructArray"] == -1}}
+	  } -test_body {
+	    Round2BaseConsumer ad_proc \
+		-returns soapArray(soapStruct([exampleStruct self]))<2> \
+		echoStructArray [subst {
+		  -inputStructArray:soapArray(soapStruct([exampleStruct self]))<2>
+		}] {
+		  see
+		  http://www.whitemesa.com/interop/proposal2.html#echoStructArray
+		} {}
+	  } -postconditions {
+	    {expr {[lsearch -exact \
+			[Round2BaseConsumer info procs] "echoStructArray"] != -1}}
+	  }
+      # # # # # # # # # # # # # # #
+      # #      TestScenario     # # 
+      # # # # # # # # # # # # # # #
+      ::xorb::storm::TestScenario DoEchoStructArray -test_body {
+	set result [Round2BaseConsumer echoStructArray \
+			-inputStructArray $i]
+	[$result 1] varString
+      } -expected_result "hello world"
+    } -cleanup_script {
+      $structArray destroy
+      $result destroy
+    } -description {
+      see http://www.whitemesa.com/interop/proposal2.html#echoStructArray
+    }
+  }
+}
+

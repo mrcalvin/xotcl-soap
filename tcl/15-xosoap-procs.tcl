@@ -513,6 +513,7 @@ namespace eval ::xosoap {
 	}
 	if {$auth(auth_status) eq "ok"} {
 	  ::xo::cc user_id $auth(user_id)
+	  my set authenticated 1
 	  break;# done
 	}
       }
@@ -520,15 +521,17 @@ namespace eval ::xosoap {
     next;# next interceptor
   }
   AuthenticationInterceptor instproc handleResponse {context} {
-    # provide a sample response header block
-    set envelope [$context unmarshalledResponse]
-    $envelope registerNamespaces {
-      {myauth urn:org:vue:auth}
+    if {[my exists authenticated]} {
+      # provide a sample response header block
+      set envelope [$context unmarshalledResponse]
+      #     $envelope registerNamespaces {
+      #       {myauth urn:org:vue:auth}
+      #     }
+      #     $context namespaces {
+      #       {xosoap urn:xosoap}
+      #     }
+      $context setContext authstatus [::xo::cc user_id] urn:org:vue:auth
     }
-    $context namespaces {
-      {xosoap urn:xosoap}
-    }
-    $context setContext authstatus [::xo::cc user_id] urn:org:vue:auth
     # explicitly clear identity
     ::xo::cc user_id -1
     next;# next interceptor

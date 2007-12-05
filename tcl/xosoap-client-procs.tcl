@@ -405,7 +405,7 @@ namespace eval xosoap::client {
   } -clientPlugin ::xosoap::Soap::Client \
       -instproc init args {
 	my superclass add ::xosoap::client::SoapObject
-      }
+      } -set __informationType ::xosoap::SoapInformationType
   
   # / / / / / / / / / / / / / / / /
   # Mixin class CachingInterceptor

@@ -1,4 +1,17 @@
+2007-11-14  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
+
+	* tcl/xosoap-client-procs.tcl: FIX - Added the missing __informationType
+	info to SoapClass.
+
+	* www/admin/storm/SOAPBuildersRound2BaseConsumer.suite: Added the
+	SOAPBuilders Interoperability Lab "Round 2" Base suite as storm
+	test suite. It incrementally builds up a consumer and tests
+	against the corresponding provider that is initialised by default. 
+
 2007-11-13  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
+
+	* www/admin/storm/HttpEndpoint.suite: Added a first basic test
+	suite for the xorb http listener.
 
 	* www/admin/run-storm.tcl: Adding some generic test-running
 	environment that will be steadily extended. It can be used to
