@@ -1,3 +1,10 @@
+2007-12-13  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
+
+	* tcl/xosoap-marshaller-procs.tcl: Introduced a necessary and
+	temporary fix for parsing SOAP faults by means of
+	non-namespace-aware DOM. We soon have to switch to a more robust
+	parsing technique.
+
 2007-11-14  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
 
 	* tcl/xosoap-client-procs.tcl: FIX - Added the missing __informationType

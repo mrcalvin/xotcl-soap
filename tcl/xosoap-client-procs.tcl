@@ -353,9 +353,6 @@ namespace eval xosoap::client {
     set exception [::xosoap::exceptions::HttpTransportProviderException new $reason]
     # notify the sink about error condition
     $requestor onFailure $exception [self]
-    # break the local program flow, otherwise
-    # it would continue as in non-blocking mode!
-    error $exception
   }
     
   # / / / / / / / / / / / / / / / / /

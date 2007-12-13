@@ -860,7 +860,14 @@ As specified for the RPC mode of operation, a single child of type
     #my registerNS -prefix xosoap -uri urn:xotcl-soap
   }
   SoapFault instproc parse {rootNode} {
-    set fault [$rootNode getElementsByTagName *Fault]
+    # / / / / / / / / / / / / / / / / / /
+    # We changed, for the very moment,
+    # the DOM selector to *:Fault. This is,
+    # however, inherently unsafe, namespace
+    # awareness needs to be introduced,
+    # otherwise multiple nodes form the
+    # result set!
+    set fault [$rootNode getElementsByTagName *:Fault]
     my elementNamespace [$fault prefix]
     my parseAttributes $fault
     foreach s [[self class] info slots] {
