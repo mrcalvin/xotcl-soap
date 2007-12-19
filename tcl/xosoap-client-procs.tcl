@@ -307,16 +307,17 @@ namespace eval xosoap::client {
       ::xo::AsyncHttpRequest new \
 	  -url $url \
 	  -post_data $postData \
-	  -content_type "text/xml" \
+	  -content_type "text/xml; charset=utf-8" \
 	  -request_header_fields [array get headers] \
-	  -request_manager [self]
+	  -request_manager [self] \
+	  -timeout [$invocationObject timeout]
       # - process prospective response later (upon response dispatch)!
       # -> see HttpTransportProvider->deliver!
     } else {
       set rObj [::xo::HttpRequest new \
 		    -url $url \
 		    -post_data $postData \
-		    -content_type "text/xml" \
+		    -content_type "text/xml; charset=utf-8" \
 		    -request_header_fields [array get headers]]
       # - process prospective response right away!
       return [my process $rObj]
