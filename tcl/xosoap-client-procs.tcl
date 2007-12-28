@@ -288,7 +288,7 @@ namespace eval xosoap::client {
   HttpTransportProvider instproc handle {invocationObject} {
     namespace import -force ::xosoap::exceptions::*
     my set invocationObject $invocationObject
-    set postData [$invocationObject marshalledRequest]
+    set postData [string trim [$invocationObject marshalledRequest]]
     set url http://[$invocationObject virtualObject]
     array set headers [list]
     # -- process headers (stored with the type object)

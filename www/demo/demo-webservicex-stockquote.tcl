@@ -1,10 +1,17 @@
-# / / / / / / / / / / / / / / / / / / /
+# / / / / / / / / / / / / / / / / / / / / / /
 # Demo
-# / / / / / / / / / / / / / / / / / / /
+# / / / / / / / / / / / / / / / / / / / / / /
 # StockQuote example in simple
-# ProxyObject notation 
-# / / / / / / / / / / / / / / / / / / /
+# ProxyObject notation. Remote end is
+# http://www.webservicex.net/stockquote.asmx
+# / / / / / / / / / / / / / / / / / / / / / /
 # $Id$
+# - - - - - - - - - - - - - - - - - - - - - - 
+# NOTE: this demo consumer is meant to provide
+# an insight on how-to use xosoap, the availability
+# of the remote end is not guaranteed.
+# - - - - - - - - - - - - - - - - - - - - - - 
+
 
 namespace import -force ::xosoap::client::*
 namespace import -force ::xorb::stub::*
