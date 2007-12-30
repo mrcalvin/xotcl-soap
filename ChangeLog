@@ -1,3 +1,8 @@
+2007-12-30  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
+
+	* www/demo/demo-prolix-qpr-consumer.tcl: Added a demo consumer,
+	showing how to create a simplistic Rpc/Encoded consumer.
+
 2007-12-13  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
 
 	* tcl/xosoap-marshaller-procs.tcl: Introduced a necessary and
