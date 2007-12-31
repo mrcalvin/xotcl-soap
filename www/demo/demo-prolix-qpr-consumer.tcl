@@ -6,6 +6,7 @@
 # The interface description is to be found
 # at http://marla.wu-wien.ac.at/Scripts/QPR_PROLIX.dll/wsdl/IPROLIX_QPR_Interface
 # The availability of the remote end is not guaranteed.
+# contact: amulley@wu-wien.ac.at
 # / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / /
 # $Id $
 
