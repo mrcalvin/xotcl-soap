@@ -8,12 +8,12 @@
     <singleton-p>f</singleton-p>
     <auto-mount>xosoap</auto-mount>
 
-    <version name="0.4.2" url="http://media.wu-wien.ac.at/download/xotcl-soap-0.4.2.apm">
+    <version name="0.4.3" url="http://media.wu-wien.ac.at/download/xotcl-soap-0.4.3.apm">
         <owner url="mailto:stefan.sobernig@wu-wien.ac.at">Stefan Sobernig</owner>
-        <release-date>2007-10-23</release-date>
+        <release-date>2008-01-16</release-date>
         <maturity>0</maturity>
 
-        <provides url="xotcl-soap" version="0.4.2"/>
+        <provides url="xotcl-soap" version="0.4.3"/>
         <requires url="xotcl-request-broker" version="0.4.2"/>
 
         <callbacks>

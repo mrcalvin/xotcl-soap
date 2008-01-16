@@ -1000,12 +1000,14 @@ namespace eval ::xosoap {
 	  #my instvar invocationContext
 	  #$obj class ::xosoap::marshaller::SoapBodyResponse
 	  set any [my batch] 
+	  my log RESPONSEANY=[$any serialize]
 	  if {[$any istype ::xosoap::xsd::XsCompound]} {
 	    set n [namespace tail [$any set template]]
 	    $obj elementName $n
 	    $obj responseValue [my batch]
 	    $obj set style [[self class] info parent]
 	    $obj unregisterNS "m"
+	    $obj elementNamespace "" 
 	  }
 	  #my log RESPONSEANY=[$any serialize]
 	  #$obj elementName []

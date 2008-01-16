@@ -1,3 +1,10 @@
+2008-01-16  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
+
+	* Bumped version number of trunk to 0.4.3 
+
+	* tcl/15-xosoap-procs.tcl (OutboundRequest): Commit minor bugfix
+	for document/literal mode, removing unneeded element prefix.
+
 2007-12-30  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
 
 	* www/demo/demo-prolix-qpr-consumer.tcl: Added a demo consumer,
