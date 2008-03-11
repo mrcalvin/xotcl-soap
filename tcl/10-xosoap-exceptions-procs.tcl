@@ -152,7 +152,12 @@ namespace eval ::xosoap::exceptions {
 	  Dispatching the virtual method call by the Invoker failed
 	  for an unknown reason.
 	}
-    
+
+    ::xosoap::exceptions::FaultableException InternalException \
+	-ad_doc {
+	  Dispatch failed due to internal exception. It was re-casted into 
+	  a SOAP Fault.
+	}  
     ::xosoap::exceptions::FaultableException InvocationException \
 	-ad_doc {
 	  Dispatching the virtual method call by the Invoker failed

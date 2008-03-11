@@ -7,8 +7,7 @@
 
   @author stefan.sobernig@wu-wien.ac.at
   @creation-date November 13, 2007
-  @cvs-id $Id$
-  
+  @cvs-id $Id$ 
 }
 
 set all {

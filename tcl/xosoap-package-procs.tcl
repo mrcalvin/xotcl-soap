@@ -250,16 +250,16 @@ namespace eval ::xosoap {
       }]
     }
     # intercept exceptions and re-cast into SOAP-Fault
-    #if {[catch {
+    if {[catch {
       next $context;#ProtocolPackage->solicit=invocation
-   #  } e]} {
-#       if {![[$e info class] istype ::xosoap::exceptions::FaultableException]} {
-# 	# re-cast
-# 	set e [::xosoap::exceptions::Server::UnknownInvocationException new $e]
-#       }
-#       # re-throw
-#       error $e
-#     }
+     } e]} {
+       if {![[$e info class] istype ::xosoap::exceptions::FaultableException]} {
+ 	# re-cast
+ 	set e [::xosoap::exceptions::Server::InternalException new $e]
+       }
+       # re-throw
+       error $e
+     }
   }
 
   Package instproc wsdlDocument {context} {

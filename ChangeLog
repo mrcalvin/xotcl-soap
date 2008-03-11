@@ -1,3 +1,27 @@
+2008-03-11  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
+
+	* www/badge.xsl: Adjusted xslt style sheet to WS-I modifications,
+	in particular retrieving style information centrally from
+	soap:binding elements (and not operations).
+	
+	* tcl/xosoap-wsdl-procs.tcl: Switched from 'ns_conn location' to
+	'ad_url', as suggested by Malte Sussdorff. Thanks for noting this,
+	Malte!
+
+	* tcl/xosoap-client-procs.tcl: Provided for multiple uri-scheme-
+	-to-TransportProvider-class resolution. This allows to select between
+	http and https by simply changing the uri scheme. In fact, a
+	long-standing bug. A more elegant to the overall resolution issue
+	comes with the 0.5 feature releases on the protocol plug-in
+	infrastructure.
+
+	* tcl/xosoap-package-procs.tcl: Fixed for re-casting internal
+	exceptions, by default, to a SOAP Fault container. Must have been
+	left commented by mistake. Renamed fault container class to
+	InternalException rather than UnknownInvocationException.
+
+	* Final maintenance release in 0.4.x genealogy: 0.4.4 
+
 2008-01-16  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
 
 	* Bumped version number of trunk to 0.4.3 

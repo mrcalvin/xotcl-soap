@@ -232,7 +232,7 @@ namespace eval xosoap::client {
   
   ::xotcl::Class HttpTransportProvider \
       -superclass TransportProvider \
-      -set key "http"
+      -set key [list http https]
 
   HttpTransportProvider instproc process {rObj} {
     # handling of exception situations
@@ -289,7 +289,7 @@ namespace eval xosoap::client {
     namespace import -force ::xosoap::exceptions::*
     my set invocationObject $invocationObject
     set postData [string trim [$invocationObject marshalledRequest]]
-    set url http://[$invocationObject virtualObject]
+    set url [$invocationObject virtualObject]
     array set headers [list]
     # -- process headers (stored with the type object)
     set typeObject [$invocationObject informationType]

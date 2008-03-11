@@ -42,7 +42,7 @@ namespace eval ::xosoap {
     my instvar contract xmlDoc url doc style bpCompliant
     [self class] instvar styles
     if {[$contract istype ServiceContract]} {
-      set url [ns_conn location][::xo::cc url]
+      set url [ad_url][::xo::cc url]
       # / / / / / / / / / / / / / / / / /
       # 1) write out the general contract
       # information to the wsdl document

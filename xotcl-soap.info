@@ -8,17 +8,17 @@
     <singleton-p>f</singleton-p>
     <auto-mount>xosoap</auto-mount>
 
-    <version name="0.4.3" url="http://media.wu-wien.ac.at/download/xotcl-soap-0.4.3.apm">
+    <version name="0.4.4" url="http://media.wu-wien.ac.at/download/xotcl-soap-0.4.4.apm">
         <owner url="mailto:stefan.sobernig@wu-wien.ac.at">Stefan Sobernig</owner>
-        <release-date>2008-01-16</release-date>
+        <release-date>2008-03-10</release-date>
         <maturity>0</maturity>
 
-        <provides url="xotcl-soap" version="0.4.3"/>
+        <provides url="xotcl-soap" version="0.4.4"/>
         <requires url="xotcl-request-broker" version="0.4.2"/>
 
         <callbacks>
-            <callback type="before-unmount"  proc="::xosoap::before-unmount"/>
             <callback type="after-mount"  proc="::xosoap::after-mount"/>
+            <callback type="before-unmount"  proc="::xosoap::before-unmount"/>
         </callbacks>
         <parameters>
             <parameter datatype="number"  min_n_values="1"  max_n_values="1"  name="authentication_support"  default="0" description="xosoap comes with an optional authentication mechanism for soap requests. We provide support for challenges &amp; credentials through (a) HTTP Basic Authentication (see RFC 2617) and (b) Soap Header fields (&quot;username&quot;, &quot;password&quot;). Once authenticated against the registered authorities, the connection object (::xo::cc) offers the resolved user_id (to be used by policies etc.)." section_name="General"/>

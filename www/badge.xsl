@@ -33,7 +33,7 @@
     <xsl:param name="operation"/>
     <li>
 
-      <h3><xsl:value-of select="$operation/@name"/>(<xsl:value-of select="$operation/*[@style]/@style"/>/<xsl:value-of select="$operation/*/*[@use]/@use"/>)</h3>
+      <h3><xsl:value-of select="$operation/@name"/>(<xsl:value-of select="$operation/preceding-sibling::soap:binding/@style"/>/<xsl:value-of select="$operation/*/*[@use]/@use"/>)</h3>
 
 <!-- | <xsl:value-of select="$operation/*[@style]/@style"/>-->
       <!--SOAP Action: <xsl:value-of select="*[@soapAction]/@soapAction"/>-->
