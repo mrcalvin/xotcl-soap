@@ -1,4 +1,4 @@
-ad_library {
+::xo::library doc {
 
   
   @author stefan.sobernig@wu-wien.ac.at

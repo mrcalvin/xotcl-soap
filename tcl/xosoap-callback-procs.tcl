@@ -1,4 +1,4 @@
-ad_library {
+::xo::library doc {
   
   Library specifying xosoap-specific package-level callbacks
   

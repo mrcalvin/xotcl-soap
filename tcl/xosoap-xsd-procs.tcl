@@ -1,4 +1,4 @@
-ad_library {
+::xo::library configure -doc {
   
   Support for XML Schema 1.0 'Built-in' Datatypes (simple, complex)
   Currently xosoap provides for compatibility with 
@@ -9,7 +9,7 @@ ad_library {
   @creation-date February 27, 2007
   @cvs-id $Id$
   
-}
+} -require 15-xosoap-procs
 
 namespace eval ::xosoap::xsd {
 

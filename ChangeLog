@@ -1,3 +1,10 @@
+2008-03-26  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
+
+	* Introduced ::xo::library and articulated first file-levek
+	dependencies. 
+
+	* Bumped version to 0.5d 
+
 2008-03-11  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
 
 	* www/badge.xsl: Adjusted xslt style sheet to WS-I modifications,

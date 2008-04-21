@@ -1,4 +1,4 @@
-ad_library {
+::xo::library configure -doc {
   
   WSDL 1.1 support for xorb's SOAP-plugin, xosoap
   - see http://www.w3.org/TR/wsdl
@@ -9,7 +9,7 @@ ad_library {
   @creation-date August 18, 2005
   @cvs-id $Id$
   
-}
+} -require 15-xosoap-procs
 
 namespace eval ::xosoap {
   namespace import ::xorb::*

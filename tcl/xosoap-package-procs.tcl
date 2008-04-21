@@ -1,4 +1,4 @@
-ad_library {
+::xo::library doc {
 
   xosoap comes with a package infrastructure, based
   upon recent xotcl-core package facilities.

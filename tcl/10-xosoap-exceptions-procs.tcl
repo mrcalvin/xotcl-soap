@@ -1,4 +1,4 @@
-ad_library {
+::xo::library doc {
     
   xosoap-specific exception types,
   extending xoexception and xorb's exception facilities

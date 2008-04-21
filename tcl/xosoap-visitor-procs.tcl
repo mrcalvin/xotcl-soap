@@ -1,4 +1,4 @@
-ad_library {
+::xo::library doc {
   
   <p>Library providing visitor facilities for crawling composite 
   structures as provided by nesting objects derived from 

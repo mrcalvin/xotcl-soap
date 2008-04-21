@@ -2,7 +2,7 @@
 # Soap Protocol-Plugin + facilities 
 ####################################################
 
-ad_library {
+::xo::library doc {
   
   @author stefan.sobernig@wu-wien.ac.at
   @creation-date August 18, 2005
@@ -1023,4 +1023,8 @@ namespace eval ::xosoap {
       RpcEncoded SoapInterceptor AuthenticationInterceptor
 }
 
+#
+# take care of library dependencies
+#
+::xo::library source_dependent
 
