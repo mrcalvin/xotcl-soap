@@ -1,6 +1,17 @@
+2008-06-08  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
+
+	* COPYRIGHT: Fixed copyright dates for 2008
+
+	* tcl/xosoap-client-procs.tcl: Generalised support for the timeout
+	constraints to be enforced by the transport provider. This takes
+	advantage of the newly introduced http-level blocking-timeout
+	feature (xotcl-core > 0.86).
+
+	* xotcl-soap.info: Bumped xorb dependency to 0.5d
+
 2008-03-26  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
 
-	* Introduced ::xo::library and articulated first file-levek
+	* Introduced ::xo::library and articulated first file-level
 	dependencies. 
 
 	* Bumped version to 0.5d 

@@ -14,7 +14,7 @@
         <maturity>0</maturity>
 
         <provides url="xotcl-soap" version="0.5d"/>
-        <requires url="xotcl-request-broker" version="0.4.2"/>
+        <requires url="xotcl-request-broker" version="0.5d"/>
 
         <callbacks>
             <callback type="after-mount"  proc="::xosoap::after-mount"/>

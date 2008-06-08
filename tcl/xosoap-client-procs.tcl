@@ -272,8 +272,11 @@ namespace eval xosoap::client {
 	Http request transport did not suceed with 
 	status code [$rObj set status_code] and message '[$rObj set data]'
       }]]
-    } elseif {[$rObj set data] eq {}} {
-      # encapsulate arbitrary http error messages
+    } elseif {![$rObj exists data] || [$rObj set data] eq {}} {
+      # TODO: Note, whether payload was received at all (exists data)
+      # and whether it is initialised with an empty string (eq {}) is
+      # semantically different, if we consider acknowledgements as
+      # in SYNC WITH SERVER. 
       error [HttpTransportProviderException new [subst {
 	No response data was received, this might be due
 	to errorneous connections or failure of establishing
@@ -318,7 +321,8 @@ namespace eval xosoap::client {
 		    -url $url \
 		    -post_data $postData \
 		    -content_type "text/xml; charset=utf-8" \
-		    -request_header_fields [array get headers]]
+		    -request_header_fields [array get headers]\
+		    -timeout [$invocationObject timeout]]
       # - process prospective response right away!
       return [my process $rObj]
     }
