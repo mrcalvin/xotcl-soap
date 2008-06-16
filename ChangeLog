@@ -1,3 +1,9 @@
+2008-06-16  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
+
+	* tcl/xosoap-client-procs.tcl: Adjusting HttpTransportProvider to
+	the refined/ revised request manager interface as required by
+	AsyncHttpRequest in xotcl-core 0.87+.
+
 2008-06-08  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
 
 	* COPYRIGHT: Fixed copyright dates for 2008

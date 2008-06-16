@@ -328,37 +328,111 @@ namespace eval xosoap::client {
     }
   }
 
-  HttpTransportProvider instproc deliver {payload requestObject} {
+  #
+  # start_request hook method
+  #
+
+  HttpTransportProvider instproc start_request {payload obj} {
+    my debug "JOB start request $obj"    
+  } 
+
+  #
+  # request_data hook method
+  #
+
+  HttpTransportProvider instproc request_data {payload obj} {
+    my debug "JOB request data $obj [string length $payload]"
+  } 
+
+  #
+  # start_reply hook method
+  #
+
+  HttpTransportProvider instproc start_reply {payload obj} {
+    my debug "JOB start reply $obj"
+  } 
+  
+  #
+  # reply_data hook method
+  #
+
+  HttpTransportProvider instproc reply_data {payload obj} {
+    my debug "JOB reply data $obj [string length $payload]"
+  }
+
+  #
+  # success hook method
+  #
+
+  HttpTransportProvider instproc success {payload obj} {
     my instvar invocationObject
     $invocationObject instvar requestor
     if {[catch {
-      set r [my process $requestObject]
+      set r [my process $obj]
       my debug r=$r
       $invocationObject marshalledResponse $r
     } msg]} {
       # - cleanup - - - - - - 
-      $requestObject destroy
+      $obj destroy
       # - - - - - - - - - - -
       $requestor onFailure \
 	  [::xosoap::exceptions::HttpTransportProviderException new $msg] [self]
     } else {
       # - cleanup - - - - - - 
-      $requestObject destroy
+      $obj destroy
       # - - - - - - - - - - -
       $requestor onSuccess $invocationObject [self]
     }
   }
 
-  HttpTransportProvider instproc done {reason requestObject} {
+  #
+  # failure hook method
+  #
+
+  HttpTransportProvider instproc failure {reason obj} {
     my instvar invocationObject
     $invocationObject instvar requestor
     # - cleanup - - - - - - 
-    $requestObject destroy
+    $obj destroy
     # - - - - - - - - - - -
-    set exception [::xosoap::exceptions::HttpTransportProviderException new $reason]
+    set exception \
+	[::xosoap::exceptions::HttpTransportProviderException new $reason]
     # notify the sink about error condition
     $requestor onFailure $exception [self]
   }
+
+
+#   HttpTransportProvider instproc deliver {payload requestObject} {
+#     my instvar invocationObject
+#     $invocationObject instvar requestor
+#     if {[catch {
+#       set r [my process $requestObject]
+#       my debug r=$r
+#       $invocationObject marshalledResponse $r
+#     } msg]} {
+#       # - cleanup - - - - - - 
+#       $requestObject destroy
+#       # - - - - - - - - - - -
+#       $requestor onFailure \
+# 	  [::xosoap::exceptions::HttpTransportProviderException new $msg] [self]
+#     } else {
+#       # - cleanup - - - - - - 
+#       $requestObject destroy
+#       # - - - - - - - - - - -
+#       $requestor onSuccess $invocationObject [self]
+#     }
+#   }
+
+#   HttpTransportProvider instproc done {reason requestObject} {
+#     my instvar invocationObject
+#     $invocationObject instvar requestor
+#     # - cleanup - - - - - - 
+#     $requestObject destroy
+#     # - - - - - - - - - - -
+#     set exception [::xosoap::exceptions::HttpTransportProviderException new $reason]
+#     # notify the sink about error condition
+#     $requestor onFailure $exception [self]
+#   }
     
   # / / / / / / / / / / / / / / / / /
   # / / / / / / / / / / / / / / / / /
