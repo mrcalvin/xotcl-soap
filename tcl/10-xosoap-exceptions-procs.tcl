@@ -61,9 +61,8 @@ namespace eval ::xosoap::exceptions {
     namespace import -force ::xosoap::marshaller::*
     namespace import -force ::xosoap::visitor::*
     my instvar node
-    set class [namespace tail [my info class]]
     set fcode [expr {[my category] ne {} ? \
-			 "[my category].$class":$class}]
+			 "[my category].[[my info class] faultCode]":[[my info class] faultCode]}]
     # / / / / / / / / / / / / / / /
     # 1) Envelope + SoapFault object
     set env [SoapEnvelope new -nest [subst {
@@ -86,7 +85,9 @@ namespace eval ::xosoap::exceptions {
   # # # # # # # # # # # # # # # # #
   # # # # # # # # # # # # # # # # #
 
-  ::xotcl::Class FaultableException -superclass ReturnableException
+  ::xotcl::Class FaultableException -slots {
+    Attribute faultCode -default {[namespace tail [self]]}
+  } -superclass ReturnableException
 
   FaultableException instproc init args {
     my statusCode 500

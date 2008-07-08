@@ -17,9 +17,7 @@ set all {
 }
 
 
-::xotcl::Object TestRunner -set jobs {
-  ::xosoap::tests::XosoapQuickStartEchoConsumer
-} -proc go {package} {
+::xotcl::Object TestRunner -set jobs $all -proc go {package} {
   my instvar jobs
   $package requireXorb
   $package instvar xorb
