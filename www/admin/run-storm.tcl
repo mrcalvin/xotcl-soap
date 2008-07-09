@@ -10,10 +10,12 @@
   @cvs-id $Id$ 
 }
 
+# 
+
 set all {
-  ::xosoap::tests::HttpEndpoint
-  ::xosoap::tests::SOAPBuildersRound2BaseConsumer
+  ::xosoap::tests::HttpEndpoint 
   ::xosoap::tests::XosoapQuickStartEchoConsumer
+  ::xosoap::tests::SOAPBuildersRound2BaseConsumer
 }
 
 
@@ -27,7 +29,7 @@ set all {
     # 1-) xosoap directory tree?
     # 2-) xorb directory tree?
     set filename [namespace tail $job]
-    lappend paths "[get_server_root]/packages/[$package package_key]/www/admin/storm/${filename}.suite"
+    set paths "[get_server_root]/packages/[$package package_key]/www/admin/storm/${filename}.suite"
     lappend paths "[get_server_root]/packages/[$xorb package_key]/www/admin/storm/${filename}.suite"
     if {![my isobject $job]} {
       foreach path $paths {

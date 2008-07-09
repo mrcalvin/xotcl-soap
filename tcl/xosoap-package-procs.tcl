@@ -210,16 +210,12 @@ namespace eval ::xosoap {
     # - - - - - - - - - - - - - - - 
     # - if get, object present query param present (?)
     if {[::xo::cc isPost]} {
-      if {[$context action] eq ""} {
+      if {![$context isSet SOAPAction]} {
 	error [::xosoap::exceptions::Client::SoapHttpRequestException new \
 		   [subst {
 		     No header field 'SOAPAction' present in 
 		     HTTP post request.
 		   }]]
-	# error [MalformedEndpointException new [subst {
-	# 	  No header field 'SOAPAction' present in 
-	# 	  HTTP post request.
-	# 	}]]
       }
       if {![$context isSet virtualObject]} {
 	error [::xosoap::exceptions::Client::SoapHttpRequestException new \

@@ -577,7 +577,15 @@ namespace eval ::xosoap {
   }
   SoapInformationType instforward action \
       -default {getHttpHeader setHttpHeader} %self %1 SOAPAction 
-  
+
+  #
+  # include httpHeader in isSet operations
+  #
+  SoapInformationType instproc isSet {attribute} {
+    my instvar httpHeader
+    return [expr {[next] || \
+		      [info exists httpHeader($attribute)]}];
+  }
 
   # / / / / / / / / / / / / / / / /
   # `- soap headers
