@@ -957,9 +957,17 @@ As specified for the RPC mode of operation, a single child of type
     my instvar methodArgs
     set bodyNode [$rootNode getElementsByTagName *Body]
     set meNode [$bodyNode firstChild]
+
     my elementNamespace [$meNode prefix]
-    my elementName [$meNode localName]
-    my targetMethod [$meNode localName]
+    #
+    # NOTE: We need to be pre-cautious with
+    # unqualified, local elements (as it is
+    # allowed in non-WSI-compliant RPC style)
+    # 
+    my elementName \
+	[expr {[my elementNamespace] eq ""?\
+		   [$meNode nodeName]:[$meNode localName]}]
+    my targetMethod [my elementName]
     my parseAttributes $meNode
     
     foreach argNode [$meNode childNodes] {
