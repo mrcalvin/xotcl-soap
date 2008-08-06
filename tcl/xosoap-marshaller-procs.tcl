@@ -609,7 +609,6 @@ namespace eval ::xosoap::marshaller {
       }
     }]
     my debug cmd=$cmd
-    #my log ns=$registerNS
     return [eval next $cmd \
 		[list -registerNS $registerNS] \
 		[list -registerEnc $registerEnc]]	
@@ -922,7 +921,6 @@ As specified for the RPC mode of operation, a single child of type
 		 -childof [self] \
 		 -isRoot__ true \
 		 -parse $responseNode]
-    my log ANYTHING=[$any serialize]
     set responseValue $any
   }
 

@@ -21,7 +21,6 @@ namespace eval ::xosoap::exceptions {
    }
   Returnable instproc write {packageObj} {
     next;#log first
-    #my log "---ser=[my serialize]"
     my instvar __message__ node
     set __message__(text/plain) [$node asXML]
     foreach p [[self class] info parameter] {
@@ -31,7 +30,6 @@ namespace eval ::xosoap::exceptions {
 	[my info class] instvar $p
       }
     }
-    #my debug "---vars=[info vars],packageObj=$packageObj"
     set msg "$__message__($contentType)"
     $packageObj $returnCmd $statusCode $contentType $msg
   }

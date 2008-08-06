@@ -52,7 +52,6 @@ namespace eval ::xosoap {
     ns_register_filter preauth $method $filter_url \
 	::xosoap::SoapHttpListener; # SoapHttpListener->preauth
     ns_register_proc $method $suffix ::xosoap::SoapHttpListener redirect
-    my log [subst $msg]	
     # / / / / / / / / / / / / / / / / / / / / / / / / / / / 
     # adding interceptors for GET requests 
     # (requesting WSDL representations of Service Contracts)
@@ -60,7 +59,6 @@ namespace eval ::xosoap {
     ns_register_filter preauth $method $filter_url \
 	::xosoap::SoapHttpListener; # SoapHttpListener->preauth
     ns_register_proc $method $suffix ::xosoap::SoapHttpListener redirect			
-    my log [subst $msg]	
     next;# ProtocolPackage->onMount
   }
   Package instproc onUnmount {} {
