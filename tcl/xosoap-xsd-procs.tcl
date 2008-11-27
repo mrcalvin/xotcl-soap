@@ -33,7 +33,14 @@ namespace eval ::xosoap::xsd {
   # primitive types/ decorators
   # for anything containers
 
+
+
   ::xotcl::Class XsAnything -superclass Anything
+
+  XsAnything proc getElementName {node} {
+    return [expr {[$node prefix] eq ""?[$node nodeName]:[$node localName]}]
+  }
+
   XsAnything instproc parse {node} {
     my instvar __value__ isRoot__ isVoid__
    #my debug n=$node,type=[$node nodeType],xml=[$node asXML]
@@ -69,7 +76,7 @@ namespace eval ::xosoap::xsd {
 	  #incr i
 	  set any [[self class] new \
 		       -childof [self] \
-		       -name__ [$c nodeName] \
+		       -name__ [[self class] getElementName $c] \
 		       -parse $c]
 	  my add -parse true $any
 	}
@@ -402,7 +409,7 @@ namespace eval ::xosoap::xsd {
 	}]
       }
       if {[$reader inCompound]} {
-	return "xsd:element {name $lname type $lname} {}"
+	return "xsd:element {name $name type [my expand=xsType $reader]} {}"
       }
     } -instproc marshal {document node soapElement} {
       my instvar isVoid__
@@ -450,7 +457,7 @@ namespace eval ::xosoap::xsd {
 	}]
       }
       if {[$reader inCompound]} {
-	return "xsd:element {name $lname type $lname} {}"
+	return "xsd:element {name $name type [my expand=xsType $reader]} {}"
       }
     }
   }

@@ -1,3 +1,18 @@
+2008-11-27  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
+
+	* tcl/xosoap-marshaller-procs.tcl (arguments): Parsing invocation
+	arguments was unaware of the DOM-specific way of extracting
+	qualified and unqualified element names. This caused qualified
+	element names turning into invocation argument names, obviously
+	leading to a dispatching error. Thanks, again, to Michael
+	Totschnig for reporting.
+
+	* tcl/xosoap-xsd-procs.tcl (SoapStruct): Fixed erroreneous WSDL
+	generation for nested SOAP structs; previously, namespace prefixes
+	(types) were missing in type attributes and the element and type
+	name were confused. Thanks to Michael Totschnig for reporting and
+	for suggesting a patch.
+
 2008-07-10  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
 
 	* tcl/xosoap-marshaller-procs.tcl (arguments): In RPC, SOAP docs

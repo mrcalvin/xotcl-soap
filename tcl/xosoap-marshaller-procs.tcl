@@ -384,9 +384,6 @@ namespace eval ::xosoap::marshaller {
 
   } {
 
-
-
-    my debug prefix_uri=$prefix_uri
     if {$prefix_uri ne {}} {
       set ns [my resolveNSHandler]
       if {[string first [self] $ns] == -1} {
@@ -395,7 +392,6 @@ namespace eval ::xosoap::marshaller {
 	my namespaceHandler $newNS
 	set ns $newNS
       }
-      my debug ns=$ns,successor=[$ns set successor]
       switch -- [llength $prefix_uri] {
 	1 {set tokens uri}
 	2 {set tokens [list prefix uri]}
@@ -408,9 +404,7 @@ namespace eval ::xosoap::marshaller {
       }
       foreach $tokens $prefix_uri break;
       if {![info exists prefix]} {
-	my debug HERE
 	set documentWideHandler [$ns getFirstHandlerInChain]
-	my debug FIRST=$documentWideHandler
 	set prefix [$documentWideHandler autoname ns]
       }
       $ns add $prefix $uri
@@ -575,8 +569,6 @@ namespace eval ::xosoap::marshaller {
     my elementName "Envelope"
     my elementNamespace "SOAP-ENV"
     my registerNS [list "SOAP-ENV" "http://schemas.xmlsoap.org/soap/envelope/"]
-    #my registerNS -prefix "SOAP-ENV" \
-	#	-uri "http://schemas.xmlsoap.org/soap/envelope/"
   }
 
   SoapEnvelope proc new {
@@ -972,8 +964,9 @@ As specified for the RPC mode of operation, a single child of type
       # / / / / / / / / / / / / / / / / /
       # Introducing 'anythings' as generic
       # type containers/ handlers
+      set en [::xosoap::xsd::XsAnything getElementName $argNode]
       set any [::xosoap::xsd::XsAnything new \
-		   -name__ [$argNode nodeName] \
+		   -name__  $en \
 		   -parse $argNode]
       lappend methodArgs $any
     }
