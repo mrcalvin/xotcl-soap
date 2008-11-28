@@ -1,3 +1,17 @@
+2008-11-28  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
+
+	* tcl/15-xosoap-procs.tcl (InboundRequest/OutboundResponse):
+	Adding more robust namespace handling support; namespace settings
+	(local qualified, local unqualified, and default namespaces) are
+	now preserved for incoming requests and injected into the response
+	documents. This should make up for the poor decoration by
+	interface descriptions, currently available (at least for the time
+	being). Thanks to Michael Totsching for providing an initial
+	patch.
+
+	* tcl/xosoap-marshaller-procs.tcl: Adding parsing support for
+	default namespaces.
+
 2008-11-27  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
 
 	* tcl/xosoap-marshaller-procs.tcl (arguments): Parsing invocation

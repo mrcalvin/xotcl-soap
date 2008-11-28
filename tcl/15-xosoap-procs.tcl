@@ -547,12 +547,36 @@ namespace eval ::xosoap {
   # Type object class for SOAP-
   # specific invocation information
   ::xotcl::Class SoapInformationType -slots {
+    Attribute callNamespace
     Attribute namespaces -multivalued true
     Attribute version -default "1.1"
     Attribute namespaceMap
   } -superclass InvocationInformationType
 
-  
+  SoapInformationType instproc getCallNamespace {} {
+    my instvar callNamespace
+    if {![info exists callNamespace]} return;
+    array set tmp {
+      prefix 	""
+      uri	""
+    }
+    set ns [my getSubstified callNamespace]
+    switch [llength $ns] {
+      1 {
+	# -- default per-element namespace
+	set tmp(uri) $ns
+      }
+      2 {
+	# -- prefixed per-element namespace
+	set tmp(prefix) [lindex $ns 0]
+	set tmp(uri) [lindex $ns 1]
+      }
+      default return;
+    }
+    return [array get tmp]
+  }
+
+
   # / / / / / / / / / / / / / / / /
   # `- namespace mappings
   SoapInformationType instproc mapNamespace {key} {
@@ -665,9 +689,11 @@ namespace eval ::xosoap {
 	    set any [$obj responseValue]
 	  }
 	  set name [string map {Response Return} [$obj elementName]]
+	  set qname [expr {[$obj elementNamespace] ne "" ? \
+			       "[$obj elementNamespace]:$name":$name}]
 	  set anyNode [$__node__ appendChild \
-			   [$xmlDoc createElement $name]]
-	  
+			   [$xmlDoc createElement \
+				$qname]] 
 	  set style [[self class] info parent]
 
 	  # / / / / / / / / / / / / / / /
@@ -720,12 +746,10 @@ namespace eval ::xosoap {
 	-instproc SoapBodyRequest {obj} {
 	  my instvar serviceMethod serviceArgs \
 	      invocationContext
-	  my debug CALL=[$obj elementName]
 	  $invocationContext virtualCall [$obj elementName]
-	  #set tmpArgs ""
-	  #foreach keyvalue [$obj set methodArgs]  {	 
-	  #  append tmpArgs " " "{[lindex $keyvalue 1]}"     
-	  #}     
+	  $invocationContext callNamespace \
+	      [concat [$obj elementNamespace] \
+		   [$obj resolveNS [$obj elementNamespace]]]
 	  $invocationContext virtualArgs [$obj set methodArgs]
 	}
     Class OutboundResponse \
@@ -735,8 +759,18 @@ namespace eval ::xosoap {
 	  # we assume a pre-existing
 	  # SoapBodyResponse element.
 	  my instvar invocationContext
-	  #$obj class ::xosoap::marshaller::SoapBodyResponse
 	  $obj elementName [$invocationContext virtualCall]Response
+	  set ns [$invocationContext getCallNamespace]
+	  if {$ns ne {}} {
+	    array set tmp $ns
+	    $obj elementNamespace $tmp(prefix)
+	    $obj registerNS [list $tmp(prefix) $tmp(uri)]
+	    if {$tmp(prefix) eq {}} {
+	      # -- is default namespace
+	      # -- clear for prefixed namespaces
+	      $obj unregisterNS "m"
+	    } 
+	  }
 	  $obj set style [[self class] info parent]
 	  $obj responseValue [my batch]
 	} \
@@ -848,50 +882,40 @@ namespace eval ::xosoap {
 	    set any [$obj responseValue]
 	  }
 	  set name [string map {Response Return} [$obj elementName]]
+	  set qname [expr {[$obj elementNamespace] ne "" ? \
+			       "[$obj elementNamespace]:$name":$name}]
 	  set anyNode [$__node__ appendChild \
-			   [$xmlDoc createElement $name]]
+			   [$xmlDoc createElement $qname]]
 	  $any marshal $xmlDoc $anyNode $obj
 	}
     Class InboundRequest \
 	-instproc SoapBodyRequest {obj} {
 	  my instvar serviceMethod serviceArgs \
 	      invocationContext
-	  my debug CALL=[$obj elementName]
 	  $invocationContext virtualCall [$obj elementName]
-	  #set tmpArgs ""
-	  #foreach keyvalue [$obj set methodArgs]  {	 
-	  #  append tmpArgs " " "{[lindex $keyvalue 1]}"     
-	  #}     
 	  $invocationContext virtualArgs [$obj set methodArgs]
+	  $invocationContext callNamespace \
+	      [concat [$obj elementNamespace] \
+		   [$obj resolveNS [$obj elementNamespace]]]
 	}
     Class OutboundResponse \
       -instproc SoapBodyResponse {obj} {
 	my instvar invocationContext
-	#$obj class ::xosoap::marshaller::SoapBodyResponse
 	$obj elementName [$invocationContext virtualCall]Response
 	$obj set style [[self class] info parent]
+	set ns [$invocationContext getCallNamespace]
+	if {$ns ne {}} {
+	  array set tmp $ns
+	  $obj elementNamespace $tmp(prefix)
+	  $obj registerNS [list $tmp(prefix) $tmp(uri)]
+	  if {$tmp(prefix) eq {}} {
+	    # -- is default namespace
+	    # -- clear for prefixed namespaces
+	    $obj unregisterNS "m"
+	  } 
+	}
 	$obj responseValue [my batch]
       }
-    # \
-#        -instproc SoapHeader {obj} {
-# 	  my instvar invocationContext
-# 	  set typeObject [$invocationContext informationType]
-# 	  $typeObject instvar context
-# 	  my debug OUTHEADER=[array get context]
-# 	  set fields [list]
-# 	  foreach {qKey value} [array get context] {
-# 	    foreach {key uri} [$typeObject getUnqualifiedKey $qKey] break;
-# 	    append fields [subst {
-# 	      ::xosoap::marshaller::SoapHeaderField new \
-# 		  -elementName $key \
-# 		  -setValue $value $invocationContext \
-# 		  -bindNS $uri
-# 	    }]
-# 	  }
-# 	  if {$fields ne {}} {
-# 	    $obj contains $fields
-# 	  }
-# 	}
     Class OutboundRequest \
 	-instproc SoapBodyRequest {obj} {
 	  my instvar invocationContext

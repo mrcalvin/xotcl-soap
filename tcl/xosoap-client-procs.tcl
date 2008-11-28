@@ -23,7 +23,6 @@ namespace eval xosoap::client {
   # # # # # # # # # # # # # # # # #
 
   ContextObjectClass SoapGlueObject -slots {
-    Attribute callNamespace
     Attribute messageStyle -default ::xosoap::RpcLiteral
   } -instproc init args {
     my protocol ::xosoap::Soap
@@ -83,28 +82,6 @@ namespace eval xosoap::client {
       -clientPlugin ::xosoap::Soap::Client  \
       -set __informationType ::xosoap::SoapInformationType
   SoapGlueObject instforward endpoint %self virtualObject
-  SoapGlueObject instproc getCallNamespace {} {
-    my instvar callNamespace
-    if {![info exists callNamespace]} return;
-    array set tmp {
-      prefix 	""
-      uri	""
-    }
-    set ns [my getSubstified callNamespace]
-    switch [llength $ns] {
-      1 {
-	# -- default per-element namespace
-	set tmp(uri) $ns
-      }
-      2 {
-	# -- prefixed per-element namespace
-	set tmp(prefix) [lindex $ns 0]
-	set tmp(uri) [lindex $ns 1]
-      }
-      default return;
-    }
-    return [array get tmp]
-  }
 
   # # # # # # # # # # # # # # # # #
   # # # # # # # # # # # # # # # # #

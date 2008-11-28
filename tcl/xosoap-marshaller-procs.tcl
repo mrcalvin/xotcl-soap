@@ -529,13 +529,24 @@ namespace eval ::xosoap::marshaller {
     foreach attrib [$node attributes *] {
       # filter namespace declaring attributes and encodingStyle 
       # (see http://groups.yahoo.com/group/tdom/message/317)
+      my debug "*** REGISTER-NS=$attrib"
       if {[llength $attrib] == 3} {
-	if {[string equal [lindex $attrib 0] [lindex $attrib 1]] && \
-		[string equal [lindex $attrib 2] ""]} {
-	  my registerNS [list [lindex $attrib 0] \
-			     [$node getAttribute "xmlns:[lindex $attrib 0]"]]
-	 # my registerNS -prefix [lindex $attrib 0] \
-	  #    -uri [$node getAttribute "xmlns:[lindex $attrib 0]"]
+	if {[lindex $attrib 0] eq [lindex $attrib 1] && \
+		[lindex $attrib 2] eq ""} {
+	  set prefix [lindex $attrib 0]
+	  set nsAttribute "xmlns:$prefix"
+	  my registerNS [list $prefix \
+			     [$node getAttribute $nsAttribute]]
+	} elseif {[lindex $attrib 0] eq "xmlns"} {
+	  #
+	  # handle default namespace properly (i.e. [lindex $attrib 0]
+	  # eq "xmlns")
+	  #
+	  set prefix ""
+	  set nsAttribute "xmlns"
+	  my registerNS [list $prefix \
+			     [$node getAttribute $nsAttribute]]
+	  
 	} elseif {[string equal [lindex $attrib 0] "encodingStyle"]} {
 	  my registerEnc [lindex $attrib 2]
 	} 
