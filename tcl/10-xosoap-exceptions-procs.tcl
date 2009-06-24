@@ -77,6 +77,14 @@ namespace eval ::xosoap::exceptions {
     next
   }
 
+  # Faultable instproc destroy args {
+  #  if {[my exists node]} {
+  #    [my set node] delete
+  #    my unset node
+  #  }
+  #  next
+  #}
+
   # # # # # # # # # # # # # # # # #
   # # # # # # # # # # # # # # # # #
   # # Meta class: FaultableException 

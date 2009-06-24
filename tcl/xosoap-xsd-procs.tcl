@@ -559,6 +559,11 @@ namespace eval ::xosoap::xsd {
   } -superclass ::xotcl::Class
   
   ArrayBuilder instproc init args {
+
+    # / / / / / / / / / / / / / / /
+    # provide for auto-cleanup
+    my destroy_on_cleanup
+
     my instvar type size tagName
     # / / / / / / / / / / / / / / / /
     # TODO recast as XS types or not!

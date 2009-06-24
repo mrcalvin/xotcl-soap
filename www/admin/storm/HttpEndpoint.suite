@@ -32,6 +32,7 @@ namespace eval ::xosoap::tests {
 	  foreach i [::xo::HttpRequest allinstances] {
 	    $i destroy
 	  }
+	  $doc delete
 	}
     ::xorb::storm::TestCase MissingPayload \
 	-setup_script {
@@ -78,6 +79,7 @@ namespace eval ::xosoap::tests {
 	  foreach i [::xo::HttpRequest allinstances] {
 	    $i destroy
 	  }
+	  $doc delete
 	}
   }
 }

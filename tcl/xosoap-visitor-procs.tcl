@@ -72,6 +72,19 @@ namespace eval ::xosoap::visitor {
     @author stefan.sobernig@wu-wien.ac.at
     @creation-date August, 20 2005
 
+  } -instproc init args {
+    my destroy_on_cleanup
+    next
+  }
+
+  SoapMarshallerVisitor instproc destroy args {
+    my instvar xmlDoc
+    if {[info exists xmlDoc] && $xmlDoc ne ""} {
+      # my log "===CLEANING UP [self class] [self]"
+      $xmlDoc delete
+      my unset xmlDoc
+    }
+    next
   }
 
   SoapMarshallerVisitor instproc visit {obj} {

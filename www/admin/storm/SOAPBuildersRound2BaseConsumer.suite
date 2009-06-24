@@ -332,7 +332,7 @@ namespace eval ::xosoap::tests {
 	    -anyType ::xosoap::xsd::XsFloat
       }
       
-      set struct [exampleStruct new]
+      set struct [exampleStruct new -destroy_on_cleanup]
       $struct varString "hello world"
       $struct varInt "42"
       $struct varFloat 0.005
@@ -380,7 +380,7 @@ namespace eval ::xosoap::tests {
       set stringArray [ArrayBuilder new \
 			   -type ::xosoap::xsd::XsString \
 			   -size 2]
-      set i [$stringArray new]
+      set i [$stringArray new -destroy_on_cleanup]
       $i 0 hello
       $i 1 world
 
@@ -428,7 +428,7 @@ namespace eval ::xosoap::tests {
 			   -type ::xosoap::xsd::XsInteger \
 			   -size 2]
 
-      set i [$integerArray new]
+      set i [$integerArray new -destroy_on_cleanup]
       $i 0 100
       $i 1 200
 
@@ -476,7 +476,7 @@ namespace eval ::xosoap::tests {
 			   -type ::xosoap::xsd::XsFloat \
 			   -size 2]
 
-      set i [$floatArray new]
+      set i [$floatArray new -destroy_on_cleanup]
       $i 0 0.00000555
       $i 1 12999.9
     } -contains {
@@ -523,12 +523,12 @@ namespace eval ::xosoap::tests {
 			   -type [exampleStruct self] \
 			   -size 2]
 
-      set i [$structArray new]
-      $i 0 [exampleStruct new \
+      set i [$structArray new -destroy_on_cleanup]
+      $i 0 [exampleStruct new -destroy_on_cleanup \
 		-varInt 42 \
 		-varString "hello world" \
 		-varFloat 0.005]
-      $i 1 [exampleStruct new \
+      $i 1 [exampleStruct new -destroy_on_cleanup \
 		-varInt 42 \
 		-varString "hello world" \
 		-varFloat 0.005]

@@ -22,8 +22,6 @@ namespace eval ::xosoap {
   namespace import -force ::xorb::datatypes::*
   namespace import -force ::xorb::aux::*
  
-
-
   # # # # # # # # # # # # # #
   # # # # # # # # # # # # # #
   # # 1) basic http listener

@@ -1,3 +1,12 @@
+2009-06-24  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
+
+	* Extended and tested the coverage of destroy_on_cleanup
+	registrations throughout the package to keep threaded interpreters
+	(a.k.a. connection threads) pristine. Before, each run-through
+	left a number of zombie objects (~22) and tdom structures
+	behind. Many thanks to Michael Totschnig for pointing me to this
+	issue.
+
 2008-11-28  Stefan Sobernig  <stefan.sobernig@wu-wien.ac.at>
 
 	* tcl/15-xosoap-procs.tcl (InboundRequest/OutboundResponse):

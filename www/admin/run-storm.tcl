@@ -44,7 +44,7 @@ set all {
     }
     $job volatile
     $job run
-    ns_write [$job getReport]
+    ns_write "[::thread::id]\n\n[$job getReport]"
   }
 }
 

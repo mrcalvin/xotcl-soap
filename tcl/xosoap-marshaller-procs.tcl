@@ -562,6 +562,7 @@ namespace eval ::xosoap::marshaller {
   ::xotcl::Class SoapEnvelope -superclass SoapElement -slots {
     Attribute encodingStyle
     Attribute nsEnvelopeVersion
+    Attribute node
   } -ad_doc {
 
     <p>The delegate object for the SOAP-ENV:Envelope element. 
@@ -576,10 +577,26 @@ namespace eval ::xosoap::marshaller {
   }
 
   SoapEnvelope ad_instproc init {} {} {
-
     my elementName "Envelope"
     my elementNamespace "SOAP-ENV"
     my registerNS [list "SOAP-ENV" "http://schemas.xmlsoap.org/soap/envelope/"]
+    
+    # / / / / / / / / / / / / / / / / / /
+    # register for cleanup before
+    # the connection thread's/ interpreter's 
+    # reuse
+    my destroy_on_cleanup
+    
+    next
+  }
+
+  SoapEnvelope instproc destroy args {
+    if {[my exists node]} {
+      #my log "===CLEANING UP [self class] [self]"
+      [[my set node] ownerDocument] delete
+      my unset node
+    }
+    next
   }
 
   SoapEnvelope proc new {
@@ -639,6 +656,8 @@ namespace eval ::xosoap::marshaller {
     @param rootNode The top most or root element of the SOAP/XML \
 	request as tDOM domNode object.
  } {
+    
+    my node $rootNode
     my elementNamespace [$rootNode prefix]
     my elementName [$rootNode localName]
     

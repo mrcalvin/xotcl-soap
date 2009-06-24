@@ -225,6 +225,7 @@ namespace eval xosoap::client {
 			  }]
 	set doc [dom parse $faultMsg]
 	set root [$doc documentElement]
+	my log "===doc $doc, root $root"
 	$envelope parse $root
 	my debug FAULT=[$envelope serialize]
 	# / / / / / / / / / / / / / / / /
